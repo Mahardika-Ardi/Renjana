@@ -1,0 +1,112 @@
+# compiled output
+dist/
+build/
+/dist
+/build
+**/dist
+**/build
+
+# node_modules
+node_modules/
+**/node_modules
+/.pnp
+.pnp
+.pnp.*
+
+# Logs
+logs/
+log/
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Tests
+coverage/
+**/coverage
+/.nyc_output
+
+# IDEs and editors
+.idea/
+.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*.sublime-workspace
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Temp
+.temp/
+.tmp/
+tmp/
+temp/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Yarn & PNPM
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+.pnpm-lock.yaml
+yarn.lock
+
+# Next.js
+.next/
+out/
+**/.next/
+next-env.d.ts
+
+# Production
+/build
+**/build
+
+# Vercel
+.vercel/
+
+# TypeScript
+*.tsbuildinfo
+
+# Turbo
+.turbo/
+.turbo
+
+# Misc
+*.pem
+.DS_Store

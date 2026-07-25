@@ -1,0 +1,27 @@
+{
+  "name": "renjana",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "author": "Renjana",
+  "license": "MIT",
+  "contributors": [
+    {
+      "name": "Mahardika-Ardi",
+      "email": "arfurm198@gmail.com",
+      "url": "https://github.com/Mahardika-Ardi"
+    },
+    {
+      "name": "Yushan2008-alt",
+      "email": "yushan_hakim_33rpl@student.smktelkom-mlg.sch.id",
+      "url": "https://github.com/Yushan2008-alt"
+    }
+  ],
+  "workspaces": [
+    "/apps/backend",
+    "/apps/frontend"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
