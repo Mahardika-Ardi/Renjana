@@ -15,11 +15,16 @@
       "name": "Yushan2008-alt",
       "email": "yushan_hakim_33rpl@student.smktelkom-mlg.sch.id",
       "url": "https://github.com/Yushan2008-alt"
+    },
+    {
+      "name": "arif-tegar",
+      "email": "arif_karim_33rpl@student.smktelkom-mlg.sch.id",
+      "url": "https://github.com/arif-tegar"
     }
   ],
   "workspaces": [
-    "/apps/backend",
-    "/apps/frontend"
+    "apps/*",
+    "packages/*"
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

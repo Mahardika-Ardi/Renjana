@@ -21,6 +21,14 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
-    "types": ["node", "jest"]
-  }
+    "types": ["node", "jest"],
+    "paths": {
+      "@renjana/types": ["../../packages/types/src"],
+      "@renjana/utils": ["../../packages/utils/src"]
+    }
+  },
+  "references": [
+    { "path": "../../packages/types" },
+    { "path": "../../packages/utils" }
+  ]
 }

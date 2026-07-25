@@ -13,13 +13,16 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+    "baseUrl": ".",
     "plugins": [
       {
         "name": "next"
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@renjana/types": ["../../packages/types/src"],
+      "@renjana/utils": ["../../packages/utils/src"]
     }
   },
   "include": [
