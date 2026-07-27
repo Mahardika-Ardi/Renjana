@@ -1,10 +1,8 @@
 {
   "compilerOptions": {
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "resolvePackageJsonExports": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
     "esModuleInterop": true,
-    "isolatedModules": true,
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
@@ -13,8 +11,8 @@
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
+    "rootDir": "./src",
     "baseUrl": "./",
-    "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
@@ -23,12 +21,8 @@
     "noFallthroughCasesInSwitch": false,
     "types": ["node", "jest"],
     "paths": {
-      "@renjana/types": ["../../packages/types/src"],
-      "@renjana/utils": ["../../packages/utils/src"]
+      "@renjana/types": ["../../packages/types/dist"],
+      "@renjana/utils": ["../../packages/utils/dist"]
     }
-  },
-  "references": [
-    { "path": "../../packages/types" },
-    { "path": "../../packages/utils" }
-  ]
+  }
 }
