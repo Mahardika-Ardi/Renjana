@@ -15,7 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Resend } from 'resend';
 import { AuthTokens, AuthUser, JwtPayload } from '@renjana/types';
 import { generateInviteToken } from '@renjana/utils';
-import { RegisterDto, LoginDto } from './dto';
+import { RegisterDto, LoginDto, DeleteAccountDto, DeleteAccountMode } from './dto';
 
 @Injectable()
 export class AuthService {
@@ -42,7 +42,6 @@ export class AuthService {
   async register(dto: RegisterDto) {
     const email = dto.email.toLowerCase().trim();
 
-    // 1. Cek email sudah ada di local database
     const existing = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -52,7 +51,6 @@ export class AuthService {
       );
     }
 
-    // 2. Proxy registrasi ke Supabase Auth (jika dikonfigurasi)
     let supabaseUserId: string | null = null;
     try {
       const supabaseAdmin = this.supabaseService.getAdminClient();
@@ -76,14 +74,12 @@ export class AuthService {
       );
     }
 
-    // 3. Hash password untuk local fallback / DB record
     const passwordHash = await bcrypt.hash(dto.password, this.BCRYPT_ROUNDS);
 
-    // 4. Buat user di PostgreSQL DB via Prisma
     const user = await this.prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
-          id: supabaseUserId ?? undefined, // Sync ID dengan Supabase UUID jika ada
+          id: supabaseUserId ?? undefined,
           email,
           name: dto.name.trim(),
           passwordHash,
@@ -97,14 +93,12 @@ export class AuthService {
       return newUser;
     });
 
-    // 5. Kirim email verifikasi
     this.sendVerificationEmail(user.id, user.email, user.name).catch((err) => {
       this.logger.error(
         `Gagal kirim email verifikasi ke ${user.email}: ${err.message}`,
       );
     });
 
-    // 6. Generate tokens
     const tokens = await this.generateTokens(user.id, user.email);
 
     return {
@@ -120,12 +114,10 @@ export class AuthService {
   async login(dto: LoginDto) {
     const email = dto.email.toLowerCase().trim();
 
-    // 1. Cari user di local DB
     let user = await this.prisma.user.findUnique({
       where: { email, deletedAt: null },
     });
 
-    // 2. Proxy login ke Supabase Auth (jika dikonfigurasi)
     let supabaseAuthSuccess = false;
     try {
       const supabaseClient = this.supabaseService.getClient();
@@ -143,7 +135,6 @@ export class AuthService {
       this.logger.warn(`Supabase Auth login attempt fallback: ${err.message}`);
     }
 
-    // 3. Jika Supabase Auth tidak sukses atau tidak aktif, verifikasi via bcrypt
     if (!supabaseAuthSuccess) {
       if (!user || !user.passwordHash) {
         throw new UnauthorizedException('Email atau password salah.');
@@ -157,7 +148,6 @@ export class AuthService {
         throw new UnauthorizedException('Email atau password salah.');
       }
     } else if (!user) {
-      // User ada di Supabase Auth tapi belum ada di local DB -> sync
       const passwordHash = await bcrypt.hash(dto.password, this.BCRYPT_ROUNDS);
       user = await this.prisma.user.create({
         data: {
@@ -168,13 +158,11 @@ export class AuthService {
       });
     }
 
-    // Update last login timestamp
     await this.prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
 
-    // Generate session tokens
     const tokens = await this.generateTokens(user.id, user.email);
 
     return {
@@ -201,7 +189,6 @@ export class AuthService {
   // ================================================================
 
   async logout(userId: string, refreshToken?: string) {
-    // Sign out di Supabase Auth (jika dikonfigurasi)
     try {
       const supabaseAdmin = this.supabaseService.getAdminClient();
       await supabaseAdmin.auth.admin.signOut(userId);
@@ -222,6 +209,126 @@ export class AuthService {
     }
 
     return { message: 'Berhasil logout' };
+  }
+
+  // ================================================================
+  // DELETE ACCOUNT
+  // ================================================================
+
+  async deleteAccount(userId: string, dto: DeleteAccountDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User tidak ditemukan');
+    }
+
+    if (!user.passwordHash) {
+      throw new BadRequestException(
+        'Akun tidak memiliki password terdaftar untuk verifikasi',
+      );
+    }
+
+    // 1. Verifikasi Password
+    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException(
+        'Password yang dimasukkan salah. Penghapusan akun dibatalkan.',
+      );
+    }
+
+    // 2. Unlink & Nonaktifkan Pasangan (Both Block Accounts / Disconnect Couple)
+    const couple = await this.prisma.couple.findFirst({
+      where: {
+        OR: [{ user1Id: userId }, { user2Id: userId }],
+        isActive: true,
+      },
+    });
+
+    if (couple) {
+      const partnerId =
+        couple.user1Id === userId ? couple.user2Id : couple.user1Id;
+
+      await this.prisma.couple.update({
+        where: { id: couple.id },
+        data: {
+          isActive: false,
+          disconnectedAt: new Date(),
+        },
+      });
+
+      if (partnerId) {
+        await this.prisma.notification
+          .create({
+            data: {
+              userId: partnerId,
+              type: 'GOAL_PROGRESS',
+              title: 'Pasangan Mengakhiri Sesi / Hapus Akun',
+              body: 'Pasangan Anda telah menghapus/menonaktifkan akunnya. Hubungan couple Anda otomatis terputus.',
+            },
+          })
+          .catch(() => {});
+      }
+    }
+
+    const mode = dto.mode ?? DeleteAccountMode.HARD;
+
+    if (mode === DeleteAccountMode.SOFT) {
+      // --- SOFT DELETE ---
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { deletedAt: new Date() },
+      });
+
+      await this.prisma.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+
+      this.logger.log(`User ${userId} soft deleted / deactivated successfully.`);
+
+      return {
+        message: 'Akun Anda berhasil dinonaktifkan (Soft Delete). Pasangan telah otomatis di-unlink.',
+      };
+    } else {
+      // --- HARD DELETE ---
+      await this.prisma.$transaction(async (tx) => {
+        await tx.couple.deleteMany({
+          where: { OR: [{ user1Id: userId }, { user2Id: userId }] },
+        });
+
+        await tx.coupleInvite.deleteMany({
+          where: { senderId: userId },
+        });
+
+        await tx.streakLog.deleteMany({ where: { userId } });
+        await tx.score360.deleteMany({ where: { userId } });
+        await tx.weeklyCheckin.deleteMany({ where: { userId } });
+        await tx.individualGoalProgress.deleteMany({ where: { userId } });
+        await tx.todoItem.deleteMany({ where: { creatorId: userId } });
+
+        await tx.user.delete({
+          where: { id: userId },
+        });
+      });
+
+      try {
+        const supabaseAdmin = this.supabaseService.getAdminClient();
+        await supabaseAdmin.auth.admin.deleteUser(userId);
+      } catch (err: any) {
+        this.logger.warn(
+          `Gagal menghapus user dari Supabase Auth: ${err.message}`,
+        );
+      }
+
+      this.logger.log(`User ${userId} permanently hard deleted.`);
+
+      return {
+        message:
+          'Akun Anda dan seluruh data pribadi telah berhasil dihapus secara permanen. Pasangan telah di-unlink.',
+      };
+    }
   }
 
   // ================================================================
@@ -272,7 +379,6 @@ export class AuthService {
       if (user.isEmailVerified)
         return { message: 'Email sudah terverifikasi sebelumnya' };
 
-      // Update di local DB & Supabase Auth
       await this.prisma.user.update({
         where: { id: payload.sub },
         data: { isEmailVerified: true, emailVerifiedAt: new Date() },
@@ -357,7 +463,6 @@ export class AuthService {
         data: { passwordHash },
       });
 
-      // Update password di Supabase Auth
       try {
         const supabaseAdmin = this.supabaseService.getAdminClient();
         await supabaseAdmin.auth.admin.updateUserById(payload.sub, {

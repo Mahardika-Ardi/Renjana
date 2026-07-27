@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Body,
   UseGuards,
   HttpCode,
@@ -22,10 +23,10 @@ import {
   VerifyEmailDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  DeleteAccountDto,
 } from './dto';
 import { JwtRefreshGuard } from '../../shared/guards';
 import { Public, CurrentUser } from '../../shared/decorators';
-import type { User } from '@prisma/client';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -106,6 +107,25 @@ export class AuthController {
   @ApiOperation({ summary: 'Logout dari semua device' })
   async logoutAll(@CurrentUser() user: any) {
     return this.authService.logout(user.id);
+  }
+
+  // ── Delete Account ──────────────────────────────────────────
+  @Delete('account')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Hapus / Nonaktifkan akun sendiri dengan verifikasi password',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Akun berhasil dihapus / dinonaktifkan',
+  })
+  @ApiResponse({ status: 401, description: 'Password yang dimasukkan salah' })
+  async deleteAccount(
+    @CurrentUser() user: any,
+    @Body() dto: DeleteAccountDto,
+  ) {
+    return this.authService.deleteAccount(user.id, dto);
   }
 
   // ── Verify Email ────────────────────────────────────────────
