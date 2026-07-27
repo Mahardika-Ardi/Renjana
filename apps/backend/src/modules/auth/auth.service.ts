@@ -15,7 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Resend } from 'resend';
 import { AuthTokens, AuthUser, JwtPayload } from '@renjana/types';
 import { generateInviteToken } from '@renjana/utils';
-import { RegisterDto, LoginDto, DeleteAccountDto, DeleteAccountMode } from './dto';
+import { RegisterDto, LoginDto, DeleteAccountDto } from './dto';
 
 @Injectable()
 export class AuthService {
@@ -25,6 +25,7 @@ export class AuthService {
   private readonly REFRESH_TOKEN_EXPIRES_DAYS = 7;
   private readonly EMAIL_VERIFY_TOKEN_EXPIRES_HOURS = 24;
   private readonly BCRYPT_ROUNDS = 12;
+  private readonly ACCOUNT_DELETION_GRACE_DAYS = 30;
 
   constructor(
     private prisma: PrismaService,
@@ -108,16 +109,36 @@ export class AuthService {
   }
 
   // ================================================================
-  // LOGIN
+  // LOGIN (With Auto-Restore for 30-Day Soft-Deleted Accounts)
   // ================================================================
 
   async login(dto: LoginDto) {
     const email = dto.email.toLowerCase().trim();
 
+    // 1. Cari user (termasuk yang soft-deleted)
     let user = await this.prisma.user.findUnique({
-      where: { email, deletedAt: null },
+      where: { email },
     });
 
+    // 2. Jika user sedang dalam status soft-deleted, cek grace period 30 hari
+    let isAccountRestored = false;
+    if (user && user.deletedAt) {
+      const gracePeriodExpiry = new Date(user.deletedAt);
+      gracePeriodExpiry.setDate(
+        gracePeriodExpiry.getDate() + this.ACCOUNT_DELETION_GRACE_DAYS,
+      );
+
+      if (new Date() > gracePeriodExpiry) {
+        throw new UnauthorizedException(
+          'Masa tenggang 30 hari pemulihan akun telah berakhir. Akun ini tidak dapat diakses lagi.',
+        );
+      }
+
+      // Restore akun secara otomatis
+      isAccountRestored = true;
+    }
+
+    // 3. Proxy login ke Supabase Auth
     let supabaseAuthSuccess = false;
     try {
       const supabaseClient = this.supabaseService.getClient();
@@ -135,6 +156,7 @@ export class AuthService {
       this.logger.warn(`Supabase Auth login attempt fallback: ${err.message}`);
     }
 
+    // 4. Verifikasi password via bcrypt jika Supabase auth tidak aktif / fallback
     if (!supabaseAuthSuccess) {
       if (!user || !user.passwordHash) {
         throw new UnauthorizedException('Email atau password salah.');
@@ -158,16 +180,34 @@ export class AuthService {
       });
     }
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
+    // 5. Eksekusi Restore jika tadinya soft-deleted & update last login
+    if (isAccountRestored) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { deletedAt: null, lastLoginAt: new Date() },
+      });
+      this.logger.log(
+        `User ${user.id} (${email}) restored their account during 30-day grace period.`,
+      );
+    } else {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      });
+    }
 
+    // Generate tokens
     const tokens = await this.generateTokens(user.id, user.email);
 
     return {
-      user: this.formatUser(user),
-      tokens,
+      message: isAccountRestored
+        ? 'Selamat datang kembali! Akun Anda berhasil dipulihkan dari jadwal penghapusan. Catatan: Koneksi pasangan perlu di-invite ulang.'
+        : 'Berhasil login',
+      data: {
+        user: this.formatUser(user),
+        tokens,
+        isAccountRestored,
+      },
     };
   }
 
@@ -212,7 +252,7 @@ export class AuthService {
   }
 
   // ================================================================
-  // DELETE ACCOUNT
+  // DELETE ACCOUNT (30-Day Grace Period Soft Delete)
   // ================================================================
 
   async deleteAccount(userId: string, dto: DeleteAccountDto) {
@@ -231,14 +271,17 @@ export class AuthService {
     }
 
     // 1. Verifikasi Password
-    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException(
         'Password yang dimasukkan salah. Penghapusan akun dibatalkan.',
       );
     }
 
-    // 2. Unlink & Nonaktifkan Pasangan (Both Block Accounts / Disconnect Couple)
+    // 2. Langsung Unlink Pasangan (Disconnect Couple & Notifikasi Partner)
     const couple = await this.prisma.couple.findFirst({
       where: {
         OR: [{ user1Id: userId }, { user2Id: userId }],
@@ -264,71 +307,46 @@ export class AuthService {
             data: {
               userId: partnerId,
               type: 'GOAL_PROGRESS',
-              title: 'Pasangan Mengakhiri Sesi / Hapus Akun',
-              body: 'Pasangan Anda telah menghapus/menonaktifkan akunnya. Hubungan couple Anda otomatis terputus.',
+              title: 'Koneksi Pasangan Terputus',
+              body: 'Pasangan Anda telah mengajukan penghapusan akun. Hubungan couple Anda otomatis terputus dan status Anda kembali single.',
             },
           })
           .catch(() => {});
       }
     }
 
-    const mode = dto.mode ?? DeleteAccountMode.HARD;
+    // 3. Mark Soft Delete & Hitung Tanggal Expiry (30 hari dari sekarang)
+    const now = new Date();
+    const hardDeleteDate = new Date(now);
+    hardDeleteDate.setDate(hardDeleteDate.getDate() + this.ACCOUNT_DELETION_GRACE_DAYS);
 
-    if (mode === DeleteAccountMode.SOFT) {
-      // --- SOFT DELETE ---
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { deletedAt: new Date() },
-      });
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { deletedAt: now },
+    });
 
-      await this.prisma.refreshToken.updateMany({
-        where: { userId, revokedAt: null },
-        data: { revokedAt: new Date() },
-      });
+    // 4. Revoke seluruh refresh token (force logout di semua perangkat)
+    await this.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
 
-      this.logger.log(`User ${userId} soft deleted / deactivated successfully.`);
-
-      return {
-        message: 'Akun Anda berhasil dinonaktifkan (Soft Delete). Pasangan telah otomatis di-unlink.',
-      };
-    } else {
-      // --- HARD DELETE ---
-      await this.prisma.$transaction(async (tx) => {
-        await tx.couple.deleteMany({
-          where: { OR: [{ user1Id: userId }, { user2Id: userId }] },
-        });
-
-        await tx.coupleInvite.deleteMany({
-          where: { senderId: userId },
-        });
-
-        await tx.streakLog.deleteMany({ where: { userId } });
-        await tx.score360.deleteMany({ where: { userId } });
-        await tx.weeklyCheckin.deleteMany({ where: { userId } });
-        await tx.individualGoalProgress.deleteMany({ where: { userId } });
-        await tx.todoItem.deleteMany({ where: { creatorId: userId } });
-
-        await tx.user.delete({
-          where: { id: userId },
-        });
-      });
-
-      try {
-        const supabaseAdmin = this.supabaseService.getAdminClient();
-        await supabaseAdmin.auth.admin.deleteUser(userId);
-      } catch (err: any) {
-        this.logger.warn(
-          `Gagal menghapus user dari Supabase Auth: ${err.message}`,
-        );
-      }
-
-      this.logger.log(`User ${userId} permanently hard deleted.`);
-
-      return {
-        message:
-          'Akun Anda dan seluruh data pribadi telah berhasil dihapus secara permanen. Pasangan telah di-unlink.',
-      };
+    // 5. Sign out dari Supabase Auth
+    try {
+      const supabaseAdmin = this.supabaseService.getAdminClient();
+      await supabaseAdmin.auth.admin.signOut(userId);
+    } catch {
+      // ignore
     }
+
+    this.logger.log(
+      `User ${userId} requested account deletion. Soft deleted until hard cleanup on ${hardDeleteDate.toISOString()}`,
+    );
+
+    return {
+      message: `Akun Anda berhasil dijadwalkan untuk dihapus secara permanen pada ${hardDeleteDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} (masa tenggang 30 hari). Pasangan Anda telah di-unlink. Jika Anda login kembali sebelum tanggal tersebut, akun Anda akan otomatis dipulihkan.`,
+      scheduledHardDeleteDate: hardDeleteDate,
+    };
   }
 
   // ================================================================

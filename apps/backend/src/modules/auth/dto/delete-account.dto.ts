@@ -1,10 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsEnum, IsOptional } from 'class-validator';
-
-export enum DeleteAccountMode {
-  HARD = 'HARD',
-  SOFT = 'SOFT',
-}
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class DeleteAccountDto {
   @ApiProperty({
@@ -16,11 +11,10 @@ export class DeleteAccountDto {
   password: string;
 
   @ApiPropertyOptional({
-    description: 'Mode penghapusan: HARD (hapus total permanen) atau SOFT (deaktivasi)',
-    enum: DeleteAccountMode,
-    default: DeleteAccountMode.HARD,
+    description: 'Alasan penghapusan akun (opsional untuk feedback)',
+    example: 'Ingin istirahat dari aplikasi',
   })
   @IsOptional()
-  @IsEnum(DeleteAccountMode, { message: 'Mode hapus akun harus HARD atau SOFT' })
-  mode?: DeleteAccountMode = DeleteAccountMode.HARD;
+  @IsString()
+  reason?: string;
 }
