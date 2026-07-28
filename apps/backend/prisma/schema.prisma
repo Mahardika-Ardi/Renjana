@@ -1,0 +1,599 @@
+// ================================================================
+// RENJANA — Prisma Schema
+// Database: Supabase PostgreSQL
+// ================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+// ================================================================
+// ENUMS
+// ================================================================
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum RelationshipStatus {
+  DATING
+  ENGAGED
+  MARRIED
+  LONG_DISTANCE
+}
+
+enum MoodValue {
+  VERY_BAD    // 1
+  BAD         // 2
+  NEUTRAL     // 3
+  GOOD        // 4
+  VERY_GOOD   // 5
+}
+
+enum TodoCategory {
+  HOME
+  ERRANDS
+  SOCIAL
+  PLANS
+  FINANCES
+  OTHER
+}
+
+enum TodoStatus {
+  PENDING
+  COMPLETED
+}
+
+enum EmotionDumpStatus {
+  PRIVATE
+  REFINED
+  SHARED
+}
+
+enum CheckinStatus {
+  DRAFT
+  COMPLETED
+}
+
+enum GoalPeriod {
+  SIX_MONTHS
+  YEARLY
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+
+enum NotificationType {
+  PARTNER_CHECKIN
+  EMOTION_SHARED
+  WEEKLY_REMINDER
+  STREAK_MILESTONE
+  MONTHLY_RECAP_READY
+  GOAL_PROGRESS
+}
+
+// ================================================================
+// USER & AUTH
+// ================================================================
+
+model User {
+  id              String    @id @default(uuid()) @db.Uuid
+  email           String    @unique
+  name            String
+  avatarUrl       String?   @map("avatar_url")
+  bio             String?
+  gender          Gender?
+  birthDate       DateTime? @map("birth_date") @db.Date
+  timezone        String    @default("Asia/Jakarta")
+  
+  // Auth
+  passwordHash    String?   @map("password_hash")
+  isEmailVerified Boolean   @default(false) @map("is_email_verified")
+  emailVerifiedAt DateTime? @map("email_verified_at")
+  lastLoginAt     DateTime? @map("last_login_at")
+  
+  // Settings
+  weeklyCheckinDay    Int     @default(0) @map("weekly_checkin_day") // 0=Sun, 1=Mon, ..., 6=Sat
+  weeklyCheckinTime   String  @default("19:00") @map("weekly_checkin_time")
+  pushNotifEnabled    Boolean @default(true) @map("push_notif_enabled")
+  emailNotifEnabled   Boolean @default(true) @map("email_notif_enabled")
+  
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  // Relations
+  coupleAsUser1   Couple?   @relation("User1")
+  coupleAsUser2   Couple?   @relation("User2")
+  invitesSent     CoupleInvite[] @relation("InviteSender")
+  
+  moodLogs        MoodLog[]
+  habitTemplates  HabitTemplate[]
+  habitLogs       HabitLog[]
+  journalEntries  JournalEntry[]
+  emotionDumps    EmotionDump[]
+  
+  todoItems       TodoItem[] @relation("TodoCreator")
+  
+  checkins        WeeklyCheckin[]
+  scores360       Score360[]
+  
+  individualGoals IndividualGoal[]
+  goalProgress    IndividualGoalProgress[]
+  
+  streakLogs      StreakLog[]
+  notifications   Notification[]
+  
+  refreshTokens   RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  token       String    @unique
+  userId      String    @map("user_id") @db.Uuid
+  expiresAt   DateTime  @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  revokedAt   DateTime? @map("revoked_at")
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ================================================================
+// COUPLE CONNECTION
+// ================================================================
+
+model Couple {
+  id                String            @id @default(uuid()) @db.Uuid
+  user1Id           String            @unique @map("user1_id") @db.Uuid
+  user2Id           String            @unique @map("user2_id") @db.Uuid
+  
+  relationshipStatus RelationshipStatus @default(DATING) @map("relationship_status")
+  anniversaryDate   DateTime?         @map("anniversary_date") @db.Date
+  togetherSince     DateTime?         @map("together_since") @db.Date
+  
+  currentPeriodStart DateTime         @default(now()) @map("current_period_start")
+  currentPeriodType  GoalPeriod       @default(SIX_MONTHS) @map("current_period_type")
+  
+  isActive          Boolean           @default(true) @map("is_active")
+  disconnectedAt    DateTime?         @map("disconnected_at")
+  
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  user1             User              @relation("User1", fields: [user1Id], references: [id])
+  user2             User              @relation("User2", fields: [user2Id], references: [id])
+  
+  todos             TodoItem[]
+  streak            Streak?
+  weeklyCheckins    WeeklyCheckin[]
+  monthlyRecaps     MonthlyRecap[]
+  periodRecaps      PeriodRecap[]
+  jointGoals        JointGoal[]
+  milestones        Milestone[]
+
+  @@map("couples")
+}
+
+model CoupleInvite {
+  id          String    @id @default(uuid()) @db.Uuid
+  senderId    String    @map("sender_id") @db.Uuid
+  token       String    @unique
+  email       String?   // target email jika invite via email
+  expiresAt   DateTime  @map("expires_at")
+  usedAt      DateTime? @map("used_at")
+  
+  sender      User      @relation("InviteSender", fields: [senderId], references: [id])
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("couple_invites")
+}
+
+// ================================================================
+// DAILY LAYER — Mood
+// ================================================================
+
+model MoodLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  mood        MoodValue
+  intensity   Int       @default(3) // 1-5
+  notes       String?
+  tags        String[]  @default([])
+  logDate     DateTime  @map("log_date") @db.Date
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, logDate])
+  @@map("mood_logs")
+}
+
+// ================================================================
+// DAILY LAYER — Habit / Behavior Tracking
+// ================================================================
+
+model HabitTemplate {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  name        String
+  emoji       String?
+  isActive    Boolean   @default(true) @map("is_active")
+  sortOrder   Int       @default(0) @map("sort_order")
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs        HabitLog[]
+
+  @@map("habit_templates")
+}
+
+model HabitLog {
+  id              String        @id @default(uuid()) @db.Uuid
+  userId          String        @map("user_id") @db.Uuid
+  habitTemplateId String        @map("habit_template_id") @db.Uuid
+  isCompleted     Boolean       @default(false) @map("is_completed")
+  logDate         DateTime      @map("log_date") @db.Date
+  
+  createdAt       DateTime      @default(now()) @map("created_at")
+  
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habitTemplate   HabitTemplate @relation(fields: [habitTemplateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, habitTemplateId, logDate])
+  @@map("habit_logs")
+}
+
+// ================================================================
+// DAILY LAYER — Private Journal
+// ================================================================
+
+model JournalEntry {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  content     String
+  tags        String[]  @default([])
+  entryDate   DateTime  @map("entry_date") @db.Date
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("journal_entries")
+}
+
+// ================================================================
+// DAILY LAYER — Emotion Dump
+// ================================================================
+
+model EmotionDump {
+  id              String            @id @default(uuid()) @db.Uuid
+  userId          String            @map("user_id") @db.Uuid
+  rawContent      String            @map("raw_content")
+  refinedContent  String?           @map("refined_content")
+  aiProcessedAt   DateTime?         @map("ai_processed_at")
+  status          EmotionDumpStatus @default(PRIVATE)
+  sharedAt        DateTime?         @map("shared_at")
+  weekNumber      Int               @map("week_number")  // ISO week number
+  weekYear        Int               @map("week_year")
+  
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("emotion_dumps")
+}
+
+// ================================================================
+// DAILY LAYER — Shared To-do
+// ================================================================
+
+model TodoItem {
+  id          String        @id @default(uuid()) @db.Uuid
+  coupleId    String        @map("couple_id") @db.Uuid
+  creatorId   String        @map("creator_id") @db.Uuid
+  title       String
+  description String?
+  category    TodoCategory  @default(OTHER)
+  status      TodoStatus    @default(PENDING)
+  dueDate     DateTime?     @map("due_date") @db.Date
+  completedAt DateTime?     @map("completed_at")
+  
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  
+  couple      Couple        @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  creator     User          @relation("TodoCreator", fields: [creatorId], references: [id])
+
+  @@map("todo_items")
+}
+
+// ================================================================
+// DAILY LAYER — Streak
+// ================================================================
+
+model Streak {
+  id              String    @id @default(uuid()) @db.Uuid
+  coupleId        String    @unique @map("couple_id") @db.Uuid
+  currentStreak   Int       @default(0) @map("current_streak")
+  longestStreak   Int       @default(0) @map("longest_streak")
+  lastEngagedAt   DateTime? @map("last_engaged_at")
+  
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  couple          Couple    @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  logs            StreakLog[]
+
+  @@map("streaks")
+}
+
+model StreakLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  streakId    String    @map("streak_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  engagedDate DateTime  @map("engaged_date") @db.Date
+  
+  streak      Streak    @relation(fields: [streakId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@unique([streakId, userId, engagedDate])
+  @@map("streak_logs")
+}
+
+// ================================================================
+// WEEKLY LAYER — Check-in
+// ================================================================
+
+model WeeklyCheckin {
+  id              String          @id @default(uuid()) @db.Uuid
+  coupleId        String          @map("couple_id") @db.Uuid
+  userId          String          @map("user_id") @db.Uuid
+  weekNumber      Int             @map("week_number")
+  weekYear        Int             @map("week_year")
+  status          CheckinStatus   @default(DRAFT)
+  
+  // Reflections
+  weekHighlight   String?         @map("week_highlight")
+  weekChallenge   String?         @map("week_challenge")
+  nextWeekFocus   String?         @map("next_week_focus")
+  gratitudeNote   String?         @map("gratitude_note")
+  
+  // Wins
+  relationshipWin String?         @map("relationship_win")
+  personalWin     String?         @map("personal_win")
+  
+  // Commitments (dari week sebelumnya — review)
+  commitmentReview String?        @map("commitment_review")
+  
+  // Next week commitment
+  nextCommitment  String?         @map("next_commitment")
+  
+  completedAt     DateTime?       @map("completed_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  
+  couple          Couple          @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id])
+  scores360       Score360[]
+
+  @@unique([coupleId, userId, weekNumber, weekYear])
+  @@map("weekly_checkins")
+}
+
+// ================================================================
+// WEEKLY LAYER — 360 Scoring
+// ================================================================
+
+model Score360 {
+  id              String        @id @default(uuid()) @db.Uuid
+  weeklyCheckinId String        @map("weekly_checkin_id") @db.Uuid
+  userId          String        @map("user_id") @db.Uuid
+  
+  // Self scores (1-10)
+  communicationSelf   Int @map("communication_self")
+  intimacySelf        Int @map("intimacy_self")
+  supportSelf         Int @map("support_self")
+  funSelf             Int @map("fun_self")
+  effortSelf          Int @map("effort_self")
+  
+  // Perceived partner scores (what I think partner scores themselves)
+  communicationPerceived  Int @map("communication_perceived")
+  intimacyPerceived       Int @map("intimacy_perceived")
+  supportPerceived        Int @map("support_perceived")
+  funPerceived            Int @map("fun_perceived")
+  effortPerceived         Int @map("effort_perceived")
+  
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  
+  checkin         WeeklyCheckin @relation(fields: [weeklyCheckinId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id])
+
+  @@unique([weeklyCheckinId, userId])
+  @@map("scores_360")
+}
+
+// ================================================================
+// MONTHLY LAYER — Recap
+// ================================================================
+
+model MonthlyRecap {
+  id              String    @id @default(uuid()) @db.Uuid
+  coupleId        String    @map("couple_id") @db.Uuid
+  month           Int       // 1-12
+  year            Int
+  
+  // Summary stats (generated)
+  avgMoodUser1    Float?    @map("avg_mood_user1")
+  avgMoodUser2    Float?    @map("avg_mood_user2")
+  habitRateUser1  Float?    @map("habit_rate_user1")  // percentage
+  habitRateUser2  Float?    @map("habit_rate_user2")
+  peakStreakDays  Int?      @map("peak_streak_days")
+  checkinCount    Int?      @map("checkin_count")
+  
+  // AI narrative
+  aiSummary       String?   @map("ai_summary")
+  highlights      String[]  @default([])
+  
+  isGenerated     Boolean   @default(false) @map("is_generated")
+  generatedAt     DateTime? @map("generated_at")
+  
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  couple          Couple    @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+
+  @@unique([coupleId, month, year])
+  @@map("monthly_recaps")
+}
+
+// ================================================================
+// LONG-TERM LAYER — Period Recap (6-month / Yearly)
+// ================================================================
+
+model PeriodRecap {
+  id              String      @id @default(uuid()) @db.Uuid
+  coupleId        String      @map("couple_id") @db.Uuid
+  periodType      GoalPeriod  @map("period_type")
+  periodStart     DateTime    @map("period_start") @db.Date
+  periodEnd       DateTime    @map("period_end") @db.Date
+  
+  // Stats
+  totalEngagementDays Int?    @map("total_engagement_days")
+  longestStreak       Int?    @map("longest_streak")
+  goalsCompleted      Int?    @map("goals_completed")
+  
+  // AI narrative (wrapped-style)
+  aiNarrative     String?     @map("ai_narrative")
+  keyStats        Json?       @map("key_stats")
+  shareableData   Json?       @map("shareable_data")  // sanitized untuk social share
+  
+  isGenerated     Boolean     @default(false) @map("is_generated")
+  generatedAt     DateTime?   @map("generated_at")
+  
+  createdAt       DateTime    @default(now()) @map("created_at")
+  
+  couple          Couple      @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+
+  @@unique([coupleId, periodStart])
+  @@map("period_recaps")
+}
+
+// ================================================================
+// LONG-TERM LAYER — Goals
+// ================================================================
+
+model JointGoal {
+  id          String      @id @default(uuid()) @db.Uuid
+  coupleId    String      @map("couple_id") @db.Uuid
+  title       String
+  description String?
+  category    String?     // travel, communication, finances, etc.
+  periodType  GoalPeriod  @map("period_type")
+  status      GoalStatus  @default(ACTIVE)
+  targetDate  DateTime?   @map("target_date") @db.Date
+  completedAt DateTime?   @map("completed_at")
+  
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  couple      Couple      @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+
+  @@map("joint_goals")
+}
+
+model IndividualGoal {
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String      @map("user_id") @db.Uuid
+  title       String
+  description String?
+  category    String?
+  periodType  GoalPeriod  @map("period_type")
+  status      GoalStatus  @default(ACTIVE)
+  targetDate  DateTime?   @map("target_date") @db.Date
+  completedAt DateTime?   @map("completed_at")
+  
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  progress    IndividualGoalProgress[]
+
+  @@map("individual_goals")
+}
+
+model IndividualGoalProgress {
+  id          String        @id @default(uuid()) @db.Uuid
+  goalId      String        @map("goal_id") @db.Uuid
+  userId      String        @map("user_id") @db.Uuid
+  note        String?
+  progressPct Int           @default(0) @map("progress_pct")  // 0-100
+  
+  createdAt   DateTime      @default(now()) @map("created_at")
+  
+  goal        IndividualGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id])
+
+  @@map("individual_goal_progress")
+}
+
+// ================================================================
+// MILESTONES & BADGES
+// ================================================================
+
+model Milestone {
+  id          String    @id @default(uuid()) @db.Uuid
+  coupleId    String    @map("couple_id") @db.Uuid
+  type        String    // streak_30, first_360_close, goal_complete, anniversary, etc.
+  label       String
+  description String?
+  achievedAt  DateTime  @map("achieved_at") @default(now())
+  metadata    Json?
+  
+  couple      Couple    @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+
+  @@map("milestones")
+}
+
+// ================================================================
+// NOTIFICATIONS
+// ================================================================
+
+model Notification {
+  id          String            @id @default(uuid()) @db.Uuid
+  userId      String            @map("user_id") @db.Uuid
+  type        NotificationType
+  title       String
+  body        String?
+  isRead      Boolean           @default(false) @map("is_read")
+  readAt      DateTime?         @map("read_at")
+  metadata    Json?
+  
+  createdAt   DateTime          @default(now()) @map("created_at")
+  
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}

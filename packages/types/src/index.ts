@@ -1,0 +1,63 @@
+// ================================================================
+// @renjana/types — Auth Types
+// Shared between frontend & backend
+// ================================================================
+
+// ---- JWT Payload -----------------------------------------------
+export interface JwtPayload {
+  sub: string;      // user id
+  email: string;
+  iat?: number;
+  exp?: number;
+}
+
+export interface JwtRefreshPayload extends JwtPayload {
+  refreshToken: string;
+}
+
+// ---- Auth Responses --------------------------------------------
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number; // seconds
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl: string | null;
+  isEmailVerified: boolean;
+  coupleId: string | null;
+  partnerId: string | null;
+}
+
+export interface LoginResponse {
+  user: AuthUser;
+  tokens: AuthTokens;
+}
+
+export interface RegisterResponse {
+  user: AuthUser;
+  tokens: AuthTokens;
+}
+
+// ---- API Response Wrapper --------------------------------------
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  message: string;
+  data?: T;
+  error?: string;
+  statusCode: number;
+}
+
+// ---- Couple Types ----------------------------------------------
+export interface CoupleInfo {
+  id: string;
+  partnerId: string;
+  partnerName: string;
+  partnerAvatarUrl: string | null;
+  relationshipStatus: string;
+  togetherSince: string | null;
+  currentStreak: number;
+}
