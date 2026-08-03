@@ -3,6 +3,6 @@ export {
   jwtConfig,
   supabaseConfig,
   openaiConfig,
-  resendConfig,
+  mailConfig,
   throttleConfig,
 } from './app.config';

@@ -26,10 +26,12 @@ export const openaiConfig = registerAs('openai', () => ({
   model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
 }));
 
-export const resendConfig = registerAs('resend', () => ({
-  apiKey: process.env.RESEND_API_KEY || '',
-  fromEmail: process.env.RESEND_FROM_EMAIL || 'noreply@renjana.app',
-  fromName: process.env.RESEND_FROM_NAME || 'Renjana',
+export const mailConfig = registerAs('mail', () => ({
+  host: process.env.MAIL_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.MAIL_PORT || '587', 10),
+  user: process.env.MAIL_USERNAME || '',
+  pass: process.env.MAIL_PASSWORD || '',
+  fromName: process.env.MAIL_FROM_NAME || 'Renjana',
 }));
 
 export const throttleConfig = registerAs('throttle', () => ({
