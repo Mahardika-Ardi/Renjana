@@ -10,9 +10,9 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database';
 import { SupabaseService } from '../../infrastructure/supabase';
+import { MailService } from '../../infrastructure/mail';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
-import { Resend } from 'resend';
 import { AuthTokens, AuthUser, JwtPayload } from '@renjana/types';
 import { generateInviteToken } from '@renjana/utils';
 import { RegisterDto, LoginDto, DeleteAccountDto } from './dto';
@@ -20,7 +20,6 @@ import { RegisterDto, LoginDto, DeleteAccountDto } from './dto';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private readonly resend: Resend;
 
   private readonly REFRESH_TOKEN_EXPIRES_DAYS = 7;
   private readonly EMAIL_VERIFY_TOKEN_EXPIRES_HOURS = 24;
@@ -32,9 +31,8 @@ export class AuthService {
     private jwtService: JwtService,
     private config: ConfigService,
     private supabaseService: SupabaseService,
-  ) {
-    this.resend = new Resend(config.get<string>('resend.apiKey'));
-  }
+    private mailService: MailService,
+  ) {}
 
   // ================================================================
   // REGISTER
@@ -115,12 +113,10 @@ export class AuthService {
   async login(dto: LoginDto) {
     const email = dto.email.toLowerCase().trim();
 
-    // 1. Cari user (termasuk yang soft-deleted)
     let user = await this.prisma.user.findUnique({
       where: { email },
     });
 
-    // 2. Jika user sedang dalam status soft-deleted, cek grace period 30 hari
     let isAccountRestored = false;
     if (user && user.deletedAt) {
       const gracePeriodExpiry = new Date(user.deletedAt);
@@ -134,11 +130,9 @@ export class AuthService {
         );
       }
 
-      // Restore akun secara otomatis
       isAccountRestored = true;
     }
 
-    // 3. Proxy login ke Supabase Auth
     let supabaseAuthSuccess = false;
     try {
       const supabaseClient = this.supabaseService.getClient();
@@ -156,7 +150,6 @@ export class AuthService {
       this.logger.warn(`Supabase Auth login attempt fallback: ${err.message}`);
     }
 
-    // 4. Verifikasi password via bcrypt jika Supabase auth tidak aktif / fallback
     if (!supabaseAuthSuccess) {
       if (!user || !user.passwordHash) {
         throw new UnauthorizedException('Email atau password salah.');
@@ -180,7 +173,6 @@ export class AuthService {
       });
     }
 
-    // 5. Eksekusi Restore jika tadinya soft-deleted & update last login
     if (isAccountRestored) {
       await this.prisma.user.update({
         where: { id: user.id },
@@ -196,7 +188,6 @@ export class AuthService {
       });
     }
 
-    // Generate tokens
     const tokens = await this.generateTokens(user.id, user.email);
 
     return {
@@ -270,7 +261,6 @@ export class AuthService {
       );
     }
 
-    // 1. Verifikasi Password
     const isPasswordValid = await bcrypt.compare(
       dto.password,
       user.passwordHash,
@@ -281,7 +271,6 @@ export class AuthService {
       );
     }
 
-    // 2. Langsung Unlink Pasangan (Disconnect Couple & Notifikasi Partner)
     const couple = await this.prisma.couple.findFirst({
       where: {
         OR: [{ user1Id: userId }, { user2Id: userId }],
@@ -315,7 +304,6 @@ export class AuthService {
       }
     }
 
-    // 3. Mark Soft Delete & Hitung Tanggal Expiry (30 hari dari sekarang)
     const now = new Date();
     const hardDeleteDate = new Date(now);
     hardDeleteDate.setDate(hardDeleteDate.getDate() + this.ACCOUNT_DELETION_GRACE_DAYS);
@@ -325,13 +313,11 @@ export class AuthService {
       data: { deletedAt: now },
     });
 
-    // 4. Revoke seluruh refresh token (force logout di semua perangkat)
     await this.prisma.refreshToken.updateMany({
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
 
-    // 5. Sign out dari Supabase Auth
     try {
       const supabaseAdmin = this.supabaseService.getAdminClient();
       await supabaseAdmin.auth.admin.signOut(userId);
@@ -367,8 +353,7 @@ export class AuthService {
     const frontendUrl = this.config.get<string>('app.frontendUrl');
     const verifyUrl = `${frontendUrl}/verify-email?token=${verifyToken}`;
 
-    await this.resend.emails.send({
-      from: `${this.config.get('resend.fromName')} <${this.config.get('resend.fromEmail')}>`,
+    await this.mailService.sendMail({
       to: email,
       subject: 'Verifikasi Email Kamu — Renjana',
       html: this.buildVerifyEmailHtml(name, verifyUrl),
@@ -447,8 +432,7 @@ export class AuthService {
     const frontendUrl = this.config.get<string>('app.frontendUrl');
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-    await this.resend.emails.send({
-      from: `${this.config.get('resend.fromName')} <${this.config.get('resend.fromEmail')}>`,
+    await this.mailService.sendMail({
       to: user.email,
       subject: 'Reset Password — Renjana',
       html: this.buildResetPasswordHtml(user.name, resetUrl),

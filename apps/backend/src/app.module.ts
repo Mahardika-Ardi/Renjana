@@ -8,6 +8,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database';
 import { SupabaseModule } from './infrastructure/supabase';
+import { MailModule } from './infrastructure/mail';
 import { AuthModule } from './modules/auth';
 import { JwtAuthGuard } from './shared/guards';
 import { ResponseInterceptor } from './shared/interceptors';
@@ -17,7 +18,7 @@ import {
   jwtConfig,
   supabaseConfig,
   openaiConfig,
-  resendConfig,
+  mailConfig,
   throttleConfig,
 } from './config';
 
@@ -31,7 +32,7 @@ import {
         jwtConfig,
         supabaseConfig,
         openaiConfig,
-        resendConfig,
+        mailConfig,
         throttleConfig,
       ],
       envFilePath: ['.env.local', '.env'],
@@ -51,6 +52,7 @@ import {
     // --- Database & Infrastructure (Global) ---
     DatabaseModule,
     SupabaseModule,
+    MailModule,
 
     // --- Feature Modules ---
     AuthModule,
