@@ -1,0 +1,33 @@
+# node_modules
+node_modules/
+**/node_modules
+/.pnp
+.pnp
+.pnp.*
+
+# compiled output
+dist/
+build/
+/dist
+/build
+**/dist
+**/build
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Next.js
+.next/
+out/
+**/.next/
+next-env.d.ts
+
+# Tests
+coverage/
+**/coverage
+/.nyc_output

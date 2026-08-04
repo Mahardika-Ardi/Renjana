@@ -36,9 +36,9 @@ async function bootstrap() {
   // ── Validation ───────────────────────────────────────────────
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,         // strip unknown fields
+      whitelist: true, // strip unknown fields
       forbidNonWhitelisted: true,
-      transform: true,          // auto-transform payloads to DTO classes
+      transform: true, // auto-transform payloads to DTO classes
       transformOptions: {
         enableImplicitConversion: true,
       },
@@ -63,16 +63,15 @@ async function bootstrap() {
         persistAuthorization: true,
       },
     });
-
-    console.log(
-      `📚 Swagger docs available at http://localhost:${process.env.PORT ?? 3001}/api/docs`,
-    );
   }
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
 
   console.log(`🚀 Renjana Backend running on http://localhost:${port}/api/v1`);
+  console.log(
+    `📚 Swagger docs available at http://localhost:${process.env.PORT ?? 3001}/api/docs`,
+  );
 }
 
 bootstrap();

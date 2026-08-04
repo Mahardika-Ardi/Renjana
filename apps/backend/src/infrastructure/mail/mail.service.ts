@@ -55,7 +55,9 @@ export class MailService {
         html: options.html,
       });
 
-      this.logger.log(`Email berhasil dikirim ke ${options.to} (ID: ${info.messageId})`);
+      this.logger.log(
+        `Email berhasil dikirim ke ${options.to} (ID: ${info.messageId})`,
+      );
       return true;
     } catch (err: any) {
       this.logger.error(
