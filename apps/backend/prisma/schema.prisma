@@ -275,12 +275,14 @@ model JournalEntry {
   content     String
   tags        String[]  @default([])
   entryDate   DateTime  @map("entry_date") @db.Date
+  isShared    Boolean   @default(false) @map("is_shared")
   
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, entryDate])
   @@map("journal_entries")
 }
 
@@ -304,6 +306,7 @@ model EmotionDump {
   
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, weekNumber, weekYear])
   @@map("emotion_dumps")
 }
 

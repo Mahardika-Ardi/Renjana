@@ -9,7 +9,10 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './database';
 import { SupabaseModule } from './infrastructure/supabase';
 import { MailModule } from './infrastructure/mail';
+import { AiModule } from './shared/ai';
 import { AuthModule } from './modules/auth';
+import { JournalModule } from './modules/journal';
+import { EmotionDumpModule } from './modules/emotion-dump';
 import { JwtAuthGuard } from './shared/guards';
 import { ResponseInterceptor } from './shared/interceptors';
 import { AllExceptionsFilter } from './shared/filters';
@@ -53,9 +56,12 @@ import {
     DatabaseModule,
     SupabaseModule,
     MailModule,
+    AiModule,
 
     // --- Feature Modules ---
     AuthModule,
+    JournalModule,
+    EmotionDumpModule,
   ],
   controllers: [AppController],
   providers: [
