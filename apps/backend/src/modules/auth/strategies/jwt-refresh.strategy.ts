@@ -5,9 +5,10 @@ import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { PrismaService } from '../../../database';
 import { JwtRefreshPayload } from '@renjana/types';
+import { REFRESH_TOKEN_COOKIE } from '../auth-cookies';
 
 /**
- * JwtRefreshStrategy — validates refresh token
+ * JwtRefreshStrategy — validates refresh token from httpOnly cookie
  */
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(
@@ -20,8 +21,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
   ) {
     const opts: StrategyOptionsWithRequest = {
       jwtFromRequest: ExtractJwt.fromExtractors([
-        (req: Request) => req?.body?.refreshToken ?? null,
-        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        (req: Request) => req?.cookies?.[REFRESH_TOKEN_COOKIE] ?? null,
       ]),
       ignoreExpiration: false,
       secretOrKey:
@@ -32,7 +32,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
   }
 
   async validate(req: Request, payload: JwtRefreshPayload) {
-    const refreshToken: string = req.body?.refreshToken;
+    const refreshToken: string = req.cookies?.[REFRESH_TOKEN_COOKIE];
 
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token tidak ditemukan');

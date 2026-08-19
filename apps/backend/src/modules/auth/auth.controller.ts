@@ -4,6 +4,8 @@ import {
   Get,
   Delete,
   Body,
+  Req,
+  Res,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -12,14 +14,14 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiBearerAuth,
+  ApiCookieAuth,
 } from '@nestjs/swagger';
+import { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
   LoginDto,
-  RefreshTokenDto,
   VerifyEmailDto,
   ForgotPasswordDto,
   ResetPasswordDto,
@@ -27,6 +29,12 @@ import {
 } from './dto';
 import { JwtRefreshGuard } from '../../shared/guards';
 import { Public, CurrentUser } from '../../shared/decorators';
+import {
+  REFRESH_TOKEN_COOKIE,
+  setAuthCookies,
+  clearAuthCookies,
+  cookieOptions,
+} from './auth-cookies';
 
 type user = {
   id: string;
@@ -48,9 +56,13 @@ export class AuthController {
   @ApiOperation({ summary: 'Daftar akun baru' })
   @ApiResponse({ status: 201, description: 'Berhasil daftar' })
   @ApiResponse({ status: 409, description: 'Email sudah terdaftar' })
-  async register(@Body() dto: RegisterDto) {
+  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.register(dto);
-    return result;
+    setAuthCookies(res, result.tokens, cookieOptions());
+    return {
+      message: 'Berhasil daftar! Cek email kamu untuk verifikasi.',
+      data: { user: result.user },
+    };
   }
 
   // ── Login ───────────────────────────────────────────────────
@@ -61,9 +73,16 @@ export class AuthController {
   @ApiOperation({ summary: 'Login dengan email & password' })
   @ApiResponse({ status: 200, description: 'Berhasil login' })
   @ApiResponse({ status: 401, description: 'Email atau password salah' })
-  async login(@Body() dto: LoginDto) {
+  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto);
-    return result;
+    setAuthCookies(res, result.data.tokens, cookieOptions());
+    return {
+      message: result.message,
+      data: {
+        user: result.data.user,
+        isAccountRestored: result.data.isAccountRestored,
+      },
+    };
   }
 
   // ── Refresh Token ───────────────────────────────────────────
@@ -71,44 +90,59 @@ export class AuthController {
   @UseGuards(JwtRefreshGuard)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Refresh access token menggunakan refresh token' })
+  @ApiOperation({ summary: 'Refresh access token menggunakan refresh token cookie' })
   @ApiResponse({ status: 200, description: 'Token berhasil di-refresh' })
   @ApiResponse({ status: 401, description: 'Refresh token tidak valid' })
-  async refresh(@CurrentUser() user: user, @Body() dto: RefreshTokenDto) {
+  async refresh(
+    @CurrentUser() user: any,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const tokens = await this.authService.refresh(
       user.id,
       user.email,
       dto.refreshToken,
     );
-    return {
-      message: 'Token berhasil di-refresh',
-      data: tokens,
-    };
+    setAuthCookies(res, tokens, cookieOptions());
+    return { message: 'Token berhasil di-refresh', data: null };
   }
 
   // ── Logout ──────────────────────────────────────────────────
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('access-token')
+  @ApiCookieAuth('renjana_access')
   @ApiOperation({ summary: 'Logout (revoke refresh token)' })
   @ApiResponse({ status: 200, description: 'Berhasil logout' })
-  async logout(@CurrentUser() user: user, @Body() dto: RefreshTokenDto) {
-    return this.authService.logout(user.id, dto.refreshToken);
+  async logout(
+    @CurrentUser() user: any,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE] as
+      | string
+      | undefined;
+    const result = await this.authService.logout(user.id, refreshToken);
+    clearAuthCookies(res, cookieOptions());
+    return result;
   }
 
   // ── Logout All Devices ──────────────────────────────────────
   @Post('logout-all')
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('access-token')
+  @ApiCookieAuth('renjana_access')
   @ApiOperation({ summary: 'Logout dari semua device' })
-  async logoutAll(@CurrentUser() user: user) {
-    return this.authService.logout(user.id);
+  async logoutAll(
+    @CurrentUser() user: any,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.logout(user.id);
+    clearAuthCookies(res, cookieOptions());
+    return result;
   }
 
   // ── Delete Account ──────────────────────────────────────────
   @Delete('account')
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('access-token')
+  @ApiCookieAuth('renjana_access')
   @ApiOperation({
     summary: 'Hapus / Nonaktifkan akun sendiri dengan verifikasi password',
   })
@@ -120,8 +154,11 @@ export class AuthController {
   async deleteAccount(
     @CurrentUser() user: user,
     @Body() dto: DeleteAccountDto,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.deleteAccount(user.id, dto);
+    const result = await this.authService.deleteAccount(user.id, dto);
+    clearAuthCookies(res, cookieOptions());
+    return result;
   }
 
   // ── Verify Email ────────────────────────────────────────────
@@ -137,7 +174,7 @@ export class AuthController {
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 3, ttl: 300_000 } })
-  @ApiBearerAuth('access-token')
+  @ApiCookieAuth('renjana_access')
   @ApiOperation({ summary: 'Kirim ulang email verifikasi' })
   async resendVerification(@CurrentUser() user: user) {
     if (user.isEmailVerified) {
@@ -166,13 +203,18 @@ export class AuthController {
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password dengan token dari email' })
-  async resetPassword(@Body() dto: ResetPasswordDto) {
-    return this.authService.resetPassword(dto.token, dto.newPassword);
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.resetPassword(dto.token, dto.newPassword);
+    clearAuthCookies(res, cookieOptions());
+    return result;
   }
 
   // ── Get Current User (me) ───────────────────────────────────
   @Get('me')
-  @ApiBearerAuth('access-token')
+  @ApiCookieAuth('renjana_access')
   @ApiOperation({ summary: 'Get current user profile & couple info' })
   @ApiResponse({ status: 200, description: 'Data user berhasil diambil' })
   async getMe(@CurrentUser() user: user) {
@@ -184,7 +226,7 @@ export class AuthController {
 
   // ── Generate Invite Code ────────────────────────────────────
   @Post('invite')
-  @ApiBearerAuth('access-token')
+  @ApiCookieAuth('renjana_access')
   @ApiOperation({ summary: 'Generate kode invite untuk pasangan' })
   async generateInvite(@CurrentUser() user: user) {
     const result = await this.authService.generateInviteCode(user.id);
@@ -192,5 +234,15 @@ export class AuthController {
       message: 'Kode invite berhasil dibuat. Berlaku 7 hari.',
       data: result,
     };
+  }
+
+  // ── SSE Realtime Ticket ──────────────────────────────────────
+  @Post('sse-ticket')
+  @ApiCookieAuth('renjana_access')
+  @ApiOperation({ summary: 'Dapatkan 15s single-use ticket untuk koneksi SSE' })
+  @ApiResponse({ status: 201, description: 'Ticket SSE berhasil dibuat' })
+  async getSseTicket(@CurrentUser() user: any) {
+    const data = await this.authService.issueSseTicket(user.id);
+    return { message: 'Ticket SSE berhasil dibuat (TTL: 15 detik)', data };
   }
 }

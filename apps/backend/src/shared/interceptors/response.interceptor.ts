@@ -4,7 +4,8 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
-import { ApiResponse } from '@renjana/types';
+import { Reflector } from '@nestjs/core';
+import { SSE_METADATA } from '@nestjs/common/constants';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -13,14 +14,26 @@ interface ControllerResponse<T> {
   data: T;
 }
 @Injectable()
-export class ResponseInterceptor<T> implements NestInterceptor<
-  T | ControllerResponse<T>,
-  ApiResponse<T>
-> {
+export class ResponseInterceptor<T>
+  implements NestInterceptor<T, ApiResponse<T>>
+{
+  constructor(private readonly reflector: Reflector) {}
+
   intercept(
-    _context: ExecutionContext,
-    next: CallHandler<T | ControllerResponse<T>>,
-  ): Observable<ApiResponse<T>> | Promise<Observable<ApiResponse<T>>> {
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<ApiResponse<T>> {
+    // Skip wrapping for SSE responses (@Sse route)
+    const isSse = this.reflector.get<boolean, string>(
+      SSE_METADATA,
+      context.getHandler(),
+    );
+    if (isSse) {
+      return next.handle() as Observable<ApiResponse<T>>;
+    }
+
+    const response = context.switchToHttp().getResponse();
+
     return next.handle().pipe(
       map((response): ApiResponse<T> => {
         if (this.isControllerResponse(response)) {
