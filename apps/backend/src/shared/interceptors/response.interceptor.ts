@@ -1,53 +1,51 @@
 import {
+  CallHandler,
+  ExecutionContext,
   Injectable,
   NestInterceptor,
-  ExecutionContext,
-  CallHandler,
 } from '@nestjs/common';
+import { ApiResponse } from '@renjana/types';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ApiResponse } from '@renjana/types';
 
-/**
- * ResponseInterceptor — wrap semua response dalam format standar ApiResponse
- *
- * Output:
- * {
- *   success: true,
- *   message: "...",
- *   data: { ... },
- *   statusCode: 200
- * }
- */
+interface ControllerResponse<T> {
+  message?: string;
+  data: T;
+}
 @Injectable()
-export class ResponseInterceptor<T>
-  implements NestInterceptor<T, ApiResponse<T>>
-{
+export class ResponseInterceptor<T> implements NestInterceptor<
+  T | ControllerResponse<T>,
+  ApiResponse<T>
+> {
   intercept(
-    context: ExecutionContext,
-    next: CallHandler,
-  ): Observable<ApiResponse<T>> {
-    const response = context.switchToHttp().getResponse();
-
+    _context: ExecutionContext,
+    next: CallHandler<T | ControllerResponse<T>>,
+  ): Observable<ApiResponse<T>> | Promise<Observable<ApiResponse<T>>> {
     return next.handle().pipe(
-      map((data) => {
-        // Kalau controller return objek dengan `message` & `data`, pakai itu
-        if (data && typeof data === 'object' && 'data' in data) {
+      map((response): ApiResponse<T> => {
+        if (this.isControllerResponse(response)) {
           return {
             success: true,
-            statusCode: response.statusCode,
-            message: data.message ?? 'Success',
-            data: data.data,
-          } as ApiResponse<T>;
+            message: response.message ?? 'Request successful',
+            data: response.data,
+            timestamp: new Date().toISOString(),
+          };
         }
 
         return {
           success: true,
-          statusCode: response.statusCode,
-          message: 'Success',
-          data,
-        } as ApiResponse<T>;
+          message: 'Request successful',
+          data: response,
+          timestamp: new Date().toISOString(),
+        };
       }),
+    );
+  }
+  private isControllerResponse<T>(
+    response: T | ControllerResponse<T>,
+  ): response is ControllerResponse<T> {
+    return (
+      response !== null && typeof response === 'object' && 'data' in response
     );
   }
 }

@@ -9,17 +9,21 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@renjana/types": "*",
+    "@renjana/utils": "*",
+    "lucide-react": "^1.30.0",
+    "motion": "^13.1.0",
     "next": "16.2.11",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "@renjana/types": "*",
-    "@renjana/utils": "*"
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.185.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
     "tailwindcss": "^4",

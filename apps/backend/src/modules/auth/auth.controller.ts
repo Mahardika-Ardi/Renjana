@@ -28,6 +28,14 @@ import {
 import { JwtRefreshGuard } from '../../shared/guards';
 import { Public, CurrentUser } from '../../shared/decorators';
 
+type user = {
+  id: string;
+  name: string;
+  email: string;
+  refreshToken: string;
+  isEmailVerified: boolean;
+};
+
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -42,10 +50,7 @@ export class AuthController {
   @ApiResponse({ status: 409, description: 'Email sudah terdaftar' })
   async register(@Body() dto: RegisterDto) {
     const result = await this.authService.register(dto);
-    return {
-      message: 'Berhasil daftar! Cek email kamu untuk verifikasi.',
-      data: result,
-    };
+    return result;
   }
 
   // ── Login ───────────────────────────────────────────────────
@@ -58,10 +63,7 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Email atau password salah' })
   async login(@Body() dto: LoginDto) {
     const result = await this.authService.login(dto);
-    return {
-      message: 'Berhasil login',
-      data: result,
-    };
+    return result;
   }
 
   // ── Refresh Token ───────────────────────────────────────────
@@ -72,14 +74,11 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh access token menggunakan refresh token' })
   @ApiResponse({ status: 200, description: 'Token berhasil di-refresh' })
   @ApiResponse({ status: 401, description: 'Refresh token tidak valid' })
-  async refresh(
-    @CurrentUser() user: any,
-    @Body() _dto: RefreshTokenDto,
-  ) {
+  async refresh(@CurrentUser() user: user, @Body() dto: RefreshTokenDto) {
     const tokens = await this.authService.refresh(
       user.id,
       user.email,
-      user.refreshToken,
+      dto.refreshToken,
     );
     return {
       message: 'Token berhasil di-refresh',
@@ -93,10 +92,7 @@ export class AuthController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Logout (revoke refresh token)' })
   @ApiResponse({ status: 200, description: 'Berhasil logout' })
-  async logout(
-    @CurrentUser() user: any,
-    @Body() dto: RefreshTokenDto,
-  ) {
+  async logout(@CurrentUser() user: user, @Body() dto: RefreshTokenDto) {
     return this.authService.logout(user.id, dto.refreshToken);
   }
 
@@ -105,7 +101,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Logout dari semua device' })
-  async logoutAll(@CurrentUser() user: any) {
+  async logoutAll(@CurrentUser() user: user) {
     return this.authService.logout(user.id);
   }
 
@@ -122,7 +118,7 @@ export class AuthController {
   })
   @ApiResponse({ status: 401, description: 'Password yang dimasukkan salah' })
   async deleteAccount(
-    @CurrentUser() user: any,
+    @CurrentUser() user: user,
     @Body() dto: DeleteAccountDto,
   ) {
     return this.authService.deleteAccount(user.id, dto);
@@ -143,11 +139,15 @@ export class AuthController {
   @Throttle({ default: { limit: 3, ttl: 300_000 } })
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Kirim ulang email verifikasi' })
-  async resendVerification(@CurrentUser() user: any) {
+  async resendVerification(@CurrentUser() user: user) {
     if (user.isEmailVerified) {
       return { message: 'Email sudah terverifikasi' };
     }
-    await this.authService.sendVerificationEmail(user.id, user.email, user.name);
+    await this.authService.sendVerificationEmail(
+      user.id,
+      user.email,
+      user.name,
+    );
     return { message: 'Email verifikasi berhasil dikirim ulang' };
   }
 
@@ -175,7 +175,7 @@ export class AuthController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get current user profile & couple info' })
   @ApiResponse({ status: 200, description: 'Data user berhasil diambil' })
-  async getMe(@CurrentUser() user: any) {
+  async getMe(@CurrentUser() user: user) {
     return {
       message: 'Data user berhasil diambil',
       data: await this.authService.getMe(user.id),
@@ -186,7 +186,7 @@ export class AuthController {
   @Post('invite')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Generate kode invite untuk pasangan' })
-  async generateInvite(@CurrentUser() user: any) {
+  async generateInvite(@CurrentUser() user: user) {
     const result = await this.authService.generateInviteCode(user.id);
     return {
       message: 'Kode invite berhasil dibuat. Berlaku 7 hari.',
