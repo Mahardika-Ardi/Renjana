@@ -4,11 +4,15 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database';
+import { StreakService } from '../streak';
 import { CreateJournalDto, UpdateJournalDto } from './dto';
 
 @Injectable()
 export class JournalService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private streakService: StreakService,
+  ) {}
 
   /**
    * Buat entry jurnal baru untuk user aktif
@@ -16,7 +20,7 @@ export class JournalService {
   async create(userId: string, dto: CreateJournalDto) {
     const entryDate = dto.entryDate ? new Date(dto.entryDate) : new Date();
 
-    return this.prisma.journalEntry.create({
+    const entry = await this.prisma.journalEntry.create({
       data: {
         userId,
         content: dto.content,
@@ -25,6 +29,11 @@ export class JournalService {
         isShared: dto.isShared ?? false,
       },
     });
+
+    // Fire-and-forget log engagement for streak calculation
+    this.streakService.logEngagement(userId).catch(() => {});
+
+    return entry;
   }
 
   /**

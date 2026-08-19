@@ -5,13 +5,17 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database';
+import { StreakService } from '../streak';
 import { EmotionDumpStatus } from '@prisma/client';
 import { getISOWeek } from '@renjana/utils';
 import { CreateEmotionDumpDto, UpdateEmotionDumpDto } from './dto';
 
 @Injectable()
 export class EmotionDumpService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private streakService: StreakService,
+  ) {}
 
   /**
    * State machine validator for EmotionDump lifecycle
@@ -47,7 +51,7 @@ export class EmotionDumpService {
     const now = new Date();
     const { week: weekNumber, year: weekYear } = getISOWeek(now);
 
-    return this.prisma.emotionDump.create({
+    const dump = await this.prisma.emotionDump.create({
       data: {
         userId,
         rawContent: dto.rawContent,
@@ -56,6 +60,11 @@ export class EmotionDumpService {
         weekYear,
       },
     });
+
+    // Fire-and-forget log engagement for streak calculation
+    this.streakService.logEngagement(userId).catch(() => {});
+
+    return dump;
   }
 
   /**

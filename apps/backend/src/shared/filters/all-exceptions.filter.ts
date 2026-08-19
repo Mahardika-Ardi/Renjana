@@ -39,13 +39,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
       if (typeof exResponse === 'string') {
         message = exResponse;
+        error = this.getHttpErrorName(statusCode);
       } else if (typeof exResponse === 'object' && exResponse !== null) {
         const exObj = exResponse as Record<string, unknown>;
         // ValidationPipe throws array of messages
         message = Array.isArray(exObj.message)
           ? (exObj.message as string[]).join(', ')
           : (exObj.message as string) ?? message;
-        error = (exObj.error as string) ?? error;
+        error = (exObj.error as string) ?? this.getHttpErrorName(statusCode);
       }
     } else if (exception instanceof Error) {
       message = exception.message;
@@ -60,5 +61,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
       path: request.url,
       timestamp: new Date().toISOString(),
     });
+  }
+
+  private getHttpErrorName(statusCode: number): string {
+    const name: string = HttpStatus[statusCode] ?? 'Unknown Error';
+    return name
+      .toLowerCase()
+      .split('_')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
   }
 }

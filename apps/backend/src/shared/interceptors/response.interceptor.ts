@@ -4,6 +4,8 @@ import {
   ExecutionContext,
   CallHandler,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { SSE_METADATA } from '@nestjs/common/constants';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ApiResponse } from '@renjana/types';
@@ -23,10 +25,21 @@ import { ApiResponse } from '@renjana/types';
 export class ResponseInterceptor<T>
   implements NestInterceptor<T, ApiResponse<T>>
 {
+  constructor(private readonly reflector: Reflector) {}
+
   intercept(
     context: ExecutionContext,
     next: CallHandler,
   ): Observable<ApiResponse<T>> {
+    // Skip wrapping for SSE responses (@Sse route)
+    const isSse = this.reflector.get<boolean, string>(
+      SSE_METADATA,
+      context.getHandler(),
+    );
+    if (isSse) {
+      return next.handle() as Observable<ApiResponse<T>>;
+    }
+
     const response = context.switchToHttp().getResponse();
 
     return next.handle().pipe(

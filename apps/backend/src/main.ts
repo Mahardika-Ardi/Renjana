@@ -51,8 +51,9 @@ async function bootstrap() {
       .setTitle('Renjana API')
       .setDescription('LifebyDesign Couple — Backend API Documentation')
       .setVersion('1.0')
-      .addBearerAuth(
-        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      .addCookieAuth(
+        'renjana_access',
+        { type: 'apiKey', in: 'cookie', name: 'renjana_access' },
         'access-token',
       )
       .build();

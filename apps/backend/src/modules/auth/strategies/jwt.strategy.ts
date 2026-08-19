@@ -4,9 +4,10 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../database';
 import { JwtPayload } from '@renjana/types';
+import { ACCESS_TOKEN_COOKIE } from '../auth-cookies';
 
 /**
- * JwtStrategy — validates access token & loads full user dari DB
+ * JwtStrategy — validates access token from httpOnly cookie & loads full user dari DB
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -16,7 +17,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   ) {
     const secret = config.get<string>('jwt.secret') || 'fallback-secret-key';
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        (req: any) => req?.cookies?.[ACCESS_TOKEN_COOKIE] ?? null,
+      ]),
       ignoreExpiration: false,
       secretOrKey: secret,
     });
