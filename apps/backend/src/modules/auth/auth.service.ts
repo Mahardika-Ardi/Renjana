@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -26,6 +27,12 @@ export class AuthService {
   private readonly BCRYPT_ROUNDS = 12;
   private readonly ACCOUNT_DELETION_GRACE_DAYS = 30;
 
+  // ponytail: In-memory store for 15s single-use SSE connection tickets
+  private readonly sseTickets = new Map<
+    string,
+    { userId: string; coupleId: string; exp: number }
+  >();
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -33,6 +40,57 @@ export class AuthService {
     private supabaseService: SupabaseService,
     private mailService: MailService,
   ) {}
+
+  // ================================================================
+  // SSE TICKET
+  // ================================================================
+
+  async issueSseTicket(userId: string) {
+    const couple = await this.prisma.couple.findFirst({
+      where: {
+        OR: [{ user1Id: userId }, { user2Id: userId }],
+        isActive: true,
+      },
+    });
+
+    if (!couple) {
+      throw new ForbiddenException(
+        'Kamu belum terhubung dengan pasangan untuk realtime connection',
+      );
+    }
+
+    const ticket = uuidv4();
+    const ttlMs = 15_000;
+    this.sseTickets.set(ticket, {
+      userId,
+      coupleId: couple.id,
+      exp: Date.now() + ttlMs,
+    });
+
+    setTimeout(() => this.sseTickets.delete(ticket), ttlMs);
+
+    return { ticket, expiresIn: 15 };
+  }
+
+  validateAndConsumeSseTicket(ticket: string): {
+    userId: string;
+    coupleId: string;
+  } {
+    if (!ticket) {
+      throw new UnauthorizedException('Ticket SSE diperlukan');
+    }
+
+    const entry = this.sseTickets.get(ticket);
+    if (!entry || entry.exp < Date.now()) {
+      this.sseTickets.delete(ticket);
+      throw new UnauthorizedException(
+        'Ticket SSE tidak valid atau sudah kadaluarsa',
+      );
+    }
+
+    this.sseTickets.delete(ticket);
+    return { userId: entry.userId, coupleId: entry.coupleId };
+  }
 
   // ================================================================
   // REGISTER

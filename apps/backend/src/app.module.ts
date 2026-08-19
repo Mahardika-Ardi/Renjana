@@ -9,10 +9,13 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './database';
 import { SupabaseModule } from './infrastructure/supabase';
 import { MailModule } from './infrastructure/mail';
+import { SseModule } from './infrastructure/sse';
 import { AiModule } from './shared/ai';
 import { AuthModule } from './modules/auth';
 import { JournalModule } from './modules/journal';
 import { EmotionDumpModule } from './modules/emotion-dump';
+import { StreakModule } from './modules/streak';
+import { TodoModule } from './modules/todo';
 import { JwtAuthGuard } from './shared/guards';
 import { ResponseInterceptor } from './shared/interceptors';
 import { AllExceptionsFilter } from './shared/filters';
@@ -56,12 +59,15 @@ import {
     DatabaseModule,
     SupabaseModule,
     MailModule,
+    SseModule,
     AiModule,
 
     // --- Feature Modules ---
     AuthModule,
     JournalModule,
     EmotionDumpModule,
+    StreakModule,
+    TodoModule,
   ],
   controllers: [AppController],
   providers: [

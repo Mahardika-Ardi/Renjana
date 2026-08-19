@@ -4,7 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class VerifyEmailDto {
   @ApiProperty({ description: 'Token verifikasi dari email', example: 'abc123...' })
   @IsString()
-  @Length(32, 128)
+  @Length(32, 2048)
   token: string;
 }
 
@@ -17,7 +17,7 @@ export class ForgotPasswordDto {
 export class ResetPasswordDto {
   @ApiProperty({ description: 'Token dari email reset password' })
   @IsString()
-  @Length(32, 128)
+  @Length(32, 2048)
   token: string;
 
   @ApiProperty({ example: 'BudiNew1234!' })

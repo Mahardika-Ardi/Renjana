@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { JournalService } from './journal.service';
 import { PrismaService } from '../../database';
+import { StreakService } from '../streak';
 
 describe('JournalService', () => {
   let service: JournalService;
@@ -40,6 +41,7 @@ describe('JournalService', () => {
       providers: [
         JournalService,
         { provide: PrismaService, useValue: prisma },
+        { provide: StreakService, useValue: { logEngagement: jest.fn().mockResolvedValue({}) } },
       ],
     }).compile();
 

@@ -9,6 +9,7 @@ import {
   Query,
   HttpStatus,
   HttpCode,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -83,7 +84,7 @@ export class JournalController {
   @ApiOperation({ summary: 'Ambil detail 1 jurnal pribadi' })
   @ApiResponse({ status: 200, description: 'Detail jurnal' })
   @ApiResponse({ status: 404, description: 'Jurnal tidak ditemukan' })
-  async findOne(@CurrentUser() user: any, @Param('id') id: string) {
+  async findOne(@CurrentUser() user: any, @Param('id', ParseUUIDPipe) id: string) {
     const data = await this.journalService.findOneForUser(user.id, id);
     return { data };
   }
@@ -94,7 +95,7 @@ export class JournalController {
   @ApiResponse({ status: 200, description: 'Jurnal berhasil diperbarui' })
   async update(
     @CurrentUser() user: any,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateJournalDto,
   ) {
     const data = await this.journalService.updateForUser(user.id, id, dto);
@@ -106,7 +107,7 @@ export class JournalController {
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @ApiOperation({ summary: 'Hapus jurnal pribadi' })
   @ApiResponse({ status: 200, description: 'Jurnal berhasil dihapus' })
-  async remove(@CurrentUser() user: any, @Param('id') id: string) {
+  async remove(@CurrentUser() user: any, @Param('id', ParseUUIDPipe) id: string) {
     return this.journalService.deleteForUser(user.id, id);
   }
 }

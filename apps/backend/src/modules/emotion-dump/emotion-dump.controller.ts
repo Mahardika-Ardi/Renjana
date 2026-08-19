@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   Query,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -78,7 +79,7 @@ export class EmotionDumpController {
   @ApiOperation({ summary: 'Ambil detail 1 Emotion Dump milik sendiri' })
   @ApiResponse({ status: 200, description: 'Detail emotion dump' })
   @ApiResponse({ status: 404, description: 'Emotion dump tidak ditemukan' })
-  async findOne(@CurrentUser() user: any, @Param('id') id: string) {
+  async findOne(@CurrentUser() user: any, @Param('id', ParseUUIDPipe) id: string) {
     const data = await this.emotionDumpService.findOneForUser(user.id, id);
     return { data };
   }
@@ -92,7 +93,7 @@ export class EmotionDumpController {
   @ApiResponse({ status: 400, description: 'Transisi status tidak valid' })
   async update(
     @CurrentUser() user: any,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateEmotionDumpDto,
   ) {
     const data = await this.emotionDumpService.updateForUser(user.id, id, dto);

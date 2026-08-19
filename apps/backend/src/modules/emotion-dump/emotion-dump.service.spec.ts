@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { EmotionDumpService } from './emotion-dump.service';
 import { PrismaService } from '../../database';
+import { StreakService } from '../streak';
 import { EmotionDumpStatus } from '@prisma/client';
 
 describe('EmotionDumpService', () => {
@@ -43,6 +44,7 @@ describe('EmotionDumpService', () => {
       providers: [
         EmotionDumpService,
         { provide: PrismaService, useValue: prisma },
+        { provide: StreakService, useValue: { logEngagement: jest.fn().mockResolvedValue({}) } },
       ],
     }).compile();
 
