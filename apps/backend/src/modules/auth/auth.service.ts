@@ -15,7 +15,6 @@ import { MailService } from '../../infrastructure/mail';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthTokens, AuthUser, JwtPayload } from '@renjana/types';
-import { generateInviteToken } from '@renjana/utils';
 import { RegisterDto, LoginDto, DeleteAccountDto } from './dto';
 
 @Injectable()
@@ -143,8 +142,8 @@ export class AuthService {
         },
       });
 
-      if (dto.inviteCode) {
-        await this.processInviteCode(tx, newUser.id, dto.inviteCode);
+      if (dto.inviteToken) {
+        await this.processInviteToken(tx, newUser.id, dto.inviteToken);
       }
 
       return newUser;
@@ -654,46 +653,82 @@ export class AuthService {
     };
   }
 
-  private async processInviteCode(
+  private async processInviteToken(
     tx: Parameters<Parameters<typeof this.prisma.$transaction>[0]>[0],
     newUserId: string,
-    inviteCode: string,
+    inviteToken: string,
   ) {
     const invite = await tx.coupleInvite.findUnique({
-      where: { token: inviteCode },
+      where: { token: inviteToken },
       include: { sender: true },
     });
 
     if (!invite || invite.usedAt || invite.expiresAt < new Date()) {
       throw new BadRequestException(
-        'Kode invite tidak valid atau sudah kadaluarsa',
+        'Tautan undangan tidak valid atau sudah kadaluarsa',
       );
     }
 
     if (invite.senderId === newUserId) {
       throw new BadRequestException(
-        'Tidak bisa menggunakan kode invite sendiri',
+        'Tidak bisa menggunakan tautan undangan sendiri',
       );
     }
 
-    await tx.couple.create({
+    // Pastikan pengirim undangan belum terhubung dengan pasangan lain
+    const senderActiveCouple = await tx.couple.findFirst({
+      where: {
+        OR: [{ user1Id: invite.senderId }, { user2Id: invite.senderId }],
+        isActive: true,
+      },
+    });
+    if (senderActiveCouple) {
+      throw new BadRequestException(
+        'Pengirim undangan sudah terhubung dengan pasangan lain',
+      );
+    }
+
+    // Pastikan penerima undangan belum terhubung dengan pasangan lain
+    const receiverActiveCouple = await tx.couple.findFirst({
+      where: {
+        OR: [{ user1Id: newUserId }, { user2Id: newUserId }],
+        isActive: true,
+      },
+    });
+    if (receiverActiveCouple) {
+      throw new BadRequestException(
+        'Akun ini sudah terhubung dengan pasangan lain',
+      );
+    }
+
+    const couple = await tx.couple.create({
       data: {
         user1Id: invite.senderId,
         user2Id: newUserId,
+        isActive: true,
       },
     });
 
-    const couple = await tx.couple.findFirst({
-      where: { user1Id: invite.senderId, user2Id: newUserId },
+    await tx.streak.create({
+      data: { coupleId: couple.id },
     });
-    if (couple) {
-      await tx.streak.create({ data: { coupleId: couple.id } });
-    }
 
     await tx.coupleInvite.update({
       where: { id: invite.id },
       data: { usedAt: new Date() },
     });
+
+    // Kirim notifikasi ke pengirim undangan bahwa pasangan telah bergabung
+    await tx.notification
+      .create({
+        data: {
+          userId: invite.senderId,
+          type: 'STREAK_MILESTONE',
+          title: 'Pasangan Anda Telah Bergabung! 🎉',
+          body: `${invite.sender.name}, pasangan Anda telah berhasil bergabung melalui tautan undangan. Mulai journaling bersama hari ini!`,
+        },
+      })
+      .catch(() => {});
   }
 
   // ================================================================
@@ -781,10 +816,10 @@ export class AuthService {
   }
 
   // ================================================================
-  // INVITE CODE GENERATION
+  // URL-BASED INVITE (Single-use, 24 Hours Expiry)
   // ================================================================
 
-  async generateInviteCode(userId: string) {
+  async generateInviteUrl(userId: string) {
     const existingCouple = await this.prisma.couple.findFirst({
       where: {
         OR: [{ user1Id: userId }, { user2Id: userId }],
@@ -795,18 +830,68 @@ export class AuthService {
       throw new ConflictException('Kamu sudah terhubung dengan pasangan');
     }
 
+    // Bersihkan undangan lama yang belum digunakan milik user ini
     await this.prisma.coupleInvite.deleteMany({
-      where: { senderId: userId, usedAt: null, expiresAt: { lt: new Date() } },
+      where: { senderId: userId, usedAt: null },
     });
 
-    const token = generateInviteToken();
+    // Generate secure 64-char single-use token
+    const token = uuidv4().replace(/-/g, '') + uuidv4().replace(/-/g, '');
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setHours(expiresAt.getHours() + 24); // 24-hour expiry
 
     const invite = await this.prisma.coupleInvite.create({
       data: { senderId: userId, token, expiresAt },
     });
 
-    return { inviteCode: invite.token, expiresAt: invite.expiresAt };
+    const frontendUrl =
+      this.config.get<string>('app.frontendUrl') || 'http://localhost:3000';
+    const inviteUrl = `${frontendUrl}/register?inviteToken=${invite.token}`;
+
+    return {
+      inviteUrl,
+      token: invite.token,
+      expiresAt: invite.expiresAt,
+    };
+  }
+
+  async validateInviteToken(token: string) {
+    if (!token) {
+      throw new BadRequestException('Token undangan tidak boleh kosong');
+    }
+
+    const invite = await this.prisma.coupleInvite.findUnique({
+      where: { token },
+      include: {
+        sender: {
+          select: { id: true, name: true, email: true, avatarUrl: true },
+        },
+      },
+    });
+
+    if (!invite || invite.usedAt || invite.expiresAt < new Date()) {
+      throw new BadRequestException(
+        'Tautan undangan tidak valid atau sudah kadaluarsa',
+      );
+    }
+
+    const senderActiveCouple = await this.prisma.couple.findFirst({
+      where: {
+        OR: [{ user1Id: invite.senderId }, { user2Id: invite.senderId }],
+        isActive: true,
+      },
+    });
+
+    if (senderActiveCouple) {
+      throw new BadRequestException(
+        'Pengirim undangan sudah terhubung dengan pasangan lain',
+      );
+    }
+
+    return {
+      valid: true,
+      sender: invite.sender,
+      expiresAt: invite.expiresAt,
+    };
   }
 }

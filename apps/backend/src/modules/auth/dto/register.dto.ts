@@ -32,12 +32,10 @@ export class RegisterDto {
   password: string;
 
   @ApiPropertyOptional({
-    example: 'ABCD1234',
-    description: 'Kode invite dari partner (8 karakter)',
+    example: 'd9b2d8a5f4c34821a8f9c1e2d3b4a5f6',
+    description: 'Token tautan undangan dari partner (URL-based single-use)',
   })
   @IsOptional()
   @IsString()
-  @MinLength(8)
-  @MaxLength(8)
-  inviteCode?: string;
+  inviteToken?: string;
 }

@@ -11,6 +11,8 @@ import { SupabaseModule } from './infrastructure/supabase';
 import { MailModule } from './infrastructure/mail';
 import { SseModule } from './infrastructure/sse';
 import { AiModule } from './shared/ai';
+import { MoodModule } from './modules/mood';
+import { HabitModule } from './modules/habit';
 import { AuthModule } from './modules/auth';
 import { JournalModule } from './modules/journal';
 import { EmotionDumpModule } from './modules/emotion-dump';
@@ -68,6 +70,8 @@ import {
     EmotionDumpModule,
     StreakModule,
     TodoModule,
+    MoodModule,
+    HabitModule,
   ],
   controllers: [AppController],
   providers: [
