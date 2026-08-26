@@ -2,12 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const compression = require('compression');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const cookieParser = require('cookie-parser');
 
 import { AppModule } from './app.module';
+import cookieParser from 'cookie-parser';
+import compression from 'compression';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {

@@ -16,6 +16,7 @@ import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthTokens, AuthUser, JwtPayload } from '@renjana/types';
 import { RegisterDto, LoginDto, DeleteAccountDto } from './dto';
+import { StringValue } from 'ms';
 
 @Injectable()
 export class AuthService {
@@ -363,7 +364,9 @@ export class AuthService {
 
     const now = new Date();
     const hardDeleteDate = new Date(now);
-    hardDeleteDate.setDate(hardDeleteDate.getDate() + this.ACCOUNT_DELETION_GRACE_DAYS);
+    hardDeleteDate.setDate(
+      hardDeleteDate.getDate() + this.ACCOUNT_DELETION_GRACE_DAYS,
+    );
 
     await this.prisma.user.update({
       where: { id: userId },
@@ -482,7 +485,7 @@ export class AuthService {
       { sub: user.id, purpose: 'password-reset' },
       {
         secret: this.config.get<string>('jwt.secret'),
-        expiresIn: '1h' as any,
+        expiresIn: '1h' as StringValue,
       },
     );
 
@@ -607,11 +610,12 @@ export class AuthService {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: this.config.get<string>('jwt.secret'),
-        expiresIn: (this.config.get<string>('jwt.expiresIn') || '15m') as any,
+        expiresIn: (this.config.get<string>('jwt.expiresIn') ||
+          '15m') as StringValue,
       }),
       this.jwtService.signAsync(payload, {
         secret: this.config.get<string>('jwt.refreshSecret'),
-        expiresIn: `${this.REFRESH_TOKEN_EXPIRES_DAYS}d` as any,
+        expiresIn: `${this.REFRESH_TOKEN_EXPIRES_DAYS}d` as StringValue,
       }),
     ]);
 

@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy, JwtRefreshStrategy } from './strategies';
 import { UserCleanupCronService } from './user-cleanup.cron';
+import { StringValue } from 'ms';
 
 @Module({
   imports: [
@@ -15,7 +16,8 @@ import { UserCleanupCronService } from './user-cleanup.cron';
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('jwt.secret') || 'fallback-secret',
         signOptions: {
-          expiresIn: (config.get<string>('jwt.expiresIn') || '15m') as any,
+          expiresIn: (config.get<string>('jwt.expiresIn') ||
+            '15m') as StringValue,
         },
       }),
       inject: [ConfigService],

@@ -1,10 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import {
-  ACCESS_TOKEN_COOKIE,
-  REFRESH_TOKEN_COOKIE,
-} from './auth-cookies';
+import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from './auth-cookies';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -62,7 +59,7 @@ describe('AuthController', () => {
         tokens: mockTokens,
       });
 
-      const result = await controller.register(dto as any, res as any);
+      const result = await controller.register(dto, res);
 
       expect(authService.register).toHaveBeenCalledWith(dto);
       expect(res.cookie).toHaveBeenCalledTimes(2);
@@ -95,7 +92,7 @@ describe('AuthController', () => {
         data: { user: mockUser, tokens: mockTokens, isAccountRestored: false },
       });
 
-      const result = await controller.login(dto as any, res as any);
+      const result = await controller.login(dto, res);
 
       expect(authService.login).toHaveBeenCalledWith(dto);
       expect(res.cookie).toHaveBeenCalledTimes(2);
@@ -111,7 +108,7 @@ describe('AuthController', () => {
         data: { user: mockUser, tokens: mockTokens, isAccountRestored: true },
       });
 
-      const result = await controller.login({} as any, res as any);
+      const result = await controller.login({} as any, res);
 
       expect(result).toEqual({
         message: 'Akun dipulihkan',
@@ -124,7 +121,7 @@ describe('AuthController', () => {
     it('should refresh via cookie-held token and set new cookies', async () => {
       authService.refresh.mockResolvedValue(mockTokens);
 
-      const result = await controller.refresh(mockUser, res as any);
+      const result = await controller.refresh(mockUser, res);
 
       expect(authService.refresh).toHaveBeenCalledWith(
         'user-1',
@@ -154,9 +151,12 @@ describe('AuthController', () => {
       authService.logout.mockResolvedValue({ message: 'Berhasil logout' });
 
       const req = { cookies: { [REFRESH_TOKEN_COOKIE]: 'refresh-token-1' } };
-      const result = await controller.logout(mockUser, req as any, res as any);
+      const result = await controller.logout(mockUser, req as any, res);
 
-      expect(authService.logout).toHaveBeenCalledWith('user-1', 'refresh-token-1');
+      expect(authService.logout).toHaveBeenCalledWith(
+        'user-1',
+        'refresh-token-1',
+      );
       expect(res.clearCookie).toHaveBeenCalledTimes(2);
       expect(res.clearCookie).toHaveBeenCalledWith(
         ACCESS_TOKEN_COOKIE,
@@ -172,7 +172,7 @@ describe('AuthController', () => {
     it('should clear cookies when no refresh cookie present', async () => {
       authService.logout.mockResolvedValue({ message: 'Berhasil logout' });
 
-      await controller.logout(mockUser, { cookies: {} } as any, res as any);
+      await controller.logout(mockUser, { cookies: {} } as any, res);
 
       expect(authService.logout).toHaveBeenCalledWith('user-1', undefined);
       expect(res.clearCookie).toHaveBeenCalledTimes(2);
@@ -181,9 +181,11 @@ describe('AuthController', () => {
 
   describe('logoutAll', () => {
     it('should revoke all sessions and clear cookies', async () => {
-      authService.logout.mockResolvedValue({ message: 'Berhasil logout dari semua device' });
+      authService.logout.mockResolvedValue({
+        message: 'Berhasil logout dari semua device',
+      });
 
-      const result = await controller.logoutAll(mockUser, res as any);
+      const result = await controller.logoutAll(mockUser, res);
 
       expect(authService.logout).toHaveBeenCalledWith('user-1');
       expect(res.clearCookie).toHaveBeenCalledTimes(2);
@@ -197,7 +199,7 @@ describe('AuthController', () => {
       const resultData = { message: 'Akun dinonaktifkan' };
       authService.deleteAccount.mockResolvedValue(resultData);
 
-      const result = await controller.deleteAccount(mockUser, dto as any, res as any);
+      const result = await controller.deleteAccount(mockUser, dto, res);
 
       expect(authService.deleteAccount).toHaveBeenCalledWith('user-1', dto);
       expect(res.clearCookie).toHaveBeenCalledTimes(2);
@@ -211,7 +213,7 @@ describe('AuthController', () => {
       const result = { message: 'Email terverifikasi' };
       authService.verifyEmail.mockResolvedValue(result);
 
-      const res2 = await controller.verifyEmail(dto as any);
+      const res2 = await controller.verifyEmail(dto);
 
       expect(authService.verifyEmail).toHaveBeenCalledWith('verify-token');
       expect(res2).toEqual(result);
@@ -220,7 +222,10 @@ describe('AuthController', () => {
 
   describe('resendVerification', () => {
     it('should return already-verified message when user is verified', async () => {
-      const result = await controller.resendVerification({ ...mockUser, isEmailVerified: true });
+      const result = await controller.resendVerification({
+        ...mockUser,
+        isEmailVerified: true,
+      });
 
       expect(authService.sendVerificationEmail).not.toHaveBeenCalled();
       expect(result).toEqual({ message: 'Email sudah terverifikasi' });
@@ -237,7 +242,9 @@ describe('AuthController', () => {
         'andi@test.com',
         'Andi',
       );
-      expect(result).toEqual({ message: 'Email verifikasi berhasil dikirim ulang' });
+      expect(result).toEqual({
+        message: 'Email verifikasi berhasil dikirim ulang',
+      });
     });
   });
 
@@ -246,7 +253,9 @@ describe('AuthController', () => {
       const result = { message: 'Link reset dikirim jika email terdaftar' };
       authService.forgotPassword.mockResolvedValue(result);
 
-      const res2 = await controller.forgotPassword({ email: 'andi@test.com' } as any);
+      const res2 = await controller.forgotPassword({
+        email: 'andi@test.com',
+      });
 
       expect(authService.forgotPassword).toHaveBeenCalledWith('andi@test.com');
       expect(res2).toEqual(result);
@@ -259,9 +268,12 @@ describe('AuthController', () => {
       const result = { message: 'Password berhasil direset' };
       authService.resetPassword.mockResolvedValue(result);
 
-      const res2 = await controller.resetPassword(dto as any, res as any);
+      const res2 = await controller.resetPassword(dto, res);
 
-      expect(authService.resetPassword).toHaveBeenCalledWith('reset-token', 'newpass123');
+      expect(authService.resetPassword).toHaveBeenCalledWith(
+        'reset-token',
+        'newpass123',
+      );
       expect(res.clearCookie).toHaveBeenCalledTimes(2);
       expect(res2).toEqual(result);
     });
@@ -275,7 +287,10 @@ describe('AuthController', () => {
       const result = await controller.getMe(mockUser);
 
       expect(authService.getMe).toHaveBeenCalledWith('user-1');
-      expect(result).toEqual({ message: 'Data user berhasil diambil', data: profile });
+      expect(result).toEqual({
+        message: 'Data user berhasil diambil',
+        data: profile,
+      });
     });
   });
 
@@ -326,7 +341,10 @@ describe('AuthController', () => {
       const result = await controller.getSseTicket(mockUser);
 
       expect(authService.issueSseTicket).toHaveBeenCalledWith('user-1');
-      expect(result).toEqual({ message: 'Ticket SSE berhasil dibuat (TTL: 15 detik)', data: ticket });
+      expect(result).toEqual({
+        message: 'Ticket SSE berhasil dibuat (TTL: 15 detik)',
+        data: ticket,
+      });
     });
   });
 });
