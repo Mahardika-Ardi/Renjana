@@ -234,14 +234,36 @@ export class AuthController {
     };
   }
 
-  // ── Generate Invite Code ────────────────────────────────────
+  // ── Generate Invite URL ────────────────────────────────────
   @Post('invite')
   @ApiCookieAuth('renjana_access')
-  @ApiOperation({ summary: 'Generate kode invite untuk pasangan' })
+  @ApiOperation({
+    summary:
+      'Generate tautan undangan (URL-based single-use, 24 jam) untuk pasangan',
+  })
+  @ApiResponse({ status: 201, description: 'Tautan undangan berhasil dibuat' })
   async generateInvite(@CurrentUser() user: user) {
-    const result = await this.authService.generateInviteCode(user.id);
+    const result = await this.authService.generateInviteUrl(user.id);
     return {
-      message: 'Kode invite berhasil dibuat. Berlaku 7 hari.',
+      message: 'Tautan undangan berhasil dibuat. Berlaku 24 jam.',
+      data: result,
+    };
+  }
+
+  // ── Validate Invite Token ──────────────────────────────────
+  @Public()
+  @Get('invite/validate')
+  @ApiOperation({ summary: 'Validasi token undangan sebelum user mendaftar' })
+  @ApiResponse({ status: 200, description: 'Token undangan valid' })
+  @ApiResponse({
+    status: 400,
+    description: 'Token undangan tidak valid atau kadaluarsa',
+  })
+  async validateInvite(@Req() req: Request) {
+    const token = req.query.token as string;
+    const result = await this.authService.validateInviteToken(token);
+    return {
+      message: 'Tautan undangan valid',
       data: result,
     };
   }

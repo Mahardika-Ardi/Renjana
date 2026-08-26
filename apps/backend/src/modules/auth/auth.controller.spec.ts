@@ -295,16 +295,40 @@ describe('AuthController', () => {
   });
 
   describe('generateInvite', () => {
-    it('should call authService.generateInviteCode and return envelope', async () => {
-      const invite = { code: 'ABCD1234', expiresAt: new Date() };
-      authService.generateInviteCode.mockResolvedValue(invite);
+    it('should call authService.generateInviteUrl and return envelope', async () => {
+      const invite = {
+        inviteUrl: 'http://localhost:3000/register?inviteToken=token123',
+        token: 'token123',
+        expiresAt: new Date(),
+      };
+      authService.generateInviteUrl = jest.fn().mockResolvedValue(invite);
 
       const result = await controller.generateInvite(mockUser);
 
-      expect(authService.generateInviteCode).toHaveBeenCalledWith('user-1');
+      expect(authService.generateInviteUrl).toHaveBeenCalledWith('user-1');
       expect(result).toEqual({
-        message: 'Kode invite berhasil dibuat. Berlaku 7 hari.',
+        message: 'Tautan undangan berhasil dibuat. Berlaku 24 jam.',
         data: invite,
+      });
+    });
+  });
+
+  describe('validateInvite', () => {
+    it('should call authService.validateInviteToken and return envelope', async () => {
+      const validResult = {
+        valid: true,
+        sender: { id: 'user-1', name: 'Andi', email: 'andi@test.com' },
+        expiresAt: new Date(),
+      };
+      authService.validateInviteToken = jest.fn().mockResolvedValue(validResult);
+
+      const req = { query: { token: 'token123' } };
+      const result = await controller.validateInvite(req as any);
+
+      expect(authService.validateInviteToken).toHaveBeenCalledWith('token123');
+      expect(result).toEqual({
+        message: 'Tautan undangan valid',
+        data: validResult,
       });
     });
   });

@@ -17,9 +17,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 jest.mock('bcryptjs');
 jest.mock('uuid');
-jest.mock('@renjana/utils', () => ({
-  generateInviteToken: jest.fn().mockReturnValue('ABCD1234'),
-}));
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -254,7 +251,7 @@ describe('AuthService', () => {
       expect(result.user).toEqual(formattedUser);
     });
 
-    it('processes an invite code during registration', async () => {
+    it('processes an invite token during registration', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue(mockUser);
       prisma.coupleInvite.findUnique.mockResolvedValue({
@@ -262,9 +259,10 @@ describe('AuthService', () => {
         senderId: 'partner',
         usedAt: null,
         expiresAt: new Date(Date.now() + 86_400_000),
+        sender: { name: 'Partner' },
       });
-      prisma.couple.create.mockResolvedValue({});
-      prisma.couple.findFirst.mockResolvedValue({ id: 'couple-1' });
+      prisma.couple.findFirst.mockResolvedValue(null);
+      prisma.couple.create.mockResolvedValue({ id: 'couple-1' });
       prisma.streak.create.mockResolvedValue({});
       prisma.coupleInvite.update.mockResolvedValue({});
       prisma.refreshToken.create.mockResolvedValue({});
@@ -272,24 +270,24 @@ describe('AuthService', () => {
         o.expiresIn.includes('d') ? 'refresh-token' : 'access-token',
       );
 
-      await service.register({ ...dto, inviteCode: 'ABCD1234' });
+      await service.register({ ...dto, inviteToken: 'valid-token-123' });
 
       expect(prisma.couple.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: { user1Id: 'partner', user2Id: userId },
+          data: { user1Id: 'partner', user2Id: userId, isActive: true },
         }),
       );
       expect(prisma.coupleInvite.update).toHaveBeenCalled();
     });
 
-    it('rejects invalid/expired invite code', async () => {
+    it('rejects invalid/expired invite token', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.coupleInvite.findUnique.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue(mockUser);
       prisma.refreshToken.create.mockResolvedValue({});
 
       await expect(
-        service.register({ ...dto, inviteCode: 'BADCODE1' } as any),
+        service.register({ ...dto, inviteToken: 'bad-token' } as any),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -691,26 +689,77 @@ describe('AuthService', () => {
     });
   });
 
-  describe('generateInviteCode', () => {
+  describe('generateInviteUrl', () => {
     it('throws ConflictException when already coupled', async () => {
       prisma.couple.findFirst.mockResolvedValue({ id: 'couple-1' });
-      await expect(service.generateInviteCode(userId)).rejects.toThrow(
+      await expect(service.generateInviteUrl(userId)).rejects.toThrow(
         ConflictException,
       );
     });
 
-    it('creates a 7-day invite for an uncoupled user', async () => {
+    it('creates a 24-hour invite URL for an uncoupled user', async () => {
       prisma.couple.findFirst.mockResolvedValue(null);
       prisma.coupleInvite.deleteMany.mockResolvedValue({ count: 0 });
+      (uuidv4 as jest.Mock).mockReturnValue('abc-123');
       prisma.coupleInvite.create.mockResolvedValue({
-        token: 'ABCD1234',
-        expiresAt: new Date(Date.now() + 7 * 86_400_000),
+        token: 'abc123abc123',
+        expiresAt: new Date(Date.now() + 24 * 3600 * 1000),
       });
 
-      const result = await service.generateInviteCode(userId);
+      const result = await service.generateInviteUrl(userId);
 
-      expect(prisma.coupleInvite.deleteMany).toHaveBeenCalled();
-      expect(result.inviteCode).toBe('ABCD1234');
+      expect(prisma.coupleInvite.deleteMany).toHaveBeenCalledWith({
+        where: { senderId: userId, usedAt: null },
+      });
+      expect(result.token).toBe('abc123abc123');
+      expect(result.inviteUrl).toContain('/register?inviteToken=');
+    });
+  });
+
+  describe('validateInviteToken', () => {
+    it('throws BadRequestException for empty token', async () => {
+      await expect(service.validateInviteToken('')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('throws BadRequestException when token not found or expired', async () => {
+      prisma.coupleInvite.findUnique.mockResolvedValue(null);
+      await expect(
+        service.validateInviteToken('invalid-token'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when sender already in couple', async () => {
+      prisma.coupleInvite.findUnique.mockResolvedValue({
+        token: 'valid-token',
+        usedAt: null,
+        expiresAt: new Date(Date.now() + 10_000),
+        senderId: 'sender-1',
+        sender: { id: 'sender-1', name: 'Sender' },
+      });
+      prisma.couple.findFirst.mockResolvedValue({ id: 'couple-1' });
+
+      await expect(service.validateInviteToken('valid-token')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('returns valid info for active unused token', async () => {
+      const mockInvite = {
+        token: 'valid-token',
+        usedAt: null,
+        expiresAt: new Date(Date.now() + 10_000),
+        senderId: 'sender-1',
+        sender: { id: 'sender-1', name: 'Sender', email: 'sender@test.com' },
+      };
+      prisma.coupleInvite.findUnique.mockResolvedValue(mockInvite);
+      prisma.couple.findFirst.mockResolvedValue(null);
+
+      const result = await service.validateInviteToken('valid-token');
+
+      expect(result.valid).toBe(true);
+      expect(result.sender).toEqual(mockInvite.sender);
     });
   });
 });
