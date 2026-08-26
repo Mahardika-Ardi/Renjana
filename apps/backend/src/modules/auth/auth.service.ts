@@ -15,9 +15,8 @@ import { MailService } from '../../infrastructure/mail';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthTokens, AuthUser, JwtPayload } from '@renjana/types';
-import { generateInviteToken } from '@renjana/utils';
-import { StringValue } from 'ms';
 import { RegisterDto, LoginDto, DeleteAccountDto } from './dto';
+import { StringValue } from 'ms';
 
 @Injectable()
 export class AuthService {
@@ -407,7 +406,7 @@ export class AuthService {
       { sub: userId, purpose: 'email-verify', token },
       {
         secret: this.config.get<string>('jwt.secret'),
-        expiresIn: `${this.EMAIL_VERIFY_TOKEN_EXPIRES_HOURS}h` as StringValue,
+        expiresIn: `${this.EMAIL_VERIFY_TOKEN_EXPIRES_HOURS}h` as any,
       },
     );
 
