@@ -107,6 +107,8 @@ export default function AuthCard({ type, children }: AuthCardProps) {
               alt="Renjana Logo"
               width={200}
               height={200}
+              loading="eager"
+              className="h-auto"
             />
           </motion.div>
 

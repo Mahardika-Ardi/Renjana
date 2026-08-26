@@ -19,21 +19,23 @@ export default function AuthLogo() {
           className="
             hidden
             md:flex
-            h-15
-            w-15
-            items-center
-            justify-center
-            rounded-full
-            bg-[#775530]
+            md:h-15
+            md:w-15
+            md: p-1.5
+            md:items-center
+            md:justify-center
+            md:rounded-full
+            md:bg-[#775530]
           "
         >
           <Image
             src="/logo/Dark_Theme_Logo.svg"
             alt="Renjana Logo"
-            width={40}
-            height={40}
+            width={10}
+            height={10}
             priority
             loading="eager"
+            className="h-auto w-auto"
           />
         </div>
 

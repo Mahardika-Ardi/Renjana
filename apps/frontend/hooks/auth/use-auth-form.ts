@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { authApi } from '@/lib/api/auth';
 
@@ -13,6 +14,8 @@ interface AuthFormState {
 }
 
 export function useAuthForm(type: AuthType) {
+  const router = useRouter();
+
   const [form, setForm] = useState<AuthFormState>({
     name: '',
     email: '',
@@ -23,41 +26,19 @@ export function useAuthForm(type: AuthType) {
 
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * --------------------------------------------------
-   * FIELD HANDLER
-   * --------------------------------------------------
-   */
-
   const setField = (field: keyof AuthFormState, value: string) => {
     setForm((previous) => ({
       ...previous,
       [field]: value,
     }));
 
-    /**
-     * Jika user mulai memperbaiki input,
-     * error lama dihapus.
-     */
-
     if (error) {
       setError(null);
     }
   };
 
-  /**
-   * --------------------------------------------------
-   * SUBMIT
-   * --------------------------------------------------
-   */
-
   const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    /**
-     * Jangan kirim request kedua ketika
-     * request sebelumnya masih berjalan.
-     */
 
     if (loading) {
       return;
@@ -68,30 +49,28 @@ export function useAuthForm(type: AuthType) {
 
     try {
       if (type === 'Sign In') {
-        const response = await authApi.login({
+        await authApi.login({
           email: form.email,
           password: form.password,
         });
 
-        console.log('Login success:', response);
+        router.push('/home');
 
         return;
       }
 
-      const response = await authApi.register({
+      await authApi.register({
         name: form.name,
         email: form.email,
         password: form.password,
       });
 
-      console.log('Register success:', response);
+      router.push('/home');
     } catch (error) {
-      /**
-       * Error dari API
-       */
-
       if (error instanceof Error) {
-        setError(error.message);
+        console.log(error.message);
+
+        setError('Invalid credentials.');
       } else {
         setError('Something went wrong. Please try again.');
       }
@@ -100,41 +79,17 @@ export function useAuthForm(type: AuthType) {
     }
   };
 
-  /**
-   * --------------------------------------------------
-   * RETURN
-   * --------------------------------------------------
-   */
-
   return {
-    /**
-     * Form state
-     */
-
     name: form.name,
     email: form.email,
     password: form.password,
 
-    /**
-     * Field setters
-     */
-
     setName: (value: string) => setField('name', value),
-
     setEmail: (value: string) => setField('email', value),
-
     setPassword: (value: string) => setField('password', value),
-
-    /**
-     * Request state
-     */
 
     loading,
     error,
-
-    /**
-     * Submit
-     */
 
     handleSubmit,
   };

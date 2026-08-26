@@ -35,6 +35,7 @@ async function request<T>(
     method,
     headers,
     body,
+    credentials: 'include',
   });
 
   const data = await response.json();

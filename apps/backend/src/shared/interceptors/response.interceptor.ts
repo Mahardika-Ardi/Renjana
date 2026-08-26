@@ -8,15 +8,17 @@ import { Reflector } from '@nestjs/core';
 import { SSE_METADATA } from '@nestjs/common/constants';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { ApiResponse } from '@renjana/types';
 
 interface ControllerResponse<T> {
   message?: string;
   data: T;
 }
 @Injectable()
-export class ResponseInterceptor<T>
-  implements NestInterceptor<T, ApiResponse<T>>
-{
+export class ResponseInterceptor<T> implements NestInterceptor<
+  T,
+  ApiResponse<T>
+> {
   constructor(private readonly reflector: Reflector) {}
 
   intercept(

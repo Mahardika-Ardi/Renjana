@@ -56,7 +56,10 @@ export class AuthController {
   @ApiOperation({ summary: 'Daftar akun baru' })
   @ApiResponse({ status: 201, description: 'Berhasil daftar' })
   @ApiResponse({ status: 409, description: 'Email sudah terdaftar' })
-  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
+  async register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const result = await this.authService.register(dto);
     setAuthCookies(res, result.tokens, cookieOptions());
     return {
@@ -73,7 +76,10 @@ export class AuthController {
   @ApiOperation({ summary: 'Login dengan email & password' })
   @ApiResponse({ status: 200, description: 'Berhasil login' })
   @ApiResponse({ status: 401, description: 'Email atau password salah' })
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const result = await this.authService.login(dto);
     setAuthCookies(res, result.data.tokens, cookieOptions());
     return {
@@ -90,17 +96,19 @@ export class AuthController {
   @UseGuards(JwtRefreshGuard)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Refresh access token menggunakan refresh token cookie' })
+  @ApiOperation({
+    summary: 'Refresh access token menggunakan refresh token cookie',
+  })
   @ApiResponse({ status: 200, description: 'Token berhasil di-refresh' })
   @ApiResponse({ status: 401, description: 'Refresh token tidak valid' })
   async refresh(
-    @CurrentUser() user: any,
+    @CurrentUser() user: user,
     @Res({ passthrough: true }) res: Response,
   ) {
     const tokens = await this.authService.refresh(
       user.id,
       user.email,
-      dto.refreshToken,
+      user.refreshToken,
     );
     setAuthCookies(res, tokens, cookieOptions());
     return { message: 'Token berhasil di-refresh', data: null };
@@ -113,13 +121,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Logout (revoke refresh token)' })
   @ApiResponse({ status: 200, description: 'Berhasil logout' })
   async logout(
-    @CurrentUser() user: any,
+    @CurrentUser() user: user,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE] as
-      | string
-      | undefined;
+      string | undefined;
     const result = await this.authService.logout(user.id, refreshToken);
     clearAuthCookies(res, cookieOptions());
     return result;
@@ -131,7 +138,7 @@ export class AuthController {
   @ApiCookieAuth('renjana_access')
   @ApiOperation({ summary: 'Logout dari semua device' })
   async logoutAll(
-    @CurrentUser() user: any,
+    @CurrentUser() user: user,
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.logout(user.id);
@@ -207,7 +214,10 @@ export class AuthController {
     @Body() dto: ResetPasswordDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.resetPassword(dto.token, dto.newPassword);
+    const result = await this.authService.resetPassword(
+      dto.token,
+      dto.newPassword,
+    );
     clearAuthCookies(res, cookieOptions());
     return result;
   }
@@ -241,7 +251,7 @@ export class AuthController {
   @ApiCookieAuth('renjana_access')
   @ApiOperation({ summary: 'Dapatkan 15s single-use ticket untuk koneksi SSE' })
   @ApiResponse({ status: 201, description: 'Ticket SSE berhasil dibuat' })
-  async getSseTicket(@CurrentUser() user: any) {
+  async getSseTicket(@CurrentUser() user: user) {
     const data = await this.authService.issueSseTicket(user.id);
     return { message: 'Ticket SSE berhasil dibuat (TTL: 15 detik)', data };
   }
