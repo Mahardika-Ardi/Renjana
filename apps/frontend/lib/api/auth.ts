@@ -19,4 +19,11 @@ export const authApi = {
       dto,
     );
   },
+
+  forgotPassword(email: string) {
+    return api.post<ApiResponse<string>>(
+      `${AUTH_BASE_URL}/forgot-password`,
+      email,
+    );
+  },
 };

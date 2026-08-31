@@ -15,7 +15,6 @@ interface AuthFormState {
 
 export function useAuthForm(type: AuthType) {
   const router = useRouter();
-
   const [form, setForm] = useState<AuthFormState>({
     name: '',
     email: '',
@@ -70,7 +69,7 @@ export function useAuthForm(type: AuthType) {
       if (error instanceof Error) {
         console.log(error.message);
 
-        setError('Invalid credentials.');
+        setError(error.message);
       } else {
         setError('Something went wrong. Please try again.');
       }

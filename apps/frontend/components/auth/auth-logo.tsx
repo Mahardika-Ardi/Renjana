@@ -14,7 +14,6 @@ export default function AuthLogo() {
       "
     >
       <div className="flex items-center gap-5">
-        {/* Logo */}
         <div
           className="
             hidden
@@ -39,7 +38,6 @@ export default function AuthLogo() {
           />
         </div>
 
-        {/* Text */}
         <h1
           className="
             font-[Plus_Jakarta_Sans]

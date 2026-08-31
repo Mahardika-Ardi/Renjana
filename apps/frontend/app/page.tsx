@@ -1,33 +1,25 @@
 import { Heart, Infinity, Target, Lock, Pen } from 'lucide-react';
 import Image from 'next/image';
+import Navbar from '@/components/ui/Navbar';
 import Link from 'next/link';
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-sm z-50 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-red-600">Renjana</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link href="/login">
-                <button className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium">
-                  Sign In
-                </button>
-              </Link>
-              <Link href="/register">
-                <button className="px-4 py-2 bg-amber-700 text-white rounded-full hover:bg-amber-800 font-medium">
-                  Sign Up
-                </button>
-              </Link>
-            </div>
-          </div>
+      <Navbar>
+        <div className="flex items-center gap-4">
+          <Link href="/login">
+            <button className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium">
+              Sign In
+            </button>
+          </Link>
+          <Link href="/register">
+            <button className="px-4 py-2 bg-amber-700 text-white rounded-full hover:bg-amber-800 font-medium">
+              Sign Up
+            </button>
+          </Link>
         </div>
-      </nav>
-
+      </Navbar>
       {/* Hero Section */}
       <section className="pt-20 pb-16 px-4">
         <div className="max-w-6xl mx-auto">
@@ -37,8 +29,8 @@ export default function Home() {
               <Image
                 src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c"
                 alt="picture"
-                width={100}
-                height={100}
+                width={1200}
+                height={80}
               />
             </div>
 
@@ -151,11 +143,11 @@ export default function Home() {
             <div className="relative">
               <div className="rounded-lg overflow-hidden h-96 bg-gray-300">
                 <Image
-                  src="https://images.unsplash.com/photo-1507842696312-5c165b081193"
+                  src="/image.png"
                   alt="Journal"
                   className="w-full h-full object-cover"
-                  height={100}
-                  width={100}
+                  height={90}
+                  width={90}
                 />
               </div>
               {/* Floating card */}

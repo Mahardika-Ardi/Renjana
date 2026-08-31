@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-import { LeafScene } from './leaf-scene';
+import { LeafScene } from './scene/leaf-scene';
 
 export default function LeafBackground() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -14,21 +14,9 @@ export default function LeafBackground() {
       return;
     }
 
-    /**
-     * ============================================
-     * CREATE THREE.JS SCENE
-     * ============================================
-     */
-
     const leafScene = new LeafScene(container);
 
     leafScene.mount();
-
-    /**
-     * ============================================
-     * CLEANUP
-     * ============================================
-     */
 
     return () => {
       leafScene.dispose();
