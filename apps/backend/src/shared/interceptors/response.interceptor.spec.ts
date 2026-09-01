@@ -44,8 +44,9 @@ describe('ResponseInterceptor', () => {
       expect(value).toEqual({
         success: true,
         statusCode: 200,
-        message: 'Success',
+        message: 'Request successful',
         data: { id: 'u-1' },
+        timestamp: expect.any(String),
       });
       done();
     });
@@ -64,6 +65,7 @@ describe('ResponseInterceptor', () => {
         statusCode: 200,
         message: 'Berhasil login',
         data: { token: 'abc' },
+        timestamp: expect.any(String),
       });
       done();
     });
@@ -80,8 +82,9 @@ describe('ResponseInterceptor', () => {
       expect(value).toEqual({
         success: true,
         statusCode: 200,
-        message: 'Success',
+        message: 'Request successful',
         data: ['a', 'b'],
+        timestamp: expect.any(String),
       });
       done();
     });
