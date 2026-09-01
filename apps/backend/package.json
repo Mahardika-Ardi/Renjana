@@ -36,6 +36,7 @@
     "@renjana/utils": "*",
     "@supabase/supabase-js": "^2.49.1",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^6.3.4",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "compression": "^1.7.5",
