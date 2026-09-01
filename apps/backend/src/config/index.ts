@@ -4,6 +4,5 @@ export {
   supabaseConfig,
   openaiConfig,
   mailConfig,
-  redisConfig,
   throttleConfig,
 } from './app.config';
