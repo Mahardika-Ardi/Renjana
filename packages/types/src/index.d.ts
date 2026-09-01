@@ -30,6 +30,7 @@ interface ApiResponse<T> {
   message: string;
   data: T;
   timestamp: string;
+  statusCode?: number;
 }
 
 export interface CoupleInfo {

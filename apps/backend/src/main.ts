@@ -43,8 +43,11 @@ async function bootstrap() {
     }),
   );
 
-  // ── Swagger (dev only) ───────────────────────────────────────
-  if (process.env.NODE_ENV !== 'production') {
+  // ── Swagger (dev & production) ───────────────────────────────────────
+  const enableSwagger =
+    process.env.ENABLE_SWAGGER !== 'false' && process.env.NODE_ENV !== 'production';
+
+  if (enableSwagger) {
     const config = new DocumentBuilder()
       .setTitle('Renjana API')
       .setDescription('LifebyDesign Couple — Backend API Documentation')
@@ -57,7 +60,7 @@ async function bootstrap() {
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api/docs', app, document, {
+    SwaggerModule.setup('api/v1/docs', app, document, {
       swaggerOptions: {
         persistAuthorization: true,
       },
@@ -69,7 +72,7 @@ async function bootstrap() {
 
   console.log(`🚀 Renjana Backend running on http://localhost:${port}/api/v1`);
   console.log(
-    `📚 Swagger docs available at http://localhost:${process.env.PORT ?? 3001}/api/docs`,
+    `📚 Swagger docs available at http://localhost:${process.env.PORT ?? 3001}/api/v1/docs`,
   );
 }
 

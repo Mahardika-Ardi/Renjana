@@ -15,17 +15,13 @@ interface ControllerResponse<T> {
   data: T;
 }
 @Injectable()
-export class ResponseInterceptor<T> implements NestInterceptor<
-  T,
-  ApiResponse<T>
-> {
+export class ResponseInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
   constructor(private readonly reflector: Reflector) {}
 
   intercept(
     context: ExecutionContext,
     next: CallHandler,
   ): Observable<ApiResponse<T>> {
-    // Skip wrapping for SSE responses (@Sse route)
     const isSse = this.reflector.get<boolean, string>(
       SSE_METADATA,
       context.getHandler(),
@@ -44,7 +40,8 @@ export class ResponseInterceptor<T> implements NestInterceptor<
             message: response.message ?? 'Request successful',
             data: response.data,
             timestamp: new Date().toISOString(),
-          };
+            statusCode: 200,
+          } as any;
         }
 
         return {
@@ -52,7 +49,8 @@ export class ResponseInterceptor<T> implements NestInterceptor<
           message: 'Request successful',
           data: response,
           timestamp: new Date().toISOString(),
-        };
+          statusCode: 200,
+        } as any;
       }),
     );
   }
