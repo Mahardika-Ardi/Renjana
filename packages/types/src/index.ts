@@ -65,4 +65,35 @@ export interface RegisterDto {
   name: string;
   email: string;
   password: string;
+  inviteToken?: string;
+}
+
+// ---- Password Reset Types ---------------------------------------
+export interface RequestResetCodeDto {
+  email: string;
+}
+
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+export interface VerifyResetCodeDto {
+  email: string;
+  code: string;
+}
+
+export interface VerifyResetCodeResponse {
+  resetToken: string;
+  expiresIn: number;
+}
+
+export interface ResetPasswordFinalDto {
+  email: string;
+  resetToken: string;
+  newPassword: string;
+}
+
+export interface ResetPasswordDto {
+  token: string;
+  newPassword: string;
 }
