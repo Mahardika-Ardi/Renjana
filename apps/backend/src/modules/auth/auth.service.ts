@@ -12,7 +12,6 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database';
 import { SupabaseService } from '../../infrastructure/supabase';
 import { MailService } from '../../infrastructure/mail';
-import { RedisService } from '../../infrastructure/redis';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthTokens, AuthUser, JwtPayload } from '@renjana/types';
@@ -40,7 +39,6 @@ export class AuthService {
     private config: ConfigService,
     private supabaseService: SupabaseService,
     private mailService: MailService,
-    private redisService: RedisService,
   ) {}
 
   // ================================================================
@@ -469,167 +467,45 @@ export class AuthService {
   }
 
   // ================================================================
-  // FORGOT / RESET PASSWORD (6-Digit Verification Code via Redis)
+  // FORGOT / RESET PASSWORD
   // ================================================================
 
-  async requestResetCode(email: string) {
-    const normalizedEmail = email.toLowerCase().trim();
+  async forgotPassword(email: string) {
     const user = await this.prisma.user.findUnique({
-      where: { email: normalizedEmail, deletedAt: null },
-    });
-
-    if (user) {
-      // Generate 6-digit random code
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      const ttlSeconds = 600; // 10 minutes
-
-      // Store in Redis with TTL 10 minutes
-      const redisKey = `reset_code:${normalizedEmail}`;
-      await this.redisService.set(
-        redisKey,
-        JSON.stringify({ code, createdAt: Date.now() }),
-        ttlSeconds,
-      );
-
-      // Send email with 6-digit verification code
-      await this.mailService.sendMail({
-        to: user.email,
-        subject: 'Kode Verifikasi Reset Password — Renjana',
-        html: this.buildResetCodeHtml(user.name, code),
-      });
-
-      this.logger.log(`Reset password code dikirim ke ${user.email}`);
-    }
-
-    return {
-      message: 'Kode verifikasi telah dikirim ke email Anda',
-    };
-  }
-
-  async verifyResetCode(email: string, code: string) {
-    const normalizedEmail = email.toLowerCase().trim();
-    const redisKey = `reset_code:${normalizedEmail}`;
-    const raw = await this.redisService.get(redisKey);
-
-    if (!raw) {
-      throw new BadRequestException(
-        'Kode verifikasi tidak valid atau sudah kadaluarsa',
-      );
-    }
-
-    let parsed: { code: string; createdAt: number };
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      throw new BadRequestException(
-        'Kode verifikasi tidak valid atau sudah kadaluarsa',
-      );
-    }
-
-    if (parsed.code !== code.trim()) {
-      throw new BadRequestException('Kode verifikasi salah');
-    }
-
-    // Single use: delete used verification code
-    await this.redisService.del(redisKey);
-
-    // Generate single-use reset token (valid for 15 minutes)
-    const resetToken = uuidv4().replace(/-/g, '') + uuidv4().replace(/-/g, '');
-    const tokenKey = `reset_token:${resetToken}`;
-    await this.redisService.set(
-      tokenKey,
-      JSON.stringify({ email: normalizedEmail }),
-      900, // 15 minutes TTL
-    );
-
-    return {
-      message: 'Kode verifikasi valid',
-      data: {
-        resetToken,
-        expiresIn: 900,
-      },
-    };
-  }
-
-  async resetPasswordFinal(
-    email: string,
-    resetToken: string,
-    newPassword: string,
-  ) {
-    const normalizedEmail = email.toLowerCase().trim();
-    const tokenKey = `reset_token:${resetToken}`;
-    const raw = await this.redisService.get(tokenKey);
-
-    if (!raw) {
-      throw new BadRequestException(
-        'Token reset password tidak valid atau sudah kadaluarsa',
-      );
-    }
-
-    let parsed: { email: string };
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      throw new BadRequestException(
-        'Token reset password tidak valid atau sudah kadaluarsa',
-      );
-    }
-
-    if (parsed.email !== normalizedEmail) {
-      throw new BadRequestException(
-        'Email tidak cocok dengan token reset password',
-      );
-    }
-
-    const user = await this.prisma.user.findUnique({
-      where: { email: normalizedEmail, deletedAt: null },
+      where: { email: email.toLowerCase().trim(), deletedAt: null },
     });
 
     if (!user) {
-      throw new NotFoundException('User tidak ditemukan');
+      return {
+        message: 'Jika email terdaftar, link reset password akan dikirim.',
+      };
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, this.BCRYPT_ROUNDS);
+    const resetToken = this.jwtService.sign(
+      { sub: user.id, purpose: 'password-reset' },
+      {
+        secret: this.config.get<string>('jwt.secret'),
+        expiresIn: '1h' as StringValue,
+      },
+    );
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash },
+    const frontendUrl = this.config.get<string>('app.frontendUrl');
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+    await this.mailService.sendMail({
+      to: user.email,
+      subject: 'Reset Password — Renjana',
+      html: this.buildResetPasswordHtml(user.name, resetUrl),
     });
 
-    try {
-      const supabaseAdmin = this.supabaseService.getAdminClient();
-      await supabaseAdmin.auth.admin.updateUserById(user.id, {
-        password: newPassword,
-      });
-    } catch {
-      // ignore
-    }
+    this.logger.log(`Reset password email dikirim ke ${user.email}`);
 
-    await this.prisma.refreshToken.updateMany({
-      where: { userId: user.id, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
-
-    // Delete token from Redis (single-use guarantee)
-    await this.redisService.del(tokenKey);
-
-    return { message: 'Password berhasil diubah. Silakan login kembali.' };
-  }
-
-  // Alias methods for backward-compatibility
-  async forgotPassword(email: string) {
-    return this.requestResetCode(email);
+    return {
+      message: 'Jika email terdaftar, link reset password akan dikirim.',
+    };
   }
 
   async resetPassword(token: string, newPassword: string) {
-    const tokenKey = `reset_token:${token}`;
-    const raw = await this.redisService.get(tokenKey);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return this.resetPasswordFinal(parsed.email, token, newPassword);
-    }
-
-    // Fallback if legacy JWT token was passed
     try {
       const payload = this.jwtService.verify<{ sub: string; purpose: string }>(
         token,
@@ -643,10 +519,20 @@ export class AuthService {
       }
 
       const passwordHash = await bcrypt.hash(newPassword, this.BCRYPT_ROUNDS);
+
       await this.prisma.user.update({
         where: { id: payload.sub },
         data: { passwordHash },
       });
+
+      try {
+        const supabaseAdmin = this.supabaseService.getAdminClient();
+        await supabaseAdmin.auth.admin.updateUserById(payload.sub, {
+          password: newPassword,
+        });
+      } catch {
+        // ignore
+      }
 
       await this.prisma.refreshToken.updateMany({
         where: { userId: payload.sub, revokedAt: null },
@@ -893,7 +779,7 @@ export class AuthService {
 </html>`;
   }
 
-  private buildResetCodeHtml(name: string, code: string): string {
+  private buildResetPasswordHtml(name: string, resetUrl: string): string {
     return `
 <!DOCTYPE html>
 <html>
@@ -907,23 +793,20 @@ export class AuthService {
       <table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
         <tr><td style="background:linear-gradient(135deg,#E8847A,#C26D7A);padding:40px;text-align:center;">
           <h1 style="color:#fff;margin:0;font-size:28px;font-weight:700;">Renjana 🔑</h1>
-          <p style="color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:15px;">Kode Verifikasi Reset Password</p>
+          <p style="color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:15px;">Reset Password</p>
         </td></tr>
         <tr><td style="padding:40px 36px;">
-          <h2 style="color:#1a1a2e;font-size:22px;font-weight:600;margin:0 0 12px;">Halo, ${name} 👋</h2>
+          <h2 style="color:#1a1a2e;font-size:22px;font-weight:600;margin:0 0 12px;">Halo, ${name}</h2>
           <p style="color:#555;font-size:15px;line-height:1.7;margin:0 0 24px;">
-            Kami menerima permintaan reset password untuk akun Renjana kamu. Gunakan kode verifikasi 6-digit di bawah ini untuk melanjutkan:
+            Kami menerima permintaan reset password untuk akun Renjana kamu. Klik tombol di bawah untuk membuat password baru.
           </p>
           <div style="text-align:center;margin:32px 0;">
-            <div style="display:inline-block;background:#FFF0EE;border:2px dashed #E8847A;border-radius:12px;padding:16px 36px;font-size:36px;font-weight:800;letter-spacing:10px;color:#E8847A;font-family:'Courier New',Courier,monospace;">
-              ${code}
-            </div>
+            <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#E8847A,#C26D7A);color:#fff;text-decoration:none;padding:14px 36px;border-radius:50px;font-size:16px;font-weight:600;">
+              Reset Password
+            </a>
           </div>
-          <p style="color:#888;font-size:14px;line-height:1.6;margin:0 0 12px;text-align:center;">
-            ⏳ <strong>Kode ini berlaku selama 10 menit</strong> dan hanya bisa digunakan sekali.
-          </p>
-          <p style="color:#999;font-size:13px;line-height:1.6;margin:0;text-align:center;">
-            Jika kamu tidak meminta reset password, abaikan email ini — akun kamu tetap aman.
+          <p style="color:#999;font-size:13px;line-height:1.6;margin:0;">
+            Link ini berlaku selama 1 jam. Jika kamu tidak meminta reset password, abaikan email ini — akun kamu aman.
           </p>
         </td></tr>
         <tr><td style="background:#f8f4f0;padding:20px 36px;text-align:center;">

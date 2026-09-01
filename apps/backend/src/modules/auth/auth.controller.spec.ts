@@ -248,73 +248,16 @@ describe('AuthController', () => {
     });
   });
 
-  describe('requestResetCode', () => {
-    it('should call authService.requestResetCode with the email', async () => {
-      const result = { message: 'Kode verifikasi telah dikirim ke email Anda' };
-      authService.requestResetCode = jest.fn().mockResolvedValue(result);
-
-      const res2 = await controller.requestResetCode({
-        email: 'andi@test.com',
-      });
-
-      expect(authService.requestResetCode).toHaveBeenCalledWith('andi@test.com');
-      expect(res2).toEqual(result);
-    });
-  });
-
-  describe('verifyResetCode', () => {
-    it('should call authService.verifyResetCode and return token envelope', async () => {
-      const result = {
-        message: 'Kode verifikasi valid',
-        data: { resetToken: 'reset-tok-123', expiresIn: 900 },
-      };
-      authService.verifyResetCode = jest.fn().mockResolvedValue(result);
-
-      const res2 = await controller.verifyResetCode({
-        email: 'andi@test.com',
-        code: '123456',
-      });
-
-      expect(authService.verifyResetCode).toHaveBeenCalledWith(
-        'andi@test.com',
-        '123456',
-      );
-      expect(res2).toEqual(result);
-    });
-  });
-
-  describe('resetPasswordFinal', () => {
-    it('should call authService.resetPasswordFinal and clear cookies', async () => {
-      const dto = {
-        email: 'andi@test.com',
-        resetToken: 'reset-tok-123',
-        newPassword: 'NewPassword123!',
-      };
-      const result = { message: 'Password berhasil diubah. Silakan login kembali.' };
-      authService.resetPasswordFinal = jest.fn().mockResolvedValue(result);
-
-      const res2 = await controller.resetPasswordFinal(dto, res);
-
-      expect(authService.resetPasswordFinal).toHaveBeenCalledWith(
-        'andi@test.com',
-        'reset-tok-123',
-        'NewPassword123!',
-      );
-      expect(res.clearCookie).toHaveBeenCalledTimes(2);
-      expect(res2).toEqual(result);
-    });
-  });
-
   describe('forgotPassword', () => {
-    it('should call authService.requestResetCode with the email', async () => {
-      const result = { message: 'Kode verifikasi telah dikirim ke email Anda' };
-      authService.requestResetCode = jest.fn().mockResolvedValue(result);
+    it('should call authService.forgotPassword with the email', async () => {
+      const result = { message: 'Link reset dikirim jika email terdaftar' };
+      authService.forgotPassword.mockResolvedValue(result);
 
       const res2 = await controller.forgotPassword({
         email: 'andi@test.com',
       });
 
-      expect(authService.requestResetCode).toHaveBeenCalledWith('andi@test.com');
+      expect(authService.forgotPassword).toHaveBeenCalledWith('andi@test.com');
       expect(res2).toEqual(result);
     });
   });

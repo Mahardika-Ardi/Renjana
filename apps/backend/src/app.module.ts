@@ -10,7 +10,6 @@ import { DatabaseModule } from './database';
 import { SupabaseModule } from './infrastructure/supabase';
 import { MailModule } from './infrastructure/mail';
 import { SseModule } from './infrastructure/sse';
-import { RedisModule } from './infrastructure/redis';
 import { AiModule } from './shared/ai';
 import { MoodModule } from './modules/mood';
 import { HabitModule } from './modules/habit';
@@ -28,7 +27,6 @@ import {
   supabaseConfig,
   openaiConfig,
   mailConfig,
-  redisConfig,
   throttleConfig,
 } from './config';
 
@@ -43,7 +41,6 @@ import {
         supabaseConfig,
         openaiConfig,
         mailConfig,
-        redisConfig,
         throttleConfig,
       ],
       envFilePath: ['.env.local', '.env'],
@@ -65,7 +62,6 @@ import {
     SupabaseModule,
     MailModule,
     SseModule,
-    RedisModule,
     AiModule,
 
     // --- Feature Modules ---

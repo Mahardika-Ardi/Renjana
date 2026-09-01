@@ -5,7 +5,7 @@
 
 // ---- JWT Payload -----------------------------------------------
 export interface JwtPayload {
-  sub: string;      // user id
+  sub: string; // user id
   email: string;
   iat?: number;
   exp?: number;
@@ -32,23 +32,17 @@ export interface AuthUser {
   partnerId: string | null;
 }
 
-export interface LoginResponse {
-  user: AuthUser;
-  tokens: AuthTokens;
-}
-
-export interface RegisterResponse {
+export interface AuthResponse {
   user: AuthUser;
   tokens: AuthTokens;
 }
 
 // ---- API Response Wrapper --------------------------------------
-export interface ApiResponse<T = unknown> {
+export interface ApiResponse<T> {
   success: boolean;
   message: string;
-  data?: T;
-  error?: string;
-  statusCode: number;
+  data: T;
+  timestamp: string;
 }
 
 // ---- Couple Types ----------------------------------------------
@@ -60,4 +54,15 @@ export interface CoupleInfo {
   relationshipStatus: string;
   togetherSince: string | null;
   currentStreak: number;
+}
+
+export interface LoginDto {
+  email: string;
+  password: string;
+}
+
+export interface RegisterDto {
+  name: string;
+  email: string;
+  password: string;
 }

@@ -23,10 +23,7 @@ import {
   RegisterDto,
   LoginDto,
   VerifyEmailDto,
-  RequestResetCodeDto,
   ForgotPasswordDto,
-  VerifyResetCodeDto,
-  ResetPasswordFinalDto,
   ResetPasswordDto,
   DeleteAccountDto,
 } from './dto';
@@ -198,64 +195,21 @@ export class AuthController {
     return { message: 'Email verifikasi berhasil dikirim ulang' };
   }
 
-  // ── Request Reset Code (6-Digit Code via Email) ─────────────
-  @Public()
-  @Post('request-reset-code')
-  @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 3, ttl: 300_000 } })
-  @ApiOperation({ summary: 'Minta kode verifikasi 6-digit untuk reset password' })
-  @ApiResponse({ status: 200, description: 'Kode verifikasi telah dikirim ke email' })
-  async requestResetCode(@Body() dto: RequestResetCodeDto) {
-    return this.authService.requestResetCode(dto.email);
-  }
-
-  // ── Verify Reset Code ────────────────────────────────────────
-  @Public()
-  @Post('verify-reset-code')
-  @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 300_000 } })
-  @ApiOperation({ summary: 'Verifikasi kode 6-digit & dapatkan one-time reset token' })
-  @ApiResponse({ status: 200, description: 'Kode verifikasi valid' })
-  @ApiResponse({ status: 400, description: 'Kode verifikasi salah atau kadaluarsa' })
-  async verifyResetCode(@Body() dto: VerifyResetCodeDto) {
-    return this.authService.verifyResetCode(dto.email, dto.code);
-  }
-
-  // ── Reset Password Final ─────────────────────────────────────
-  @Public()
-  @Post('reset-password-final')
-  @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 300_000 } })
-  @ApiOperation({ summary: 'Ubah password dengan reset token dari step verify' })
-  @ApiResponse({ status: 200, description: 'Password berhasil diubah' })
-  @ApiResponse({ status: 400, description: 'Reset token tidak valid atau kadaluarsa' })
-  async resetPasswordFinal(
-    @Body() dto: ResetPasswordFinalDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const result = await this.authService.resetPasswordFinal(
-      dto.email,
-      dto.resetToken,
-      dto.newPassword,
-    );
-    clearAuthCookies(res, cookieOptions());
-    return result;
-  }
-
-  // ── Legacy Aliases ──────────────────────────────────────────
+  // ── Forgot Password ─────────────────────────────────────────
   @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 3, ttl: 300_000 } })
-  @ApiOperation({ summary: 'Minta kode/link reset password (alias)' })
+  @ApiOperation({ summary: 'Minta link reset password' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    return this.authService.requestResetCode(dto.email);
+    return this.authService.forgotPassword(dto.email);
   }
 
+  // ── Reset Password ──────────────────────────────────────────
   @Public()
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Reset password (alias)' })
+  @ApiOperation({ summary: 'Reset password dengan token dari email' })
   async resetPassword(
     @Body() dto: ResetPasswordDto,
     @Res({ passthrough: true }) res: Response,
