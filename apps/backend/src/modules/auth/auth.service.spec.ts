@@ -12,6 +12,7 @@ import { AuthService } from './auth.service';
 import { PrismaService } from '../../database';
 import { SupabaseService } from '../../infrastructure/supabase';
 import { MailService } from '../../infrastructure/mail';
+import { RedisService } from '../../infrastructure/redis';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -25,6 +26,7 @@ describe('AuthService', () => {
   let config: any;
   let supabaseService: any;
   let mailService: any;
+  let redisService: any;
 
   const userId = 'user-1';
   const email = 'andi@test.com';
@@ -108,6 +110,12 @@ describe('AuthService', () => {
       sendMail: jest.fn().mockResolvedValue(true),
     };
 
+    redisService = {
+      set: jest.fn().mockResolvedValue(undefined),
+      get: jest.fn().mockResolvedValue(null),
+      del: jest.fn().mockResolvedValue(1),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -116,6 +124,7 @@ describe('AuthService', () => {
         { provide: ConfigService, useValue: config },
         { provide: SupabaseService, useValue: supabaseService },
         { provide: MailService, useValue: mailService },
+        { provide: RedisService, useValue: redisService },
       ],
     }).compile();
 
@@ -596,45 +605,98 @@ describe('AuthService', () => {
     });
   });
 
-  describe('forgotPassword', () => {
-    it('returns generic message without leaking account existence', async () => {
+  describe('requestResetCode', () => {
+    it('returns generic message without leaking account existence if user not found', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
-      const result = await service.forgotPassword(email);
-      expect(result.message).toContain('Jika email terdaftar');
+      const result = await service.requestResetCode(email);
+      expect(result.message).toContain('Kode verifikasi telah dikirim');
+      expect(redisService.set).not.toHaveBeenCalled();
+      expect(mailService.sendMail).not.toHaveBeenCalled();
     });
 
-    it('sends reset email for existing user', async () => {
+    it('generates 6-digit code, saves to Redis, and sends email for existing user', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser);
-      const result = await service.forgotPassword(email);
+      const result = await service.requestResetCode(email);
 
-      expect(jwtService.sign).toHaveBeenCalledWith(
-        expect.objectContaining({ sub: userId, purpose: 'password-reset' }),
-        expect.objectContaining({ expiresIn: '1h' }),
+      expect(redisService.set).toHaveBeenCalledWith(
+        `reset_code:${email}`,
+        expect.stringMatching(/"code":"\d{6}"/),
+        600,
       );
-      expect(mailService.sendMail).toHaveBeenCalled();
-      expect(result.message).toContain('Jika email terdaftar');
+      expect(mailService.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: email,
+          subject: expect.stringContaining('Kode Verifikasi'),
+        }),
+      );
+      expect(result.message).toContain('Kode verifikasi telah dikirim');
     });
   });
 
-  describe('resetPassword', () => {
-    it('throws BadRequestException for invalid token', async () => {
-      jwtService.verify.mockImplementation(() => {
-        throw new Error('bad');
-      });
-      await expect(service.resetPassword('bad', 'Password123')).rejects.toThrow(
+  describe('verifyResetCode', () => {
+    it('throws BadRequestException if code not in Redis or expired', async () => {
+      redisService.get.mockResolvedValue(null);
+      await expect(service.verifyResetCode(email, '123456')).rejects.toThrow(
         BadRequestException,
       );
     });
 
-    it('updates password and revokes refresh tokens', async () => {
-      jwtService.verify.mockReturnValue({
-        sub: userId,
-        purpose: 'password-reset',
-      });
+    it('throws BadRequestException if code does not match', async () => {
+      redisService.get.mockResolvedValue(
+        JSON.stringify({ code: '654321', createdAt: Date.now() }),
+      );
+      await expect(service.verifyResetCode(email, '123456')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('deletes code, generates reset token, stores in Redis and returns token on match', async () => {
+      redisService.get.mockResolvedValue(
+        JSON.stringify({ code: '123456', createdAt: Date.now() }),
+      );
+      (uuidv4 as jest.Mock).mockReturnValue('mocked-token-uuid');
+
+      const result = await service.verifyResetCode(email, '123456');
+
+      expect(redisService.del).toHaveBeenCalledWith(`reset_code:${email}`);
+      expect(redisService.set).toHaveBeenCalledWith(
+        expect.stringContaining('reset_token:'),
+        JSON.stringify({ email }),
+        900,
+      );
+      expect(result.message).toContain('valid');
+      expect(result.data.resetToken).toBeDefined();
+    });
+  });
+
+  describe('resetPasswordFinal', () => {
+    it('throws BadRequestException for invalid or expired reset token', async () => {
+      redisService.get.mockResolvedValue(null);
+      await expect(
+        service.resetPasswordFinal(email, 'bad-token', 'Password123'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException if token email does not match requested email', async () => {
+      redisService.get.mockResolvedValue(
+        JSON.stringify({ email: 'other@test.com' }),
+      );
+      await expect(
+        service.resetPasswordFinal(email, 'token-123', 'Password123'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('updates password in Prisma, Supabase, revokes sessions, and cleans token', async () => {
+      redisService.get.mockResolvedValue(JSON.stringify({ email }));
+      prisma.user.findUnique.mockResolvedValue(mockUser);
       prisma.user.update.mockResolvedValue(mockUser);
       prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
 
-      const result = await service.resetPassword('tok', 'NewPassword123');
+      const result = await service.resetPasswordFinal(
+        email,
+        'token-123',
+        'NewPassword123!',
+      );
 
       expect(prisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -642,7 +704,11 @@ describe('AuthService', () => {
           data: expect.objectContaining({ passwordHash: 'hashed-password' }),
         }),
       );
-      expect(prisma.refreshToken.updateMany).toHaveBeenCalled();
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+      expect(redisService.del).toHaveBeenCalledWith('reset_token:token-123');
       expect(result.message).toContain('berhasil diubah');
     });
   });

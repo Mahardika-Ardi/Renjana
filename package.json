@@ -4,6 +4,7 @@
   "description": "",
   "private": true,
   "author": "Renjana",
+  "license": "MIT",
   "contributors": [
     {
       "name": "Mahardika-Ardi",
@@ -26,16 +27,6 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build:packages": "npm run build -w @renjana/types && npm run build -w @renjana/utils",
-    "build:app": "npm run build -w apps/backend && npm run build -w apps/frontend",
-    "build:be": "npm run build -w apps/backend",
-    "build:fe": "npm run build -w apps/frontend",
-    "prod:be": "npm run start:prod -w apps/backend",
-    "prod:fe": "npm start -w apps/frontend",
-    "start:dev": "concurrently -n FrontEnd,BackEnd -c blue,red \"npm run dev -w apps/frontend\" \"npm run start:dev -w apps/backend\""
-  },
-  "devDependencies": {
-    "concurrently": "^10.0.4"
+    "test": "echo \"Error: no test specified\" && exit 1"
   }
 }
