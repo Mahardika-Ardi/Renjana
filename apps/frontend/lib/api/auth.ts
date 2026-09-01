@@ -20,10 +20,17 @@ export const authApi = {
     );
   },
 
-  forgotPassword(email: string) {
+  sendTokenResetPassword({ ...dto }: { email: string }) {
     return api.post<ApiResponse<string>>(
       `${AUTH_BASE_URL}/forgot-password`,
-      email,
+      dto,
+    );
+  },
+
+  resetPassword({ ...dto }: { token: string; newPassword: string }) {
+    return api.post<ApiResponse<{ message: string }>>(
+      `${AUTH_BASE_URL}/reset-password`,
+      dto,
     );
   },
 };
