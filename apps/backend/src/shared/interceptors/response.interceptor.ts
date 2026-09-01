@@ -11,7 +11,6 @@ import { map } from 'rxjs/operators';
 import { ApiResponse } from '@renjana/types';
 
 interface ControllerResponse<T> {
-  statusCode?: number;
   message?: string;
   data: T;
 }
@@ -42,7 +41,6 @@ export class ResponseInterceptor<T> implements NestInterceptor<
         if (this.isControllerResponse(response)) {
           return {
             success: true,
-            statusCode: response.statusCode ?? 200,
             message: response.message ?? 'Request successful',
             data: response.data,
             timestamp: new Date().toISOString(),
@@ -51,7 +49,6 @@ export class ResponseInterceptor<T> implements NestInterceptor<
 
         return {
           success: true,
-          statusCode: response.statusCode ?? 200,
           message: 'Request successful',
           data: response,
           timestamp: new Date().toISOString(),
