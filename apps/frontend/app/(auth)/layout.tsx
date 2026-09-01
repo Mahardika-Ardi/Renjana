@@ -1,5 +1,11 @@
 import LeafBackground from '@/components/auth/leaf-background';
 import AuthLogo from '@/components/auth/auth-logo';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Renjana | Authentication',
+  description: 'Sign in or sign up to Renjana.',
+};
 
 export default function AuthLayout({
   children,
@@ -16,7 +22,6 @@ export default function AuthLayout({
         bg-[radial-gradient(circle,#E2C9AF_30%,#DFA66B_70%)]
       "
     >
-      {/* Three.js background */}
       <LeafBackground />
 
       <AuthLogo />

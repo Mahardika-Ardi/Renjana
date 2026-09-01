@@ -98,12 +98,12 @@ export const DEFAULT_LEAF_ANIMATION_CONFIG: LeafAnimationConfig = {
   /**
    * Radius interaksi cursor.
    */
-  mouseRadius: 150,
+  mouseRadius: 100,
 
   /**
    * Kekuatan cursor.
    */
-  pushStrength: 0.2,
+  pushStrength: 0.15,
 
   /**
    * Batas velocity.
@@ -157,7 +157,7 @@ export function createLeafState(mesh: THREE.Mesh): LeafState {
      * Rotasi awal tidak berubah
      * kecuali diberikan dari scene.
      */
-    rotationVelocity: 0,
+    rotationVelocity: 0.001,
 
     /**
      * Belum pernah terkena cursor.

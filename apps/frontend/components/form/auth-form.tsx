@@ -37,10 +37,212 @@ export default function AuthForm({ type }: AuthFormProps) {
           onSubmit={handleSubmit}
           className="flex flex-col gap-6"
         >
-          {/* ------------------------------------------------ */}
-          {/* ERROR MESSAGE */}
-          {/* ------------------------------------------------ */}
+          <AnimatePresence>
+            {type === 'Sign Up' && (
+              <motion.div
+                initial={{
+                  opacity: 0,
+                  height: 0,
+                  y: -10,
+                }}
+                animate={{
+                  opacity: 1,
+                  height: 'auto',
+                  y: 0,
+                }}
+                exit={{
+                  opacity: 0,
+                  height: 0,
+                  y: -10,
+                }}
+                transition={{
+                  duration: 0.3,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                className="overflow-hidden"
+              >
+                <Input
+                  id="username"
+                  name="name"
+                  label="Username"
+                  logoName="card"
+                  type="text"
+                  value={name}
+                  required
+                  autoComplete="username"
+                  disabled={loading}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="john"
+                  classes={{
+                    label: `
+                    font-[Outfit]
+                    text-[14px]
+                    leading-[1.2]
+                    font-semibold
+                    text-[#50453b]
+                    uppercase
+                    tracking-wider
+                  `,
 
+                    logo: `
+                    absolute
+                    left-4
+                    top-8.5
+                    -translate-y-1/2
+                  `,
+
+                    input: `
+                    w-full
+                    bg-[#eeeeed]
+                    rounded-full
+                    py-4
+                    pl-12
+                    pr-6
+                    mt-1
+                    font-[Outfit]
+                    text-[16px]
+                    leading-[1.6]
+                    text-[#1a1c1c]
+                    placeholder:text-[#d4c4b7]
+                    focus:outline-none
+                    focus:ring-2
+                    focus:ring-[#7d562d]/50
+                    transition-shadow
+                    disabled:cursor-not-allowed
+                    disabled:opacity-60
+                  `,
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <Input
+            id="email"
+            name="email"
+            label="Email"
+            logoName="mail"
+            type="email"
+            value={email}
+            required
+            autoComplete="email"
+            disabled={loading}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="john@example.com"
+            classes={{
+              label: `
+              font-[Outfit]
+              text-[14px]
+              leading-[1.2]
+              font-semibold
+              text-[#50453b]
+              uppercase
+              tracking-wider
+              ml-4
+            `,
+
+              logo: `
+              absolute
+              left-4
+              top-8.5
+              -translate-y-1/2
+            `,
+
+              input: `
+              w-full
+              bg-[#eeeeed]
+              rounded-full
+              py-4
+              pl-12
+              pr-6
+              mt-1
+              font-[Outfit]
+              text-[16px]
+              leading-[1.6]
+              font-normal
+              text-[#1a1c1c]
+              placeholder:text-[#d4c4b7]
+              focus:outline-none
+              focus:ring-2
+              focus:ring-[#7d562d]/50
+              transition-shadow
+              disabled:cursor-not-allowed
+              disabled:opacity-60
+            `,
+            }}
+          />
+
+          <Input
+            id="password"
+            name="password"
+            label="Password"
+            logoName="lock"
+            type="password"
+            value={password}
+            required
+            autoComplete={
+              type === 'Sign In' ? 'current-password' : 'new-password'
+            }
+            disabled={loading}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="••••••••"
+            href={type === 'Sign Up' ? '' : '#'}
+            classes={{
+              label: `
+              font-[Outfit]
+              text-[14px]
+              leading-[1.2]
+              font-semibold
+              text-[#50453b]
+              uppercase
+              tracking-wider
+            `,
+
+              link: `
+              font-[Outfit]
+              text-[12px]
+              leading-[1.2]
+              font-medium
+              text-[#7d562d]
+              hover:text-[#5b3912]
+              transition-colors
+            `,
+
+              logo: `
+              absolute
+              left-4
+              top-8.5
+              -translate-y-1/2
+            `,
+
+              input: `
+              w-full
+              bg-[#eeeeed]
+              rounded-full
+              py-4
+              pl-12
+              pr-12
+              mt-1
+              font-[Outfit]
+              text-[16px]
+              leading-[1.6]
+              text-[#1a1c1c]
+              placeholder:text-[#d4c4b7]
+              focus:outline-none
+              focus:ring-2
+              focus:ring-[#7d562d]/50
+              transition-shadow
+              disabled:cursor-not-allowed
+              disabled:opacity-60
+            `,
+
+              icon: `
+              text-[#82756a]
+              hover:text-[#1a1c1c]
+              transition-colors
+            `,
+            }}
+          />
           <AnimatePresence mode="wait">
             {error && (
               <motion.div
@@ -83,242 +285,6 @@ export default function AuthForm({ type }: AuthFormProps) {
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* ------------------------------------------------ */}
-          {/* USERNAME */}
-          {/* ------------------------------------------------ */}
-
-          <AnimatePresence>
-            {type === 'Sign Up' && (
-              <motion.div
-                initial={{
-                  opacity: 0,
-                  height: 0,
-                  y: -10,
-                }}
-                animate={{
-                  opacity: 1,
-                  height: 'auto',
-                  y: 0,
-                }}
-                exit={{
-                  opacity: 0,
-                  height: 0,
-                  y: -10,
-                }}
-                transition={{
-                  duration: 0.3,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                className="overflow-hidden"
-              >
-                <Input
-                  id="username"
-                  name="name"
-                  label="Username"
-                  logoName="id_card"
-                  type="text"
-                  value={name}
-                  required
-                  autoComplete="username"
-                  disabled={loading}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="john"
-                  classes={{
-                    label: `
-                    font-[Outfit]
-                    text-[14px]
-                    leading-[1.2]
-                    font-semibold
-                    text-[#50453b]
-                    uppercase
-                    tracking-wider
-                  `,
-
-                    logo: `
-                    material-symbols-outlined
-                    absolute
-                    left-4
-                    top-1/2
-                    -translate-y-1/2
-                    text-[#82756a]
-                    group-focus-within:text-[#7d562d]
-                    transition-colors
-                  `,
-
-                    input: `
-                    w-full
-                    bg-[#eeeeed]
-                    rounded-full
-                    py-4
-                    pl-12
-                    pr-6
-                    mt-1
-                    font-[Outfit]
-                    text-[16px]
-                    leading-[1.6]
-                    text-[#1a1c1c]
-                    placeholder:text-[#d4c4b7]
-                    focus:outline-none
-                    focus:ring-2
-                    focus:ring-[#7d562d]/50
-                    transition-shadow
-                    disabled:cursor-not-allowed
-                    disabled:opacity-60
-                  `,
-                  }}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* ------------------------------------------------ */}
-          {/* EMAIL */}
-          {/* ------------------------------------------------ */}
-
-          <Input
-            id="email"
-            name="email"
-            label="Email"
-            logoName="mail"
-            type="email"
-            value={email}
-            required
-            autoComplete="email"
-            disabled={loading}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="john@example.com"
-            classes={{
-              label: `
-              font-[Outfit]
-              text-[14px]
-              leading-[1.2]
-              font-semibold
-              text-[#50453b]
-              uppercase
-              tracking-wider
-              ml-4
-            `,
-
-              logo: `
-              material-symbols-outlined
-              absolute
-              left-4
-              top-1/2
-              -translate-y-1/2
-              text-[#82756a]
-              group-focus-within:text-[#7d562d]
-              transition-colors
-            `,
-
-              input: `
-              w-full
-              bg-[#eeeeed]
-              rounded-full
-              py-4
-              pl-12
-              pr-6
-              mt-1
-              font-[Outfit]
-              text-[16px]
-              leading-[1.6]
-              font-normal
-              text-[#1a1c1c]
-              placeholder:text-[#d4c4b7]
-              focus:outline-none
-              focus:ring-2
-              focus:ring-[#7d562d]/50
-              transition-shadow
-              disabled:cursor-not-allowed
-              disabled:opacity-60
-            `,
-            }}
-          />
-
-          {/* ------------------------------------------------ */}
-          {/* PASSWORD */}
-          {/* ------------------------------------------------ */}
-
-          <Input
-            id="password"
-            name="password"
-            label="Password"
-            logoName="lock"
-            type="password"
-            value={password}
-            required
-            autoComplete={
-              type === 'Sign In' ? 'current-password' : 'new-password'
-            }
-            disabled={loading}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="••••••••"
-            href="#"
-            classes={{
-              label: `
-              font-[Outfit]
-              text-[14px]
-              leading-[1.2]
-              font-semibold
-              text-[#50453b]
-              uppercase
-              tracking-wider
-            `,
-
-              link: `
-              font-[Outfit]
-              text-[12px]
-              leading-[1.2]
-              font-medium
-              text-[#7d562d]
-              hover:text-[#5b3912]
-              transition-colors
-            `,
-
-              logo: `
-              material-symbols-outlined
-              absolute
-              left-4
-              top-1/2
-              -translate-y-1/2
-              text-[#82756a]
-              group-focus-within:text-[#7d562d]
-              transition-colors
-            `,
-
-              input: `
-              w-full
-              bg-[#eeeeed]
-              rounded-full
-              py-4
-              pl-12
-              pr-12
-              mt-1
-              font-[Outfit]
-              text-[16px]
-              leading-[1.6]
-              text-[#1a1c1c]
-              placeholder:text-[#d4c4b7]
-              focus:outline-none
-              focus:ring-2
-              focus:ring-[#7d562d]/50
-              transition-shadow
-              disabled:cursor-not-allowed
-              disabled:opacity-60
-            `,
-
-              icon: `
-              text-[#82756a]
-              hover:text-[#1a1c1c]
-              transition-colors
-            `,
-            }}
-          />
-
-          {/* ------------------------------------------------ */}
-          {/* SUBMIT */}
-          {/* ------------------------------------------------ */}
-
           <motion.div
             whileTap={{
               scale: 0.98,
@@ -355,10 +321,6 @@ export default function AuthForm({ type }: AuthFormProps) {
               `,
 
                 logo: `
-                material-symbols-outlined
-                text-[20px]
-                transition-transform
-                group-hover:translate-x-1
                 ${loading ? 'animate-spin' : ''}
               `,
               }}

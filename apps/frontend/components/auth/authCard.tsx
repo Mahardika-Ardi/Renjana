@@ -57,7 +57,6 @@ export default function AuthCard({ type, children }: AuthCardProps) {
           gap-8
         "
       >
-        {/* Header */}
         <motion.div
           initial={{
             opacity: 0,
@@ -74,7 +73,6 @@ export default function AuthCard({ type, children }: AuthCardProps) {
           }}
           className="flex flex-col gap-2 text-center items-center"
         >
-          {/* Mobile decorative icon */}
           <motion.div
             initial={{
               opacity: 0,
@@ -112,7 +110,6 @@ export default function AuthCard({ type, children }: AuthCardProps) {
             />
           </motion.div>
 
-          {/* Title */}
           <motion.h1
             initial={{
               opacity: 0,
@@ -138,7 +135,6 @@ export default function AuthCard({ type, children }: AuthCardProps) {
             {type}
           </motion.h1>
 
-          {/* Subtitle */}
           <motion.p
             initial={{
               opacity: 0,
@@ -165,7 +161,6 @@ export default function AuthCard({ type, children }: AuthCardProps) {
           </motion.p>
         </motion.div>
 
-        {/* Form */}
         <motion.div
           initial={{
             opacity: 0,

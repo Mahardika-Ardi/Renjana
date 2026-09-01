@@ -1,12 +1,13 @@
 'use client';
 
 import { InputHTMLAttributes, useState } from 'react';
+import Image from 'next/image';
 
 import Button from './Button';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  logoName?: string;
   label?: string;
+  logoName?: 'card' | 'mail' | 'lock';
   href?: string;
 
   classes?: {
@@ -17,6 +18,12 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     icon?: string;
   };
 }
+
+const InputIcons = {
+  card: '/icons/business-card-design.svg',
+  mail: '/icons/mail.svg',
+  lock: '/icons/padlock.svg',
+};
 
 export default function Input({
   logoName,
@@ -56,13 +63,16 @@ export default function Input({
         )}
       </div>
       <div className="relative group">
-        {/* Leading Icon */}
-
-        {logoName && (
-          <span aria-hidden="true" className={classes?.logo}>
-            {logoName}
-          </span>
-        )}
+        <span aria-hidden="true" className={classes?.logo}>
+          {logoName && (
+            <Image
+              src={InputIcons[logoName]}
+              alt={logoName}
+              width={25}
+              height={25}
+            />
+          )}
+        </span>
 
         <input {...props} id={id} type={inputType} className={classes?.input} />
         {isPassword && (
@@ -89,8 +99,7 @@ export default function Input({
               `,
 
               logo: `
-                material-symbols-outlined
-                text-[20px]
+                width-auto
               `,
             }}
           />
