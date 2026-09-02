@@ -14,6 +14,9 @@ export interface JwtPayload {
 export interface JwtRefreshPayload extends JwtPayload {
   refreshToken: string;
 }
+// ---- Auth Type --------------------------------------------
+export type AuthTypes =
+  'Sign In' | 'Sign Up' | 'Forgot Password' | 'Reset Password';
 
 // ---- Auth Responses --------------------------------------------
 export interface AuthTokens {

@@ -2,12 +2,9 @@
 
 import Link from 'next/link';
 import { motion } from 'motion/react';
+import { AuthTypes } from '@renjana/types';
 
-type AuthFooterProps = {
-  type: 'Sign In' | 'Sign Up';
-};
-
-export default function AuthFooter({ type }: AuthFooterProps) {
+export default function AuthFooter({ type }: { type: AuthTypes }) {
   if (type !== 'Sign In') {
     return null;
   }

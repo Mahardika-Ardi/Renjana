@@ -3,21 +3,22 @@ services:
     image: redis:alpine
     container_name: renjana_redis
     ports:
-      - '6379:6379'
+      - '0.0.0.0:6379:6379'
     volumes:
       - renjana_redis_data:/data
     restart: unless-stopped
+    command: redis-server --requirepass Renjana123
 
-  backend:
-    build:
-      context: .
-      dockerfile: apps/backend/Dockerfile
-    image: renjana-backend
-    container_name: renjana_backend
-    ports:
-      - '3001:3001'
-    depends_on:
-      - redis
+  # backend:
+  #   build:
+  #     context: .
+  #     dockerfile: apps/backend/Dockerfile
+  #   image: renjana-backend
+  #   container_name: renjana_backend
+  #   ports:
+  #     - '3001:3001'
+  #   depends_on:
+  #     - redis
 
 volumes:
   renjana_redis_data:
