@@ -7,14 +7,9 @@ import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import AuthCard from '@/components/auth/authCard';
 import AuthFooter from '@/components/auth/auth-footer';
+import { AuthTypes } from '@renjana/types';
 
-type AuthType = 'Sign In' | 'Sign Up';
-
-interface AuthFormProps {
-  type: AuthType;
-}
-
-export default function AuthForm({ type }: AuthFormProps) {
+export default function AuthForm({ type }: { type: AuthTypes }) {
   const {
     name,
     email,
@@ -186,7 +181,7 @@ export default function AuthForm({ type }: AuthFormProps) {
             disabled={loading}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="••••••••"
-            href={type === 'Sign Up' ? '' : '#'}
+            href={type === 'Sign Up' ? '' : '/forgot-password'}
             classes={{
               label: `
               font-[Outfit]

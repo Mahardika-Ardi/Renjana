@@ -4,8 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { authApi } from '@/lib/api/auth';
-
-type AuthType = 'Sign In' | 'Sign Up';
+import { AuthTypes } from '@renjana/types';
 
 interface AuthFormState {
   name: string;
@@ -13,7 +12,7 @@ interface AuthFormState {
   password: string;
 }
 
-export function useAuthForm(type: AuthType) {
+export function useAuthForm(type: AuthTypes) {
   const router = useRouter();
   const [form, setForm] = useState<AuthFormState>({
     name: '',

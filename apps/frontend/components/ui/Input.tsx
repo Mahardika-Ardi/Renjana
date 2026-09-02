@@ -2,6 +2,7 @@
 
 import { InputHTMLAttributes, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 import Button from './Button';
 
@@ -57,9 +58,9 @@ export default function Input({
         )}
 
         {isPassword && href && (
-          <a href={href} className={classes?.link}>
+          <Link href={href} className={classes?.link}>
             Forgot?
-          </a>
+          </Link>
         )}
       </div>
       <div className="relative group">

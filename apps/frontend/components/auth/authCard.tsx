@@ -5,13 +5,15 @@ import { ReactNode } from 'react';
 import { motion } from 'motion/react';
 
 import Card from '@/components/ui/Card';
+import { AuthTypes } from '@renjana/types';
 
-type AuthCardProps = {
-  type: 'Sign In' | 'Sign Up';
+export default function AuthCard({
+  type,
+  children,
+}: {
+  type: AuthTypes;
   children?: ReactNode;
-};
-
-export default function AuthCard({ type, children }: AuthCardProps) {
+}) {
   return (
     <motion.div
       initial={{

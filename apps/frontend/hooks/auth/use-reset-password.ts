@@ -4,29 +4,16 @@ import { authApi } from '@/lib/api/auth';
 import { useRouter } from 'next/router';
 import { useState } from 'react';
 
-interface PasswordFormState {
-  token: string;
-  newPassword: string;
-}
-
 export function useResetPassword() {
   const router = useRouter();
   const [email, setEmail] = useState<string>('');
-  const [passwordForm, setPasswordForm] = useState<PasswordFormState>({
-    token: '',
-    newPassword: '',
-  });
-
+  const [code, setCode] = useState<string>('');
+  const [token, setToken] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const setField = (field: keyof PasswordFormState, value: string) => {
-    setPasswordForm((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
-  };
 
-  const handleSendLink = async (event: React.SubmitEvent<HTMLFormElement>) => {
+  const handleSendCode = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (loading) {
@@ -37,15 +24,51 @@ export function useResetPassword() {
     setError(null);
 
     try {
-      await authApi.sendTokenResetPassword({
+      await authApi.reqCodeResetPassword({
         email,
       });
+
+      return;
     } catch (error) {
       if (error instanceof Error) {
         console.log(error.message);
 
         setError(error.message);
       } else setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async (
+    event: React.SubmitEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+
+    if (loading) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await authApi.verifyPasswordResetCode({
+        email,
+        code,
+      });
+
+      setToken(res.data.resetToken);
+
+      return;
+    } catch (error) {
+      if (error instanceof Error) {
+        console.log(error.message);
+
+        setError(error.message);
+      } else {
+        setError('Something went wrong. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -65,13 +88,12 @@ export function useResetPassword() {
 
     try {
       await authApi.resetPassword({
-        token: passwordForm.token,
-        newPassword: passwordForm.newPassword,
+        email,
+        resetToken: token,
+        newPassword: password,
       });
 
       router.push('/login');
-
-      return;
     } catch (error) {
       if (error instanceof Error) {
         console.log(error.message);
@@ -87,17 +109,18 @@ export function useResetPassword() {
 
   return {
     email,
-    token: passwordForm.token,
-    newPassword: passwordForm,
+    password,
+    code,
 
+    setPassword,
+    setCode,
     setEmail,
-    setToken: (value: string) => setField('token', value),
-    setNewPassword: (value: string) => setField('newPassword', value),
 
     loading,
     error,
 
-    handleSendLink,
+    handleVerifyCode,
+    handleSendCode,
     handleResetPassword,
   };
 }
