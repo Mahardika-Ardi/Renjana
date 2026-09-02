@@ -492,14 +492,13 @@ export class AuthService {
         ttlSeconds,
       );
 
-      // Send email with 6-digit verification code
       await this.mailService.sendMail({
         to: user.email,
         subject: 'Kode Verifikasi Reset Password — Renjana',
         html: this.buildResetCodeHtml(user.name, code),
       });
 
-      this.logger.log(`Reset password code dikirim ke ${user.email}`);
+      this.logger.log(`Kode verifikasi disimpan ke Redis untuk ${user.email}`);
     }
 
     return {
