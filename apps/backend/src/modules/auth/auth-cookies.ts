@@ -26,7 +26,10 @@ const baseCookie = (opts: CookieOptions, maxAge: number, path: string) => ({
   sameSite: opts.sameSite,
   maxAge,
   path,
-  domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined,
+  domain:
+    process.env.NODE_ENV === 'production'
+      ? process.env.COOKIE_DOMAIN
+      : undefined,
 });
 
 export function setAuthCookies(
@@ -52,13 +55,19 @@ export function clearAuthCookies(res: Response, opts: CookieOptions) {
     secure: opts.secure,
     sameSite: opts.sameSite,
     path: '/',
-    domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined,
+    domain:
+      process.env.NODE_ENV === 'production'
+        ? process.env.COOKIE_DOMAIN
+        : undefined,
   });
   res.clearCookie(REFRESH_TOKEN_COOKIE, {
     httpOnly: true,
     secure: opts.secure,
     sameSite: opts.sameSite,
     path: '/api/v1/auth',
-    domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined,
+    domain:
+      process.env.NODE_ENV === 'production'
+        ? process.env.COOKIE_DOMAIN
+        : undefined,
   });
 }
