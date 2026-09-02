@@ -64,3 +64,11 @@ export const average = (numbers: number[]): number =>
 
 export const percentage = (value: number, total: number): number =>
   total === 0 ? 0 : Math.round((value / total) * 100);
+
+// ---- Token Utilities -------------------------------------------
+export const generateInviteToken = (): string => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous chars
+  return Array.from({ length: 8 }, () =>
+    chars.charAt(Math.floor(Math.random() * chars.length)),
+  ).join('');
+};

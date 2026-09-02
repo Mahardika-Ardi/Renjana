@@ -5,7 +5,7 @@
 
 // ---- JWT Payload -----------------------------------------------
 export interface JwtPayload {
-  sub: string; // user id
+  sub: string;      // user id
   email: string;
   iat?: number;
   exp?: number;
@@ -32,17 +32,23 @@ export interface AuthUser {
   partnerId: string | null;
 }
 
-export interface AuthResponse {
+export interface LoginResponse {
+  user: AuthUser;
+  tokens: AuthTokens;
+}
+
+export interface RegisterResponse {
   user: AuthUser;
   tokens: AuthTokens;
 }
 
 // ---- API Response Wrapper --------------------------------------
-export interface ApiResponse<T> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
-  data: T;
-  timestamp: string;
+  data?: T;
+  error?: string;
+  statusCode: number;
 }
 
 // ---- Couple Types ----------------------------------------------
@@ -54,46 +60,4 @@ export interface CoupleInfo {
   relationshipStatus: string;
   togetherSince: string | null;
   currentStreak: number;
-}
-
-export interface LoginDto {
-  email: string;
-  password: string;
-}
-
-export interface RegisterDto {
-  name: string;
-  email: string;
-  password: string;
-  inviteToken?: string;
-}
-
-// ---- Password Reset Types ---------------------------------------
-export interface RequestResetCodeDto {
-  email: string;
-}
-
-export interface ForgotPasswordDto {
-  email: string;
-}
-
-export interface VerifyResetCodeDto {
-  email: string;
-  code: string;
-}
-
-export interface VerifyResetCodeResponse {
-  resetToken: string;
-  expiresIn: number;
-}
-
-export interface ResetPasswordFinalDto {
-  email: string;
-  resetToken: string;
-  newPassword: string;
-}
-
-export interface ResetPasswordDto {
-  token: string;
-  newPassword: string;
 }
