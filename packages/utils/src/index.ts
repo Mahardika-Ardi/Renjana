@@ -64,3 +64,157 @@ export const average = (numbers: number[]): number =>
 
 export const percentage = (value: number, total: number): number =>
   total === 0 ? 0 : Math.round((value / total) * 100);
+
+/**
+ * Safe wrappers around sessionStorage and localStorage.
+ * All functions are SSR-safe: they no-op / return null when `window` isn't available.
+ */
+
+type StorageType = 'session' | 'local';
+
+const getStorage = (type: StorageType): Storage | null => {
+  if (typeof window === 'undefined') return null;
+  return type === 'session' ? window.sessionStorage : window.localStorage;
+};
+
+// ---------------------------------------------------------------------------
+// String helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Safely get a raw string item from storage.
+ * Returns null if running on server, storage is unavailable, or key doesn't exist.
+ */
+export const getStorageItem = (
+  key: string,
+  type: StorageType = 'session',
+): string | null => {
+  const storage = getStorage(type);
+  if (!storage) return null;
+
+  try {
+    return storage.getItem(key);
+  } catch {
+    // storage might be disabled (e.g. private mode, quota, security settings)
+    return null;
+  }
+};
+
+/**
+ * Safely set a raw string item to storage.
+ * No-op if running on server or storage is unavailable.
+ */
+export const setStorageItem = (
+  key: string,
+  value: string,
+  type: StorageType = 'session',
+): void => {
+  const storage = getStorage(type);
+  if (!storage) return;
+
+  try {
+    storage.setItem(key, value);
+  } catch {
+    // ignore quota/security errors silently, or add logging here if needed
+  }
+};
+
+/**
+ * Safely remove an item from storage.
+ * No-op if running on server or storage is unavailable.
+ */
+export const removeStorageItem = (
+  key: string,
+  type: StorageType = 'session',
+): void => {
+  const storage = getStorage(type);
+  if (!storage) return;
+
+  try {
+    storage.removeItem(key);
+  } catch {
+    // ignore
+  }
+};
+
+/**
+ * Safely clear all items from storage.
+ * No-op if running on server or storage is unavailable.
+ */
+export const clearStorage = (type: StorageType = 'session'): void => {
+  const storage = getStorage(type);
+  if (!storage) return;
+
+  try {
+    storage.clear();
+  } catch {
+    // ignore
+  }
+};
+
+// ---------------------------------------------------------------------------
+// JSON helpers (for objects / arrays / numbers / booleans)
+// ---------------------------------------------------------------------------
+
+/**
+ * Safely get and parse a JSON item from storage.
+ * Returns `fallback` (default null) if key doesn't exist, JSON is invalid,
+ * or running on server.
+ */
+export const getStorageJSON = <T = unknown>(
+  key: string,
+  type: StorageType = 'session',
+  fallback: T | null = null,
+): T | null => {
+  const raw = getStorageItem(key, type);
+  if (raw === null) return fallback;
+
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+};
+
+/**
+ * Safely stringify and set a JSON item to storage.
+ * No-op if running on server or storage is unavailable.
+ */
+export const setStorageJSON = <T = unknown>(
+  key: string,
+  value: T,
+  type: StorageType = 'session',
+): void => {
+  try {
+    const raw = JSON.stringify(value);
+    setStorageItem(key, raw, type);
+  } catch {
+    // ignore serialization errors (e.g. circular refs)
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Convenience shorthands (default to sessionStorage, matching original usage)
+// ---------------------------------------------------------------------------
+
+export const session = {
+  get: (key: string) => getStorageItem(key, 'session'),
+  set: (key: string, value: string) => setStorageItem(key, value, 'session'),
+  remove: (key: string) => removeStorageItem(key, 'session'),
+  clear: () => clearStorage('session'),
+  getJSON: <T = unknown>(key: string, fallback: T | null = null) =>
+    getStorageJSON<T>(key, 'session', fallback),
+  setJSON: <T = unknown>(key: string, value: T) =>
+    setStorageJSON<T>(key, value, 'session'),
+};
+
+export const local = {
+  get: (key: string) => getStorageItem(key, 'local'),
+  set: (key: string, value: string) => setStorageItem(key, value, 'local'),
+  remove: (key: string) => removeStorageItem(key, 'local'),
+  clear: () => clearStorage('local'),
+  getJSON: <T = unknown>(key: string, fallback: T | null = null) =>
+    getStorageJSON<T>(key, 'local', fallback),
+  setJSON: <T = unknown>(key: string, value: T) =>
+    setStorageJSON<T>(key, value, 'local'),
+};

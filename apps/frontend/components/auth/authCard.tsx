@@ -75,21 +75,22 @@ export default function AuthCard({
           }}
           className="flex flex-col gap-2 text-center items-center"
         >
-          <motion.div
-            initial={{
-              opacity: 0,
-              scale: 0.7,
-            }}
-            animate={{
-              opacity: 1,
-              scale: 1,
-            }}
-            transition={{
-              duration: 0.45,
-              delay: 0.25,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-            className="
+          {(type === 'Sign In' || type === 'Sign Up') && (
+            <motion.div
+              initial={{
+                opacity: 0,
+                scale: 0.7,
+              }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+              }}
+              transition={{
+                duration: 0.45,
+                delay: 0.25,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="
               w-12
               h-12
               rounded-full
@@ -101,16 +102,17 @@ export default function AuthCard({
               md:hidden
               shadow-sm
             "
-          >
-            <Image
-              src="/logo/Dark_Theme_Logo.svg"
-              alt="Renjana Logo"
-              width={200}
-              height={200}
-              loading="eager"
-              className="h-auto"
-            />
-          </motion.div>
+            >
+              <Image
+                src="/logo/Dark_Theme_Logo.svg"
+                alt="Renjana Logo"
+                width={200}
+                height={200}
+                loading="eager"
+                className="h-auto"
+              />
+            </motion.div>
+          )}
 
           <motion.h1
             initial={{
@@ -159,7 +161,9 @@ export default function AuthCard({
               text-[#50453b]
             "
           >
-            Welcome to Renjana
+            {type === 'Sign In' || type === 'Sign Up'
+              ? 'Welcome to Renjana'
+              : 'Reset your password'}
           </motion.p>
         </motion.div>
 

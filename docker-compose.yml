@@ -9,16 +9,16 @@ services:
     restart: unless-stopped
     command: redis-server --requirepass Renjana123
 
-  # backend:
-  #   build:
-  #     context: .
-  #     dockerfile: apps/backend/Dockerfile
-  #   image: renjana-backend
-  #   container_name: renjana_backend
-  #   ports:
-  #     - '3001:3001'
-  #   depends_on:
-  #     - redis
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    image: renjana-backend
+    container_name: renjana_backend
+    ports:
+      - '3001:3001'
+    depends_on:
+      - redis
 
 volumes:
   renjana_redis_data:
