@@ -14,13 +14,30 @@ export const slugify = (str: string): string =>
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
+export const toString = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean')
+    return value.toString();
+  if (value === null || value === undefined) return '';
+  return JSON.stringify(value);
+};
+
 // ---- Date Utilities --------------------------------------------
-export const formatDate = (date: Date | string, locale = 'id-ID'): string =>
+export const formatDate = (date: Date | string, locale = 'en-US'): string =>
   new Date(date).toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
+
+export const getCurrentDateFormatted = (): string => {
+  const date = new Date();
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  });
+};
 
 export const getISOWeek = (date: Date): { week: number; year: number } => {
   const d = new Date(date);
@@ -64,6 +81,8 @@ export const average = (numbers: number[]): number =>
 
 export const percentage = (value: number, total: number): number =>
   total === 0 ? 0 : Math.round((value / total) * 100);
+
+// --- Storage Utilities -----------------------------------------
 
 /**
  * Safe wrappers around sessionStorage and localStorage.

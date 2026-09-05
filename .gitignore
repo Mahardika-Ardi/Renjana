@@ -110,3 +110,7 @@ next-env.d.ts
 # Misc
 *.pem
 .DS_Store
+
+# assets
+apps/frontend/public/icons/*.png
+apps/frontend/public/leaves/*.png

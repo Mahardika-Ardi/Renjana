@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { getCurrentDateFormatted } from '@renjana/utils';
 
 export default function HomePage() {
   const [glasses, setGlasses] = useState(4);
@@ -9,19 +10,28 @@ export default function HomePage() {
   const hydrationPercentage = Math.min((glasses / 8) * 100, 100);
 
   return (
-    <main className="min-h-screen bg-[#f8f8f7] text-[#1d1d1b]">
+    <div className="min-h-screen bg-[#f8f8f7] text-[#1d1d1b]">
       <div className="mx-auto w-full max-w-250 px-6 py-8 md:px-10 md:py-10">
-        {/* =========================
-            HEADER
-        ========================== */}
         <header className="mb-16 text-center">
           <div className="mx-auto mb-6 flex w-fit items-center gap-3 rounded-full bg-[#f3f3f1] px-5 py-2.5 text-xs font-medium tracking-[0.16em] text-[#79582f]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#8a6335]" />
-            TUESDAY, OCT 24
+            {getCurrentDateFormatted().toUpperCase()}
           </div>
 
           <h1 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl md:text-[52px]">
-            Good morning,{' '}
+            {/* jadikan 4 waktu pagi siang sore malam*/}
+            {(() => {
+              const hour = new Date().getHours();
+              if (hour < 6) {
+                return 'Good night, ';
+              } else if (hour < 12) {
+                return 'Good morning, ';
+              } else if (hour < 18) {
+                return 'Good afternoon, ';
+              } else {
+                return 'Good evening, ';
+              }
+            })()}
             <span className="font-serif italic font-semibold text-[#875e2f]">
               Elias
             </span>
@@ -335,7 +345,7 @@ export default function HomePage() {
           </article>
         </section>
       </div>
-    </main>
+    </div>
   );
 }
 
