@@ -33,7 +33,7 @@ export interface AuthUser {
   isEmailVerified: boolean;
   coupleId: string | null;
   partnerId: string | null;
-  couple: string | null;
+  couple?: string;
 }
 
 export interface AuthResponse {
