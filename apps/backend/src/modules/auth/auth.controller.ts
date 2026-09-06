@@ -15,6 +15,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiCookieAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
@@ -203,8 +204,13 @@ export class AuthController {
   @Post('request-reset-code')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 3, ttl: 300_000 } })
-  @ApiOperation({ summary: 'Minta kode verifikasi 6-digit untuk reset password' })
-  @ApiResponse({ status: 200, description: 'Kode verifikasi telah dikirim ke email' })
+  @ApiOperation({
+    summary: 'Minta kode verifikasi 6-digit untuk reset password',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Kode verifikasi telah dikirim ke email',
+  })
   async requestResetCode(@Body() dto: RequestResetCodeDto) {
     return this.authService.requestResetCode(dto.email);
   }
@@ -214,9 +220,14 @@ export class AuthController {
   @Post('verify-reset-code')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 5, ttl: 300_000 } })
-  @ApiOperation({ summary: 'Verifikasi kode 6-digit & dapatkan one-time reset token' })
+  @ApiOperation({
+    summary: 'Verifikasi kode 6-digit & dapatkan one-time reset token',
+  })
   @ApiResponse({ status: 200, description: 'Kode verifikasi valid' })
-  @ApiResponse({ status: 400, description: 'Kode verifikasi salah atau kadaluarsa' })
+  @ApiResponse({
+    status: 400,
+    description: 'Kode verifikasi salah atau kadaluarsa',
+  })
   async verifyResetCode(@Body() dto: VerifyResetCodeDto) {
     return this.authService.verifyResetCode(dto.email, dto.code);
   }
@@ -226,9 +237,14 @@ export class AuthController {
   @Post('reset-password-final')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 5, ttl: 300_000 } })
-  @ApiOperation({ summary: 'Ubah password dengan reset token dari step verify' })
+  @ApiOperation({
+    summary: 'Ubah password dengan reset token dari step verify',
+  })
   @ApiResponse({ status: 200, description: 'Password berhasil diubah' })
-  @ApiResponse({ status: 400, description: 'Reset token tidak valid atau kadaluarsa' })
+  @ApiResponse({
+    status: 400,
+    description: 'Reset token tidak valid atau kadaluarsa',
+  })
   async resetPasswordFinal(
     @Body() dto: ResetPasswordFinalDto,
     @Res({ passthrough: true }) res: Response,
@@ -300,6 +316,10 @@ export class AuthController {
   @Public()
   @Get('invite/validate')
   @ApiOperation({ summary: 'Validasi token undangan sebelum user mendaftar' })
+  @ApiQuery({
+    name: 'token',
+    example: 'f30bac92d2154a6aa9aa9392a0fcd81153e8086f254f4b1697edaf47fb842344',
+  })
   @ApiResponse({ status: 200, description: 'Token undangan valid' })
   @ApiResponse({
     status: 400,

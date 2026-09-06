@@ -3,6 +3,7 @@ import { api } from './client';
 import type {
   ApiResponse,
   AuthResponse,
+  AuthUser,
   ForgotPasswordDto,
   LoginDto,
   RegisterDto,
@@ -10,7 +11,7 @@ import type {
   VerifyResetCodeDto,
   VerifyResetCodeResponse,
 } from '@renjana/types';
-import { AUTH_BASE_URL } from './config';
+import { AUTH_BASE_URL } from '../constants/url';
 
 export const authApi = {
   login(dto: LoginDto) {
@@ -43,5 +44,9 @@ export const authApi = {
       `${AUTH_BASE_URL}/reset-password-final`,
       dto,
     );
+  },
+
+  getUserProfile() {
+    return api.get<ApiResponse<AuthUser>>(`${AUTH_BASE_URL}/me`);
   },
 };

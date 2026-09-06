@@ -112,5 +112,5 @@ next-env.d.ts
 .DS_Store
 
 # assets
-apps/frontend/public/icons/*.png
-apps/frontend/public/leaves/*.png
+apps/frontend/public/icons/**.png
+apps/frontend/public/leaves/**.png

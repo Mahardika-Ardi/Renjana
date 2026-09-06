@@ -13,3 +13,5 @@
 <a href="https://www.flaticon.com/free-icons/loading" title="loading icons">Loading icons created by icon wind - Flaticon</a>
 
 <a href="https://www.flaticon.com/free-icons/otp" title="otp icons">Otp icons created by Nur syifa fauziah - Flaticon</a>
+
+<a href="https://www.flaticon.com/free-icons/user" title="user icons">User icons created by Magnific - Flaticon</a>
