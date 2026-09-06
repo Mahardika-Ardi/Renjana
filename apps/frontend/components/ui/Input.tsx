@@ -8,8 +8,10 @@ import Button from './Button';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
-  logoName?: 'card' | 'mail' | 'lock';
+  logoName?: 'card' | 'mail' | 'lock' | 'otp';
   href?: string;
+  otp?: boolean;
+  status?: boolean;
 
   classes?: {
     label?: string;
@@ -24,6 +26,7 @@ const InputIcons = {
   card: '/icons/business-card-design.svg',
   mail: '/icons/mail.svg',
   lock: '/icons/padlock.svg',
+  otp: '/icons/password.svg',
 };
 
 export default function Input({
@@ -32,6 +35,8 @@ export default function Input({
   classes,
   id,
   href,
+  otp,
+  status,
   ...props
 }: InputProps) {
   const [showPassword, setShowPassword] = useState(false);
@@ -101,6 +106,31 @@ export default function Input({
 
               logo: `
                 width-auto
+              `,
+            }}
+          />
+        )}
+        {otp && (
+          <Button
+            type="submit"
+            content="Send Code"
+            disabled={status}
+            aria-label="Send verification code"
+            aria-busy={status}
+            classes={{
+              button: `
+                absolute
+                right-4
+                top-1/2
+                -translate-y-1/2
+                flex
+                items-center
+                justify-center
+                focus:outline-none
+                focus-visible:ring-2
+                focus-visible:ring-[#7d562d]/50
+                rounded-full
+                ${classes?.icon ?? ''}
               `,
             }}
           />

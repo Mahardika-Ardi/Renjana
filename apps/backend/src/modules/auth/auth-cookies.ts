@@ -45,7 +45,7 @@ export function setAuthCookies(
   res.cookie(
     REFRESH_TOKEN_COOKIE,
     tokens.refreshToken,
-    baseCookie(opts, 7 * 24 * 60 * 60 * 1000, '/api/v1/auth'),
+    baseCookie(opts, 7 * 24 * 60 * 60 * 1000, '/'),
   );
 }
 
@@ -64,7 +64,7 @@ export function clearAuthCookies(res: Response, opts: CookieOptions) {
     httpOnly: true,
     secure: opts.secure,
     sameSite: opts.sameSite,
-    path: '/api/v1/auth',
+    path: '/',
     domain:
       process.env.NODE_ENV === 'production'
         ? process.env.COOKIE_DOMAIN

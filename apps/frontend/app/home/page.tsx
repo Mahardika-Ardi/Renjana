@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { getCurrentDateFormatted } from '@renjana/utils';
+import Profile from '@/components/profile/photo-profile';
 
 export default function HomePage() {
   const [glasses, setGlasses] = useState(4);
@@ -9,19 +11,27 @@ export default function HomePage() {
   const hydrationPercentage = Math.min((glasses / 8) * 100, 100);
 
   return (
-    <main className="min-h-screen bg-[#f8f8f7] text-[#1d1d1b]">
+    <div className="min-h-screen bg-[#f8f8f7] text-[#1d1d1b]">
       <div className="mx-auto w-full max-w-250 px-6 py-8 md:px-10 md:py-10">
-        {/* =========================
-            HEADER
-        ========================== */}
         <header className="mb-16 text-center">
           <div className="mx-auto mb-6 flex w-fit items-center gap-3 rounded-full bg-[#f3f3f1] px-5 py-2.5 text-xs font-medium tracking-[0.16em] text-[#79582f]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#8a6335]" />
-            TUESDAY, OCT 24
+            {getCurrentDateFormatted().toUpperCase()}
           </div>
 
           <h1 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl md:text-[52px]">
-            Good morning,{' '}
+            {(() => {
+              const hour = new Date().getHours();
+              if (hour < 6) {
+                return 'Good night, ';
+              } else if (hour < 12) {
+                return 'Good morning, ';
+              } else if (hour < 18) {
+                return 'Good afternoon, ';
+              } else {
+                return 'Good evening, ';
+              }
+            })()}
             <span className="font-serif italic font-semibold text-[#875e2f]">
               Elias
             </span>
@@ -36,10 +46,7 @@ export default function HomePage() {
         <section className="relative mb-16 overflow-hidden rounded-[38px] bg-[#f1eee8] px-6 py-16 shadow-[0_15px_35px_rgba(60,50,40,0.05)] md:px-10 md:py-20">
           <div className="relative mx-auto flex max-w-212.5 items-center justify-between">
             {/* Arka */}
-            <Person
-              name="Arka"
-              image="https://images.unsplash.com/photo-1618005198919-d3d4b5a92ead"
-            />
+            <Profile />
 
             {/* Heartbeat */}
             <div className="absolute left-[18%] right-[18%] top-8.75 h-37.5">
@@ -91,10 +98,7 @@ export default function HomePage() {
             </div>
 
             {/* Senja */}
-            <Person
-              name="Senja"
-              image="https://images.unsplash.com/photo-1494790108377-be9c29b29330"
-            />
+            <Profile />
           </div>
 
           {/* Connection text */}
@@ -335,31 +339,13 @@ export default function HomePage() {
           </article>
         </section>
       </div>
-    </main>
+    </div>
   );
 }
 
 /* =====================================
    COMPONENTS
 ===================================== */
-
-function Person({ name, image }: { name: string; image: string }) {
-  return (
-    <div className="relative z-20 flex flex-col items-center">
-      <div className="h-16.5 w-16.5 overflow-hidden rounded-full border-[3px] border-[#eee9e0] bg-[#ddd] shadow-sm md:h-18 md:w-18">
-        <Image
-          src={image}
-          alt={name}
-          className="h-full w-full object-cover"
-          height={100}
-          width={100}
-        />
-      </div>
-
-      <span className="mt-3 text-sm text-[#4f4b43]">{name}</span>
-    </div>
-  );
-}
 
 function TaskItem({ title, subtitle }: { title: string; subtitle: string }) {
   return (

@@ -1,15 +1,24 @@
 'use client';
 
 import { authApi } from '@/lib/api/auth';
-import { useRouter } from 'next/router';
+import {
+  setStorageItem,
+  getStorageItem,
+  removeStorageItem,
+} from '@renjana/utils';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import {
+  RESET_TOKEN_KEY,
+  RESET_EMAIL_KEY,
+} from '@/lib/constants/reset-password';
 
 export function useResetPassword() {
   const router = useRouter();
   const [email, setEmail] = useState<string>('');
   const [code, setCode] = useState<string>('');
-  const [token, setToken] = useState<string>('');
   const [password, setPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,9 +67,12 @@ export function useResetPassword() {
         code,
       });
 
-      setToken(res.data.resetToken);
+      const resetToken = res.data.resetToken;
 
-      return;
+      setStorageItem(RESET_TOKEN_KEY, resetToken, 'session');
+      setStorageItem(RESET_EMAIL_KEY, email, 'session');
+
+      router.push('/reset-password');
     } catch (error) {
       if (error instanceof Error) {
         console.log(error.message);
@@ -86,12 +98,27 @@ export function useResetPassword() {
     setLoading(true);
     setError(null);
 
+    if (password !== confirmPassword) {
+      setError('Password confirmation does not match.');
+      setLoading(false);
+      return;
+    }
+
     try {
+      const token = getStorageItem(RESET_TOKEN_KEY, 'session');
+      const email = getStorageItem(RESET_EMAIL_KEY, 'session');
+
+      if (!token || !email) {
+        throw new Error('Reset session expired. Please request a new code.');
+      }
       await authApi.resetPassword({
         email,
         resetToken: token,
-        newPassword: password,
+        newPassword: confirmPassword,
       });
+
+      removeStorageItem(RESET_TOKEN_KEY, 'session');
+      removeStorageItem(RESET_EMAIL_KEY, 'session');
 
       router.push('/login');
     } catch (error) {
@@ -111,10 +138,12 @@ export function useResetPassword() {
     email,
     password,
     code,
+    confirmPassword,
 
     setPassword,
     setCode,
     setEmail,
+    setConfirmPassword,
 
     loading,
     error,
