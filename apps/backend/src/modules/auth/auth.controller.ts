@@ -30,6 +30,7 @@ import {
   ResetPasswordFinalDto,
   ResetPasswordDto,
   DeleteAccountDto,
+  AcceptInviteDto,
 } from './dto';
 import { JwtRefreshGuard } from '../../shared/guards';
 import { Public, CurrentUser } from '../../shared/decorators';
@@ -332,6 +333,50 @@ export class AuthController {
       message: 'Tautan undangan valid',
       data: result,
     };
+  }
+
+  // ── Accept Invite (Logged-in User) ──────────────────────────
+  @Post('invite/accept')
+  @ApiCookieAuth('renjana_access')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Menerima undangan couple untuk user yang sudah login',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Berhasil terhubung dengan pasangan',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Token undangan tidak valid, kadaluarsa, atau sudah terhubung',
+  })
+  async acceptInvite(
+    @Body() dto: AcceptInviteDto,
+    @CurrentUser() user: user,
+  ) {
+    return this.authService.acceptInvite(user.id, dto.token);
+  }
+
+  // ── Accept Invite With Credentials (Unauthenticated User) ───
+  @Public()
+  @Post('invite/accept-with-credentials')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Login dan langsung menerima undangan couple dalam satu langkah',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Berhasil login dan terhubung dengan pasangan',
+  })
+  async acceptInviteWithCredentials(
+    @Body() dto: AcceptInviteDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.acceptInviteWithCredentials(dto);
+    if (result.data.tokens) {
+      setAuthCookies(res, result.data.tokens, cookieOptions());
+    }
+    return result;
   }
 
   // ── SSE Realtime Ticket ──────────────────────────────────────

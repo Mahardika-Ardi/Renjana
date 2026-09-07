@@ -101,3 +101,23 @@ export interface ResetPasswordDto {
   token: string;
   newPassword: string;
 }
+
+export interface AcceptInviteDto {
+  token: string;
+  email?: string;
+  password?: string;
+}
+
+export interface AcceptInviteResponse {
+  coupleId: string;
+  partner: {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl: string | null;
+  };
+  connectedAt: Date | string;
+  tokens?: AuthTokens;
+  user?: AuthUser;
+}
+
