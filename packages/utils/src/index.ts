@@ -82,7 +82,6 @@ export const average = (numbers: number[]): number =>
 export const percentage = (value: number, total: number): number =>
   total === 0 ? 0 : Math.round((value / total) * 100);
 
-<<<<<<< HEAD
 // --- Storage Utilities -----------------------------------------
 
 /**
@@ -237,12 +236,4 @@ export const local = {
     getStorageJSON<T>(key, 'local', fallback),
   setJSON: <T = unknown>(key: string, value: T) =>
     setStorageJSON<T>(key, value, 'local'),
-=======
-// ---- Token Utilities -------------------------------------------
-export const generateInviteToken = (): string => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous chars
-  return Array.from({ length: 8 }, () =>
-    chars.charAt(Math.floor(Math.random() * chars.length)),
-  ).join('');
->>>>>>> e7a403a37c61556a707aa9d0223c856bf6a3358d
 };

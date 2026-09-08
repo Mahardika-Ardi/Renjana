@@ -16,12 +16,7 @@ import { RedisService } from '../../infrastructure/redis';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthTokens, AuthUser, JwtPayload } from '@renjana/types';
-import {
-  RegisterDto,
-  LoginDto,
-  DeleteAccountDto,
-  AcceptInviteDto,
-} from './dto';
+import { RegisterDto, LoginDto, DeleteAccountDto } from './dto';
 import { StringValue } from 'ms';
 
 @Injectable()
@@ -841,9 +836,6 @@ export class AuthService {
       data: { usedAt: new Date() },
     });
 
-    // Invalidate Redis cache if present
-    await this.redisService.del(`invite:token:${inviteToken}`).catch(() => {});
-
     // Kirim notifikasi ke pengirim undangan bahwa pasangan telah bergabung
     await tx.notification
       .create({
@@ -855,8 +847,6 @@ export class AuthService {
         },
       })
       .catch(() => {});
-
-    return couple;
   }
 
   // ================================================================
@@ -975,18 +965,6 @@ export class AuthService {
       data: { senderId: userId, token, expiresAt },
     });
 
-    // Cache invite token in Redis (TTL 24 hours = 86400s)
-    const redisKey = `invite:token:${token}`;
-    await this.redisService.set(
-      redisKey,
-      JSON.stringify({
-        id: invite.id,
-        senderId: invite.senderId,
-        expiresAt: invite.expiresAt.toISOString(),
-      }),
-      86400,
-    ).catch(() => {});
-
     const frontendUrl =
       this.config.get<string>('app.frontendUrl') || 'http://localhost:3000';
     const inviteUrl = `${frontendUrl}/register?inviteToken=${invite.token}`;
@@ -1003,24 +981,6 @@ export class AuthService {
       throw new BadRequestException('Token undangan tidak boleh kosong');
     }
 
-    // Check Redis cache first for quick validation
-    const redisKey = `invite:token:${token}`;
-    const cached = await this.redisService.get(redisKey).catch(() => null);
-
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (new Date(parsed.expiresAt) < new Date()) {
-          await this.redisService.del(redisKey).catch(() => {});
-          throw new BadRequestException(
-            'Tautan undangan tidak valid atau sudah kadaluarsa',
-          );
-        }
-      } catch (err: any) {
-        if (err instanceof BadRequestException) throw err;
-      }
-    }
-
     const invite = await this.prisma.coupleInvite.findUnique({
       where: { token },
       include: {
@@ -1031,9 +991,6 @@ export class AuthService {
     });
 
     if (!invite || invite.usedAt || invite.expiresAt < new Date()) {
-      if (cached) {
-        await this.redisService.del(redisKey).catch(() => {});
-      }
       throw new BadRequestException(
         'Tautan undangan tidak valid atau sudah kadaluarsa',
       );
@@ -1056,69 +1013,6 @@ export class AuthService {
       valid: true,
       sender: invite.sender,
       expiresAt: invite.expiresAt,
-    };
-  }
-
-  // ================================================================
-  // ACCEPT INVITE (For logged-in or existing user)
-  // ================================================================
-
-  async acceptInvite(userId: string, token: string) {
-    const couple = await this.prisma.$transaction(async (tx) => {
-      const createdCouple = await this.processInviteToken(tx, userId, token);
-      return tx.couple.findUnique({
-        where: { id: createdCouple.id },
-        include: {
-          user1: {
-            select: { id: true, name: true, email: true, avatarUrl: true },
-          },
-          user2: {
-            select: { id: true, name: true, email: true, avatarUrl: true },
-          },
-        },
-      });
-    });
-
-    if (!couple) {
-      throw new BadRequestException('Gagal menghubungkan pasangan');
-    }
-
-    const partner = couple.user1Id === userId ? couple.user2 : couple.user1;
-
-    return {
-      message: 'Berhasil terhubung dengan pasangan! 🎉',
-      data: {
-        coupleId: couple.id,
-        partner,
-        connectedAt: couple.createdAt,
-      },
-    };
-  }
-
-  async acceptInviteWithCredentials(dto: AcceptInviteDto) {
-    if (!dto.email || !dto.password) {
-      throw new BadRequestException(
-        'Email dan password diperlukan untuk menerima undangan jika belum login',
-      );
-    }
-
-    const loginResult = await this.login({
-      email: dto.email,
-      password: dto.password,
-    });
-
-    const acceptResult = await this.acceptInvite(
-      loginResult.data.user.id,
-      dto.token,
-    );
-
-    return {
-      message: acceptResult.message,
-      data: {
-        ...acceptResult.data,
-        user: loginResult.data.user,
-        tokens: loginResult.data.tokens,
-      },
     };
   }
 }
