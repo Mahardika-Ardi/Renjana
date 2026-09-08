@@ -51,15 +51,15 @@ Setiap kali Anda menyimpan perubahan kode ( *commit* ), Anda harus menuliskan pe
 
 ### Jenis `type` & Contoh
 
-| **Type** | **Kapan Digunakan?** | **Contoh Pesan Commit** |
+| **Type**         | **Kapan Digunakan?**               | **Contoh Pesan Commit**                                   |
 | ---------------------- | ---------------------------------------- | --------------------------------------------------------------- |
-| **`feat`** | Menambah fitur baru. | `git commit -m "feat(frontend): tambah halaman dashboard"` |
-| **`fix`** | Memperbaiki bug/error. | `git commit -m "fix(backend): atasi error koneksi database"` |
-| **`docs`** | Mengubah/menambah dokumen. | `git commit -m "docs(docs): update aturan commit monorepo"` |
-| **`style`** | Mengubah CSS/tampilan tanpa ubah logika. | `git commit -m "style(frontend): perbaiki margin tombol"` |
-| **`refactor`** | Mengoptimalkan kode tanpa ubah fungsi. | `git commit -m "refactor(backend): sederhanakan fungsi auth"` |
-| **`chore`** | Update package/konfigurasi. | `git commit -m "chore(root): install linter"` |
-| **`ci`** | Ubah konfigurasi deployment/CI-CD. | `git commit -m "ci(root): update config vercel"` |
+| **`feat`**     | Menambah fitur baru.                     | `git commit -m "feat(frontend): tambah halaman dashboard"`    |
+| **`fix`**      | Memperbaiki bug/error.                   | `git commit -m "fix(backend): atasi error koneksi database"`  |
+| **`docs`**     | Mengubah/menambah dokumen.               | `git commit -m "docs(docs): update aturan commit monorepo"`   |
+| **`style`**    | Mengubah CSS/tampilan tanpa ubah logika. | `git commit -m "style(frontend): perbaiki margin tombol"`     |
+| **`refactor`** | Mengoptimalkan kode tanpa ubah fungsi.   | `git commit -m "refactor(backend): sederhanakan fungsi auth"` |
+| **`chore`**    | Update package/konfigurasi.              | `git commit -m "chore(root): install linter"`                 |
+| **`ci`**       | Ubah konfigurasi deployment/CI-CD.       | `git commit -m "ci(root): update config vercel"`              |
 
 ## 4. Alur Kerja Harian Developer (Langkah demi Langkah)
 
