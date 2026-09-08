@@ -65,7 +65,6 @@ export interface CoupleInfo {
   togetherSince: string | null;
   currentStreak: number;
 }
-<<<<<<< HEAD
 
 export interface LoginDto {
   email: string;
@@ -127,6 +126,3 @@ export interface AcceptInviteResponse {
   tokens?: AuthTokens;
   user?: AuthUser;
 }
-
-=======
->>>>>>> e7a403a37c61556a707aa9d0223c856bf6a3358d
