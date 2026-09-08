@@ -41,6 +41,7 @@ describe('AuthService', () => {
       },
       couple: {
         findFirst: jest.fn(),
+        findUnique: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
       },
@@ -828,4 +829,85 @@ describe('AuthService', () => {
       expect(result.sender).toEqual(mockInvite.sender);
     });
   });
+
+  describe('acceptInvite', () => {
+    it('throws BadRequestException if user tries to accept their own invite', async () => {
+      prisma.coupleInvite.findUnique.mockResolvedValue({
+        id: 'invite-1',
+        token: 'own-token',
+        usedAt: null,
+        expiresAt: new Date(Date.now() + 10_000),
+        senderId: userId,
+        sender: { id: userId, name: 'Andi' },
+      });
+
+      await expect(service.acceptInvite(userId, 'own-token')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('throws BadRequestException if receiver already in an active couple', async () => {
+      prisma.coupleInvite.findUnique.mockResolvedValue({
+        id: 'invite-1',
+        token: 'token-123',
+        usedAt: null,
+        expiresAt: new Date(Date.now() + 10_000),
+        senderId: 'sender-1',
+        sender: { id: 'sender-1', name: 'Sender' },
+      });
+      // sender not coupled, receiver is coupled
+      prisma.couple.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'couple-existing' });
+
+      await expect(service.acceptInvite(userId, 'token-123')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('successfully connects couple and returns partner data', async () => {
+      prisma.coupleInvite.findUnique.mockResolvedValue({
+        id: 'invite-1',
+        token: 'token-123',
+        usedAt: null,
+        expiresAt: new Date(Date.now() + 10_000),
+        senderId: 'sender-1',
+        sender: { id: 'sender-1', name: 'Sender' },
+      });
+      prisma.couple.findFirst.mockResolvedValue(null);
+      prisma.couple.create.mockResolvedValue({
+        id: 'new-couple-1',
+        user1Id: 'sender-1',
+        user2Id: userId,
+        isActive: true,
+      });
+      prisma.streak.create.mockResolvedValue({ id: 'streak-1' });
+      prisma.coupleInvite.update.mockResolvedValue({ id: 'invite-1' });
+      prisma.notification.create.mockResolvedValue({ id: 'notif-1' });
+      prisma.couple.findUnique.mockResolvedValue({
+        id: 'new-couple-1',
+        user1Id: 'sender-1',
+        user2Id: userId,
+        createdAt: new Date(),
+        user1: { id: 'sender-1', name: 'Sender', email: 'sender@test.com', avatarUrl: null },
+        user2: { id: userId, name: 'Andi', email: 'andi@test.com', avatarUrl: null },
+      });
+
+      const result = await service.acceptInvite(userId, 'token-123');
+
+      expect(result.message).toContain('Berhasil terhubung');
+      expect(result.data.coupleId).toBe('new-couple-1');
+      expect(result.data.partner.id).toBe('sender-1');
+      expect(redisService.del).toHaveBeenCalledWith('invite:token:token-123');
+    });
+  });
+
+  describe('acceptInviteWithCredentials', () => {
+    it('throws BadRequestException if email or password missing', async () => {
+      await expect(
+        service.acceptInviteWithCredentials({ token: 'tok' } as any),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
 });
+

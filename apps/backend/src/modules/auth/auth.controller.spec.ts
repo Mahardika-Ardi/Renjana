@@ -73,7 +73,7 @@ describe('AuthController', () => {
         'refresh-token-1',
         expect.objectContaining({
           httpOnly: true,
-          path: '/api/v1/auth',
+          path: '/',
         }),
       );
       expect(result).toEqual({
@@ -387,6 +387,65 @@ describe('AuthController', () => {
         message: 'Tautan undangan valid',
         data: validResult,
       });
+    });
+  });
+
+  describe('acceptInvite', () => {
+    it('should call authService.acceptInvite with user.id and token', async () => {
+      const response = {
+        message: 'Berhasil terhubung dengan pasangan! 🎉',
+        data: {
+          coupleId: 'couple-1',
+          partner: { id: 'user-2', name: 'Budi' },
+          connectedAt: new Date(),
+        },
+      };
+      authService.acceptInvite = jest.fn().mockResolvedValue(response);
+
+      const result = await controller.acceptInvite(
+        { token: 'token123' },
+        mockUser,
+      );
+
+      expect(authService.acceptInvite).toHaveBeenCalledWith(
+        'user-1',
+        'token123',
+      );
+      expect(result).toEqual(response);
+    });
+  });
+
+  describe('acceptInviteWithCredentials', () => {
+    it('should call authService.acceptInviteWithCredentials and set cookies if tokens returned', async () => {
+      const response = {
+        message: 'Berhasil terhubung dengan pasangan! 🎉',
+        data: {
+          coupleId: 'couple-1',
+          partner: { id: 'user-2', name: 'Budi' },
+          connectedAt: new Date(),
+          tokens: {
+            accessToken: 'acc',
+            refreshToken: 'ref',
+            expiresIn: 900,
+          },
+        },
+      };
+      authService.acceptInviteWithCredentials = jest
+        .fn()
+        .mockResolvedValue(response);
+
+      const result = await controller.acceptInviteWithCredentials(
+        { token: 'token123', email: 'andi@test.com', password: 'Password123!' },
+        res,
+      );
+
+      expect(authService.acceptInviteWithCredentials).toHaveBeenCalledWith({
+        token: 'token123',
+        email: 'andi@test.com',
+        password: 'Password123!',
+      });
+      expect(res.cookie).toHaveBeenCalled();
+      expect(result).toEqual(response);
     });
   });
 
