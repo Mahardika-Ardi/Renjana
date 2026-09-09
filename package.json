@@ -4,7 +4,6 @@
   "description": "",
   "private": true,
   "author": "Renjana",
-  "license": "MIT",
   "contributors": [
     {
       "name": "Mahardika-Ardi",
@@ -27,7 +26,7 @@
     "packages/*"
   ],
   "scripts": {
-     "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "echo \"Error: no test specified\" && exit 1",
     "build:packages": "npm run build -w @renjana/types && npm run build -w @renjana/utils",
     "build:app": "npm run build -w apps/backend && npm run build -w apps/frontend",
     "build:be": "npm run build -w apps/backend",
