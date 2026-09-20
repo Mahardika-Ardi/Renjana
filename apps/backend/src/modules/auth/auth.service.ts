@@ -136,7 +136,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, this.BCRYPT_ROUNDS);
 
     const user = await this.prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
+      return tx.user.create({
         data: {
           id: supabaseUserId ?? undefined,
           email,
@@ -144,12 +144,6 @@ export class AuthService {
           passwordHash,
         },
       });
-
-      if (dto.inviteToken) {
-        await this.processInviteToken(tx, newUser.id, dto.inviteToken);
-      }
-
-      return newUser;
     });
 
     this.sendVerificationEmail(user.id, user.email, user.name).catch((err) => {
@@ -967,13 +961,43 @@ export class AuthService {
 
     const frontendUrl =
       this.config.get<string>('app.frontendUrl') || 'http://localhost:3000';
-    const inviteUrl = `${frontendUrl}/register?inviteToken=${invite.token}`;
+    const inviteUrl = `${frontendUrl}/invite?token=${invite.token}`;
 
     return {
       inviteUrl,
       token: invite.token,
+      code: invite.token,
       expiresAt: invite.expiresAt,
     };
+  }
+
+  async acceptInvite(receiverId: string, rawToken: string) {
+    const token = this.extractInviteToken(rawToken);
+    if (!token) {
+      throw new BadRequestException('Token undangan tidak boleh kosong');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.processInviteToken(tx, receiverId, token);
+    });
+
+    return this.getMe(receiverId);
+  }
+
+  private extractInviteToken(raw: string): string {
+    const input = (raw ?? '').trim();
+    if (!input) return '';
+    if (!input.includes('://') && !input.includes('?') && !input.includes('/'))
+      return input;
+    try {
+      const url = new URL(input);
+      const q =
+        url.searchParams.get('token') || url.searchParams.get('inviteToken');
+      if (q) return q.trim();
+    } catch {
+      // ponytail: bukan URL valid, jatuh ke segmen path terakhir di bawah
+    }
+    return input.split('?')[0].split('/').pop()?.trim() || '';
   }
 
   async validateInviteToken(token: string) {

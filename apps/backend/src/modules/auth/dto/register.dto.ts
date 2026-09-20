@@ -4,9 +4,8 @@ import {
   MinLength,
   MaxLength,
   Matches,
-  IsOptional,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterDto {
   @ApiProperty({ example: 'Budi Santoso', description: 'Nama lengkap' })
@@ -30,12 +29,4 @@ export class RegisterDto {
     message: 'Password harus mengandung huruf besar, huruf kecil, dan angka',
   })
   password: string;
-
-  @ApiPropertyOptional({
-    example: 'd9b2d8a5f4c34821a8f9c1e2d3b4a5f6',
-    description: 'Token tautan undangan dari partner (URL-based single-use)',
-  })
-  @IsOptional()
-  @IsString()
-  inviteToken?: string;
 }

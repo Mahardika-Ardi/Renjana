@@ -30,6 +30,7 @@ import {
   ResetPasswordFinalDto,
   ResetPasswordDto,
   DeleteAccountDto,
+  AcceptInviteDto,
 } from './dto';
 import { JwtRefreshGuard } from '../../shared/guards';
 import { Public, CurrentUser } from '../../shared/decorators';
@@ -331,6 +332,29 @@ export class AuthController {
     return {
       message: 'Tautan undangan valid',
       data: result,
+    };
+  }
+
+  // ── Accept Invite (Dashboard, Logged-in User) ──────────────
+  @Post('invite/accept')
+  @ApiCookieAuth('renjana_access')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiOperation({
+    summary: 'Terima undangan couple via dashboard (user sudah login)',
+  })
+  @ApiResponse({ status: 200, description: 'Berhasil terhubung dengan pasangan' })
+  @ApiResponse({
+    status: 400,
+    description: 'Token undangan tidak valid, kadaluarsa, atau sudah terhubung',
+  })
+  async acceptInvite(
+    @Body() dto: AcceptInviteDto,
+    @CurrentUser() user: user,
+  ) {
+    return {
+      message: 'Berhasil terhubung dengan pasangan',
+      data: await this.authService.acceptInvite(user.id, dto.token),
     };
   }
 

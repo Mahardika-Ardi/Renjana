@@ -10,3 +10,4 @@ export {
   ResetPasswordDto,
 } from './email.dto';
 export { DeleteAccountDto } from './delete-account.dto';
+export { AcceptInviteDto } from './accept-invite.dto';
