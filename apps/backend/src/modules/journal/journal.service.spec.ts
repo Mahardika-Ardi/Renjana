@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { JournalService } from './journal.service';
+import { UpdateJournalDto } from './dto';
 import { PrismaService } from '../../database';
 import { StreakService } from '../streak';
 
@@ -136,6 +137,58 @@ describe('JournalService', () => {
       });
       expect(result.isShared).toBe(true);
     });
+
+    it('should not touch isShared on content-only update', async () => {
+      prisma.journalEntry.findUnique.mockResolvedValue({
+        ...mockJournalEntry,
+        isShared: true,
+      });
+      prisma.journalEntry.update.mockResolvedValue({
+        ...mockJournalEntry,
+        isShared: true,
+        content: 'Updated content',
+      });
+
+      await service.updateForUser(mockUserId, 'journal-1', {
+        content: 'Updated content',
+      });
+
+      expect(prisma.journalEntry.update).toHaveBeenCalledWith({
+        where: { id: 'journal-1' },
+        data: { content: 'Updated content' },
+      });
+      const data = prisma.journalEntry.update.mock.calls[0][0].data;
+      expect('isShared' in data).toBe(false);
+    });
+
+    it('should not touch content/tags on isShared-only toggle', async () => {
+      prisma.journalEntry.findUnique.mockResolvedValue(mockJournalEntry);
+      prisma.journalEntry.update.mockResolvedValue({
+        ...mockJournalEntry,
+        isShared: true,
+      });
+
+      await service.updateForUser(mockUserId, 'journal-1', { isShared: true });
+
+      const data = prisma.journalEntry.update.mock.calls[0][0].data;
+      expect(data).toEqual({ isShared: true });
+      expect('content' in data).toBe(false);
+      expect('tags' in data).toBe(false);
+    });
+
+    it('should convert entryDate on update', async () => {
+      prisma.journalEntry.findUnique.mockResolvedValue(mockJournalEntry);
+      prisma.journalEntry.update.mockResolvedValue(mockJournalEntry);
+
+      await service.updateForUser(mockUserId, 'journal-1', {
+        entryDate: '2026-08-06',
+      });
+
+      expect(prisma.journalEntry.update).toHaveBeenCalledWith({
+        where: { id: 'journal-1' },
+        data: { entryDate: new Date('2026-08-06') },
+      });
+    });
   });
 
   describe('deleteForUser', () => {
@@ -147,6 +200,13 @@ describe('JournalService', () => {
 
       expect(prisma.journalEntry.delete).toHaveBeenCalledWith({ where: { id: 'journal-1' } });
       expect(result).toEqual({ message: 'Jurnal berhasil dihapus' });
+    });
+  });
+
+  describe('UpdateJournalDto', () => {
+    it('should leave isShared undefined when omitted (no phantom default)', () => {
+      const dto = new UpdateJournalDto();
+      expect(dto.isShared).toBeUndefined();
     });
   });
 

@@ -93,12 +93,22 @@ export class JournalService {
   }
 
   /**
-   * Update jurnal milik user aktif (termasuk toggle isShared)
+   * Update jurnal milik user aktif (termasuk toggle isShared).
+   * Only writes fields explicitly present in the DTO — a content-only
+   * PATCH must never touch isShared (or vice versa).
    */
   async updateForUser(userId: string, id: string, dto: UpdateJournalDto) {
     await this.findOneForUser(userId, id); // Verify ownership
 
-    const data: any = { ...dto };
+    const data: {
+      content?: string;
+      tags?: string[];
+      entryDate?: Date;
+      isShared?: boolean;
+    } = {};
+    if (dto.content !== undefined) data.content = dto.content;
+    if (dto.tags !== undefined) data.tags = dto.tags;
+    if (dto.isShared !== undefined) data.isShared = dto.isShared;
     if (dto.entryDate) {
       data.entryDate = new Date(dto.entryDate);
     }
