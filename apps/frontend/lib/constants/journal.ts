@@ -1,4 +1,4 @@
-export const AUTOSAVE_DELAY = 1200;
+export const SAVE_INTERVAL = 180_000;
 export const UNTITLED = 'Tanpa Judul';
 export const SHELF_FILTERS: Array<{ value: ShelfFilter; label: string }> = [
   { value: 'semua', label: 'Semua' },
@@ -19,7 +19,7 @@ export const FLOAT_SHADOW =
 
 // Type constant
 
-export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+export type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
 export type ShelfFilter = 'semua' | 'bersama' | 'privat';
 
 export interface Draft {

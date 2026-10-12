@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { BookMarked, ChevronRight, Lock, Trash2, Users } from 'lucide-react';
+import { BookMarked, ChevronRight, Lock, Save, Trash2, Users } from 'lucide-react';
 import JournalSidebar from '@/components/journal/journal-side-bar';
 import JournalTopbar from '@/components/journal/journal-topbar';
 import JournalEditor from '@/components/journal/journal-editor';
@@ -22,6 +22,8 @@ export default function JournalWorkspace({ initialItems = [] }: JournalWorkspace
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [unsavedOpen, setUnsavedOpen] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -43,6 +45,42 @@ export default function JournalWorkspace({ initialItems = [] }: JournalWorkspace
   const handleCreate = async () => {
     const entry = await journal.create();
     if (entry) triggerToast('Jurnal baru siap ditulis');
+  };
+
+  const handleSave = async () => {
+    const ok = await journal.save();
+    if (ok) triggerToast('Jurnal tersimpan');
+  };
+
+  const handleSelect = (id: string) => {
+    if (id === journal.selectedId) return;
+    if (journal.isDirty) {
+      setPendingId(id);
+      setUnsavedOpen(true);
+      return;
+    }
+    void journal.select(id);
+  };
+
+  const closeUnsavedDialog = () => {
+    setUnsavedOpen(false);
+    setPendingId(null);
+  };
+
+  const handleUnsavedSave = async () => {
+    const ok = await journal.save();
+    // Stay in the dialog on failure so the user can retry or discard.
+    if (!ok) return;
+    const target = pendingId;
+    closeUnsavedDialog();
+    if (target) void journal.select(target);
+  };
+
+  const handleUnsavedDiscard = () => {
+    journal.discardChanges();
+    const target = pendingId;
+    closeUnsavedDialog();
+    if (target) void journal.select(target);
   };
 
   const handleDeleteConfirm = async () => {
@@ -73,6 +111,8 @@ export default function JournalWorkspace({ initialItems = [] }: JournalWorkspace
         sentenceCount={journal.sentenceCount}
         isShared={isShared}
         saveState={journal.saveState}
+        canSave={journal.isDirty}
+        onSave={handleSave}
         onToggleSidebar={() => setSidebarOpen((previous) => !previous)}
         onShareClick={() => setShareDialogOpen(true)}
         onDownload={() => triggerToast('Jurnal berhasil diunduh ke perangkat (PDF)')}
@@ -120,7 +160,7 @@ export default function JournalWorkspace({ initialItems = [] }: JournalWorkspace
           filter={journal.filter}
           onSearchChange={journal.setSearch}
           onFilterChange={journal.setFilter}
-          onSelect={journal.select}
+          onSelect={handleSelect}
           onCreate={handleCreate}
           onClose={() => setSidebarOpen(false)}
         />
@@ -139,6 +179,29 @@ export default function JournalWorkspace({ initialItems = [] }: JournalWorkspace
           />
         </main>
       </div>
+
+      {/* Unsaved changes confirmation */}
+      <ConfirmDialog
+        open={unsavedOpen}
+        tone="primary"
+        icon={<Save className="h-5 w-5" aria-hidden />}
+        title="Simpan perubahan?"
+        description={
+          <>
+            Jurnal{' '}
+            <strong className="font-semibold text-[#2c2523]">&ldquo;{title}&rdquo;</strong>{' '}
+            memiliki perubahan yang belum tersimpan. Simpan dulu sebelum
+            pindah ke jurnal lain?
+          </>
+        }
+        cancelLabel="Batal"
+        confirmLabel="Simpan"
+        busy={journal.saveState === 'saving'}
+        tertiaryLabel="Buang perubahan"
+        onTertiary={handleUnsavedDiscard}
+        onCancel={closeUnsavedDialog}
+        onConfirm={handleUnsavedSave}
+      />
 
       {/* Delete confirmation */}
       <ConfirmDialog

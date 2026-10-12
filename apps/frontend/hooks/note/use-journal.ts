@@ -1,7 +1,7 @@
 'use client';
 
 import { journalApi } from '@/lib/api/journal';
-import { AUTOSAVE_DELAY, ShelfFilter } from '@/lib/constants/journal';
+import { SAVE_INTERVAL, ShelfFilter, type SaveState } from '@/lib/constants/journal';
 import { JournalResponse } from '@renjana/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -41,7 +41,7 @@ export function useJournal(initialItems: JournalResponse[] = []) {
   const [deleting, setDeleting] = useState<boolean>(false);
   const [sharing, setSharing] = useState<boolean>(false);
 
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [saveState, setSaveState] = useState<SaveState>('idle');
   const [error, setError] = useState<string | null>(null);
 
   const [search, setSearch] = useState<string>('');
@@ -50,12 +50,29 @@ export function useJournal(initialItems: JournalResponse[] = []) {
   const [content, setContentState] = useState<string>(initialItems[0]?.content ?? '');
   const [tags, setTagsState] = useState<string[]>(initialItems[0]?.tags ?? []);
 
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedIdRef = useRef<string | null>(null);
+  // Exactly one in-flight save at a time — this is what kills the
+  // request pile-up the old per-keystroke autosave caused.
+  const persistingRef = useRef(false);
+  // Last persisted (or loaded) snapshot of the selected entry.
+  const lastSavedRef = useRef<{ content: string; tags: string[] } | null>(
+    null,
+  );
+  const saveRef = useRef<() => Promise<boolean>>(async () => false);
 
   useEffect(() => {
     selectedIdRef.current = selectedId;
   }, [selectedId]);
+
+  // Snapshot for entries provided up-front (no fetch happens for them).
+  useEffect(() => {
+    if (hasInitial && initialItems[0] && !lastSavedRef.current) {
+      lastSavedRef.current = {
+        content: initialItems[0].content ?? '',
+        tags: initialItems[0].tags ?? [],
+      };
+    }
+  }, [hasInitial, initialItems]);
 
   useEffect(() => {
     if (hasInitial) return;
@@ -74,6 +91,10 @@ export function useJournal(initialItems: JournalResponse[] = []) {
           setSelected(first);
           setContentState(first.content ?? '');
           setTagsState(first.tags ?? []);
+          lastSavedRef.current = {
+            content: first.content ?? '',
+            tags: first.tags ?? [],
+          };
         }
       } catch (err) {
         if (!ignore) setError(toErrorMessage(err, 'Gagal memuat jurnal.'));
@@ -106,16 +127,16 @@ export function useJournal(initialItems: JournalResponse[] = []) {
   const select = useCallback(
     async (id: string) => {
       if (id === selectedId) return;
-      if (saveTimer.current) {
-        clearTimeout(saveTimer.current);
-        saveTimer.current = null;
-      }
       setSelectedId(id);
       const cached = items.find((item) => item.id === id);
       if (cached) {
         setSelected(cached);
         setContentState(cached.content ?? '');
         setTagsState(cached.tags ?? []);
+        lastSavedRef.current = {
+          content: cached.content ?? '',
+          tags: cached.tags ?? [],
+        };
         setSaveState('idle');
       } else {
         setDetailLoading(true);
@@ -129,6 +150,10 @@ export function useJournal(initialItems: JournalResponse[] = []) {
           setSelected(entry);
           setContentState(entry.content ?? '');
           setTagsState(entry.tags ?? []);
+          lastSavedRef.current = {
+            content: entry.content ?? '',
+            tags: entry.tags ?? [],
+          };
           setItems((prev) => prev.map((item) => (item.id === id ? entry : item)));
         }
       } catch (err) {
@@ -144,59 +169,105 @@ export function useJournal(initialItems: JournalResponse[] = []) {
 
   const persist = useCallback(
     async (id: string, nextContent: string, nextTags: string[]) => {
+      if (persistingRef.current) return false;
+      persistingRef.current = true;
       setSaveState('saving');
       try {
         const res = await journalApi.update({ content: nextContent, tags: nextTags }, id);
         const updated = res.data as unknown as JournalResponse;
         setSelected((prev) => (prev && prev.id === id ? updated : prev));
         setItems((prev) => prev.map((item) => (item.id === id ? updated : item)));
-        setSaveState('saved');
+        if (selectedIdRef.current === id) {
+          lastSavedRef.current = { content: nextContent, tags: [...nextTags] };
+          setSaveState('saved');
+        }
+        return true;
       } catch {
         setSaveState('error');
+        return false;
+      } finally {
+        persistingRef.current = false;
       }
     },
     [],
   );
 
-  const scheduleAutosave = useCallback(
-    (id: string, nextContent: string, nextTags: string[]) => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      setSaveState('saving');
-      saveTimer.current = setTimeout(() => {
-        persist(id, nextContent, nextTags);
-      }, AUTOSAVE_DELAY);
+  const snapshotMatches = useCallback(
+    (nextContent: string, nextTags: string[]) => {
+      const snap = lastSavedRef.current;
+      if (!snap) return false;
+      return (
+        nextContent === snap.content &&
+        nextTags.length === snap.tags.length &&
+        nextTags.every((tag) => snap.tags.includes(tag))
+      );
     },
-    [persist],
+    [],
   );
 
+  /* Explicit save: one PATCH per call, never overlapping, no-op when clean. */
+  const save = useCallback(async () => {
+    if (!selectedId) return false;
+    if (persistingRef.current) return false;
+    if (snapshotMatches(content, tags)) {
+      setSaveState('saved');
+      return true;
+    }
+    return persist(selectedId, content, tags);
+  }, [persist, snapshotMatches, selectedId, content, tags]);
+
   useEffect(() => {
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-    };
+    saveRef.current = save;
+  }, [save]);
+
+  /* Safety net: persist dirty entries every 3 minutes. The tick is a
+     no-op when nothing is dirty, so idle users send zero requests. */
+  useEffect(() => {
+    const timer = setInterval(() => {
+      void saveRef.current();
+    }, SAVE_INTERVAL);
+    return () => clearInterval(timer);
   }, []);
+
+  const touchAfterEdit = useCallback(
+    (nextContent: string, nextTags: string[]) => {
+      setSaveState(snapshotMatches(nextContent, nextTags) ? 'saved' : 'dirty');
+    },
+    [snapshotMatches],
+  );
 
   const setContent = useCallback(
     (value: string) => {
       setContentState(value);
       if (!selectedId) return;
-      scheduleAutosave(selectedId, value, tags);
+      touchAfterEdit(value, tags);
     },
-    [scheduleAutosave, selectedId, tags],
+    [touchAfterEdit, selectedId, tags],
   );
 
   const setTags = useCallback(
     (value: string[]) => {
       setTagsState(value);
       if (!selectedId) return;
-      scheduleAutosave(selectedId, content, value);
+      touchAfterEdit(content, value);
     },
-    [scheduleAutosave, selectedId, content],
+    [touchAfterEdit, selectedId, content],
   );
 
-  const retrySave = useCallback(() => {
-    if (!selectedId) return;
-    persist(selectedId, content, tags);
-  }, [persist, selectedId, content, tags]);
+  const retrySave = useCallback(() => saveRef.current(), []);
+
+  const discardChanges = useCallback(() => {
+    const snap = lastSavedRef.current;
+    if (snap) {
+      setContentState(snap.content);
+      setTagsState([...snap.tags]);
+      setSaveState('saved');
+    } else if (selected) {
+      setContentState(selected.content ?? '');
+      setTagsState(selected.tags ?? []);
+      setSaveState('idle');
+    }
+  }, [selected]);
 
   /* ---------------- Create ---------------- */
   const create = useCallback(async () => {
@@ -216,6 +287,10 @@ export function useJournal(initialItems: JournalResponse[] = []) {
       setSelected(entry);
       setContentState(entry.content ?? '');
       setTagsState(entry.tags ?? []);
+      lastSavedRef.current = {
+        content: entry.content ?? '',
+        tags: entry.tags ?? [],
+      };
       setSaveState('idle');
       return entry;
     } catch (err) {
@@ -240,6 +315,9 @@ export function useJournal(initialItems: JournalResponse[] = []) {
           setSelected(fallback);
           setContentState(fallback?.content ?? '');
           setTagsState(fallback?.tags ?? []);
+          lastSavedRef.current = fallback
+            ? { content: fallback.content ?? '', tags: fallback.tags ?? [] }
+            : null;
           setSaveState('idle');
         }
         return true;
@@ -327,7 +405,10 @@ export function useJournal(initialItems: JournalResponse[] = []) {
     create,
     remove,
     toggleShare,
+    save,
     retrySave,
+    discardChanges,
+    isDirty: saveState === 'dirty',
     refetch,
     dismissError: () => setError(null),
   };

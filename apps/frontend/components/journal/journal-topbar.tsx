@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Download, Lock, Menu, MoreVertical, Trash2, Users } from 'lucide-react';
+import { Download, Loader2, Lock, Menu, MoreVertical, Save, Trash2, Users } from 'lucide-react';
 import SavePill from './save-pill';
 import { SaveState } from '@/lib/constants/journal';
 
@@ -11,6 +11,8 @@ interface JournalTopbarProps {
   sentenceCount: number;
   isShared: boolean;
   saveState: SaveState;
+  canSave: boolean;
+  onSave: () => void;
   onToggleSidebar: () => void;
   onShareClick: () => void;
   onDownload: () => void;
@@ -24,6 +26,8 @@ export default function JournalTopbar({
   sentenceCount,
   isShared,
   saveState,
+  canSave,
+  onSave,
   onToggleSidebar,
   onShareClick,
   onDownload,
@@ -73,6 +77,30 @@ export default function JournalTopbar({
       </div>
 
       <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={!canSave}
+          title={canSave ? 'Simpan perubahan' : 'Tidak ada perubahan'}
+          className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed ${
+            saveState === 'saving'
+              ? 'border border-[#eedfd5] bg-[#faf6f0] text-[#8c7e75] disabled:opacity-90'
+              : canSave
+                ? 'bg-[#c96f4a] text-white hover:bg-[#b55e39]'
+                : 'border border-[#eedfd5] bg-[#faf6f0] text-[#b3a599] disabled:opacity-70'
+          }`}
+        >
+          {saveState === 'saving' ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
+          ) : (
+            <Save className="h-3.5 w-3.5" aria-hidden />
+          )}
+          {saveState === 'saving' ? 'Menyimpan' : 'Simpan'}
+          {canSave && (
+            <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden />
+          )}
+        </button>
+
         <SavePill state={saveState} onRetry={onRetrySave} />
 
         <button

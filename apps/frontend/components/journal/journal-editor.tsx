@@ -1,12 +1,12 @@
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { Calendar, Clock } from 'lucide-react';
 import { JournalResponse } from '@renjana/types';
 import { formatEditedAt, formatFullDate } from '@renjana/utils';
 import { PAPER_SHADOW, UNTITLED } from '@/lib/constants/journal';
 import TagEditor from './tag-editor';
-import FormatToolbar from './format-toolbar';
+import MarkdownEditor from './markdown-editor';
 
 interface JournalEditorProps {
   entry: JournalResponse | null;
@@ -17,11 +17,28 @@ interface JournalEditorProps {
   onTagsChange: (tags: string[]) => void;
 }
 
-function splitTitle(content: string): string {
+function splitTitleLine(content: string): string {
   const normalized = (content ?? '').replace(/\r\n/g, '\n');
   const lineBreak = normalized.indexOf('\n');
   const raw = lineBreak === -1 ? normalized : normalized.slice(0, lineBreak);
-  return raw.replace(/^#+\s*/, '').trim() || UNTITLED;
+  // Strip only the `#` marker itself — never trim. Trimming here would
+  // swallow every space the user types on its way back into the input.
+  return raw.replace(/^#+\s?/, '');
+}
+
+function splitBody(content: string): string {
+  const normalized = (content ?? '').replace(/\r\n/g, '\n');
+  const lineBreak = normalized.indexOf('\n');
+  if (lineBreak === -1) return '';
+  return normalized.slice(lineBreak + 1).replace(/^\n+/, '');
+}
+
+function composeContent(title: string, body: string): string {
+  // A blank title keeps its (empty) first-line slot so the body's first
+  // line is never promoted into the title on the next split.
+  if (!title.trim()) return body ? `\n${body}` : '';
+  if (!body) return `# ${title}\n`;
+  return `# ${title}\n\n${body}`;
 }
 
 export default function JournalEditor({
@@ -32,50 +49,8 @@ export default function JournalEditor({
   onContentChange,
   onTagsChange,
 }: JournalEditorProps) {
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-  const title = useMemo(() => splitTitle(content), [content]);
-
-  const applyWrap = (prefix: string, suffix: string) => {
-    const el = textareaRef.current;
-    if (!el) {
-      onContentChange(`${prefix}${content}${suffix}`);
-      return;
-    }
-    const start = el.selectionStart ?? content.length;
-    const end = el.selectionEnd ?? content.length;
-    const before = content.slice(0, start);
-    const selected = content.slice(start, end) || 'teks';
-    const after = content.slice(end);
-    const next = `${before}${prefix}${selected}${suffix}${after}`;
-    onContentChange(next);
-    requestAnimationFrame(() => {
-      el.focus();
-      const cursor = start + prefix.length + selected.length + suffix.length;
-      el.setSelectionRange(cursor, cursor);
-    });
-  };
-
-  const applyPrefixLine = (prefix: string) => {
-    const el = textareaRef.current;
-    if (!el) {
-      onContentChange(
-        content
-          .split('\n')
-          .map((line) => `${prefix}${line}`)
-          .join('\n'),
-      );
-      return;
-    }
-    const start = el.selectionStart ?? 0;
-    const lineStart = content.lastIndexOf('\n', start - 1) + 1;
-    const next = `${content.slice(0, lineStart)}${prefix}${content.slice(lineStart)}`;
-    onContentChange(next);
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(start + prefix.length, start + prefix.length);
-    });
-  };
+  const titleLine = useMemo(() => splitTitleLine(content), [content]);
+  const body = useMemo(() => splitBody(content), [content]);
 
   if (!entry) {
     return (
@@ -96,12 +71,19 @@ export default function JournalEditor({
       <article
         className={`relative min-h-[820px] rounded-3xl border border-[#ede3da] bg-white p-8 sm:p-12 md:p-14 ${PAPER_SHADOW}`}
       >
-        <header className="mb-8 border-b border-[#f1e6de] pb-6">
-          <h1 className="mb-3 font-serif text-3xl font-medium tracking-tight text-[#2c2523] sm:text-4xl">
-            {title}
-          </h1>
+        <header className="mb-5 border-b border-[#f1e6de] pb-4">
+          <input
+            value={titleLine}
+            onChange={(event) =>
+              onContentChange(composeContent(event.target.value, body))
+            }
+            placeholder={UNTITLED}
+            aria-label="Judul jurnal"
+            autoComplete="off"
+            className="mb-2 w-full bg-transparent font-serif text-3xl font-medium tracking-tight text-[#2c2523] outline-none transition placeholder:text-[#c3b3a6] focus:border-b-2 focus:border-[#c96f4a] sm:text-4xl"
+          />
           <TagEditor tags={tags} onChange={onTagsChange} />
-          <div className="mt-3 flex items-center space-x-2 text-xs text-[#8c7e75]">
+          <div className="mt-2 flex items-center space-x-2 text-xs text-[#8c7e75]">
             <span className="flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" aria-hidden />
               <span>
@@ -124,17 +106,14 @@ export default function JournalEditor({
           </div>
         </header>
 
-        <textarea
-          ref={textareaRef}
-          value={content}
-          onChange={(event) => onContentChange(event.target.value)}
+        <MarkdownEditor
+          key={entry.id}
+          markdown={body}
+          onChange={(nextBody) =>
+            onContentChange(composeContent(titleLine, nextBody))
+          }
           placeholder="Tulis apapun yang Anda rasakan…"
-          aria-label="Isi jurnal"
-          rows={22}
-          className="w-full resize-y select-text rounded-2xl border border-transparent bg-transparent font-serif text-lg leading-loose text-[#38312d] outline-none transition placeholder:text-[#b3a599] focus:border-[#eedfd5] focus:bg-[#fdfbf9] focus:p-4 sm:text-[1.18rem]"
         />
-
-        <FormatToolbar onWrap={applyWrap} onPrefixLine={applyPrefixLine} />
       </article>
     </div>
   );

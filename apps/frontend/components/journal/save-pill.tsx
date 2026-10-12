@@ -7,6 +7,15 @@ interface SavePillProps {
 }
 
 export default function SavePill({ state, onRetry }: SavePillProps) {
+  if (state === 'dirty') {
+    return (
+      <span className="flex items-center gap-1.5 rounded-full border border-amber-200/70 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden />
+        <span className="hidden sm:inline">Belum tersimpan</span>
+      </span>
+    );
+  }
+
   if (state === 'saving') {
     return (
       <span className="flex items-center gap-1.5 rounded-full border border-[#eedfd5] bg-[#faf6f0] px-2.5 py-1 text-[11px] font-medium text-[#8c7e75]">
@@ -36,7 +45,7 @@ export default function SavePill({ state, onRetry }: SavePillProps) {
   return (
     <span className="flex items-center gap-1.5 rounded-full border border-emerald-200/60 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
       <Check className="h-3.5 w-3.5 text-emerald-600" aria-hidden />
-      <span className="hidden sm:inline">Tersimpan otomatis</span>
+      <span className="hidden sm:inline">Tersimpan</span>
     </span>
   );
 }
