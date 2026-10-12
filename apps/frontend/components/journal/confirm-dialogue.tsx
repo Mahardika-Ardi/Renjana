@@ -1,4 +1,5 @@
 import { FLOAT_SHADOW, FOCUS_RING } from "@/lib/constants/journal";
+import { motion, AnimatePresence } from "motion/react";
 import { X, Loader2 } from "lucide-react";
 import { ReactNode } from "react";
 
@@ -31,8 +32,6 @@ export default function ConfirmDialog({
   onCancel,
   onConfirm,
 }: ConfirmDialogProps) {
-  if (!open) return null;
-
   const confirmTone =
     tone === 'danger'
       ? 'bg-red-600 hover:bg-red-700'
@@ -46,18 +45,28 @@ export default function ConfirmDialog({
       : 'border-[#c96f4a]/20 bg-[#faebe6] text-[#c96f4a]';
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onCancel();
-      }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
-    >
-      <div
-        className={`w-full max-w-md rounded-3xl border border-[#eedfd5] bg-[#fdfbf9] p-6 sm:p-7 ${FLOAT_SHADOW}`}
-      >
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) onCancel();
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 p-4 backdrop-blur-md"
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 28, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+            className={`w-full max-w-md rounded-3xl border border-white/50 bg-[#fdfbf9]/95 p-6 backdrop-blur-xl sm:p-7 ${FLOAT_SHADOW}`}
+          >
         <div className="mb-4 flex items-center justify-between">
           <span
             className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${iconTone}`}
@@ -115,7 +124,9 @@ export default function ConfirmDialog({
             {tertiaryLabel}
           </button>
         )}
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

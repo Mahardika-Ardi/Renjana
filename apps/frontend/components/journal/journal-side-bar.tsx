@@ -1,11 +1,15 @@
 import {
   ShelfFilter,
+  EASE_SMOOTH,
   FLOAT_SHADOW,
   FOCUS_RING,
+  GLASS_SIDEBAR,
   SCROLLBAR,
   SHELF_FILTERS,
+  SPRING_SNAPPY,
 } from '@/lib/constants/journal';
 import { JournalResponse } from '@renjana/types';
+import { motion, AnimatePresence } from 'motion/react';
 import { PanelLeftClose, Loader2, Plus } from 'lucide-react';
 import JournalCard from './journal-card';
 import Input from '@/components/ui/Input';
@@ -39,14 +43,12 @@ export default function JournalSidebar({
   onCreate,
   onClose,
 }: SidebarProps) {
-  console.log(journals);
-
   return (
     <aside
       id="journal-shelf"
       aria-label="Daftar jurnal"
       aria-hidden={!open}
-      className={`fixed inset-y-3 left-3 z-40 flex w-80 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-3xl border border-[#eddcd2] bg-[#fbf8f5]/95 backdrop-blur-xl transition duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none md:absolute ${FLOAT_SHADOW} ${
+      className={`fixed inset-y-3 left-3 z-40 flex w-80 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-3xl border ${GLASS_SIDEBAR} transition duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none md:absolute ${FLOAT_SHADOW} ${
         open
           ? 'translate-x-0 opacity-100'
           : 'pointer-events-none translate-x-[-115%] opacity-0'
@@ -62,7 +64,7 @@ export default function JournalSidebar({
             placeholder="Cari catatan atau jurnal…"
             aria-label="Cari jurnal"
             classes={{
-              input: `w-full rounded-xl border-0 bg-[#f2e9e1]/80 py-1.5 pl-9 pr-3 text-xs text-[#2c2523] shadow-inner transition placeholder:text-[#8c7e75] hover:bg-[#f2e9e1] focus:bg-white ${FOCUS_RING}`,
+              input: `w-full rounded-full border border-white/60 bg-white/60 py-1.5 pl-9 pr-3 text-xs text-[#2c2523] shadow-sm backdrop-blur transition placeholder:text-[#8c7e75] hover:bg-white/80 focus:border-[#c96f4a]/50 focus:bg-white ${FOCUS_RING}`,
               logo: {
                 style: `
                     absolute
@@ -76,15 +78,16 @@ export default function JournalSidebar({
             }}
           />
         </div>
-        <button
+        <motion.button
           type="button"
           onClick={onClose}
           title="Tutup daftar (fokus menulis)"
           aria-label="Tutup daftar jurnal"
-          className={`shrink-0 rounded-xl border border-transparent p-1.5 text-[#8c7e75] transition hover:border-[#ebdcd2] hover:bg-[#f5efe6] hover:text-[#2c2523] active:scale-90 ${FOCUS_RING}`}
+          whileTap={{ scale: 0.88 }}
+          className={`shrink-0 rounded-full border border-transparent p-1.5 text-[#8c7e75] transition hover:border-[#ebdcd2] hover:bg-white/70 hover:text-[#2c2523] ${FOCUS_RING}`}
         >
           <PanelLeftClose className="h-4 w-4" aria-hidden />
-        </button>
+        </motion.button>
       </div>
 
       <div
@@ -92,21 +95,32 @@ export default function JournalSidebar({
         role="group"
         aria-label="Saring jurnal"
       >
-        {SHELF_FILTERS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => onFilterChange(option.value)}
-            aria-pressed={filter === option.value}
-            className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium transition active:scale-95 ${FOCUS_RING} ${
-              filter === option.value
-                ? 'bg-[#c96f4a] text-white'
-                : 'text-[#665c54] hover:bg-[#f5efe6] hover:text-[#2c2523]'
-            }`}
-          >
-            {option.label}
-          </button>
-        ))}
+        {SHELF_FILTERS.map((option) => {
+          const selected = filter === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onFilterChange(option.value)}
+              aria-pressed={selected}
+              className={`relative whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium transition active:scale-95 ${FOCUS_RING} ${
+                selected
+                  ? 'text-white'
+                  : 'text-[#665c54] hover:bg-white/70 hover:text-[#2c2523]'
+              }`}
+            >
+              {selected && (
+                <motion.span
+                  layoutId="shelf-filter-pill"
+                  transition={SPRING_SNAPPY}
+                  className="absolute inset-0 rounded-full bg-[#c96f4a] shadow-[0_4px_14px_-4px_rgba(201,111,74,0.7)]"
+                  aria-hidden
+                />
+              )}
+              <span className="relative z-10">{option.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className={`flex-1 space-y-2.5 overflow-y-auto p-3 ${SCROLLBAR}`}>
@@ -114,17 +128,33 @@ export default function JournalSidebar({
           ? Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={index}
-                className="h-23 animate-pulse rounded-2xl bg-[#f1e7dd] motion-reduce:animate-none"
+                className="h-23 animate-pulse rounded-2xl bg-[#f1e7dd]/70 motion-reduce:animate-none"
               />
             ))
-          : journals.map((entry) => (
-              <JournalCard
-                key={entry.id}
-                entry={entry}
-                active={entry.id === selectedId}
-                onSelect={onSelect}
-              />
-            ))}
+          : (
+            <AnimatePresence initial={false}>
+              {journals.map((entry, index) => (
+                <motion.div
+                  key={entry.id}
+                  layout
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={{
+                    duration: 0.3,
+                    ease: EASE_SMOOTH,
+                    delay: Math.min(index * 0.03, 0.24),
+                  }}
+                >
+                  <JournalCard
+                    entry={entry}
+                    active={entry.id === selectedId}
+                    onSelect={onSelect}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          )}
 
         {!loading && journals.length === 0 && (
           <p className="px-2 py-8 text-center text-xs leading-relaxed text-[#8c7e75]">
@@ -133,12 +163,13 @@ export default function JournalSidebar({
         )}
       </div>
 
-      <div className="border-t border-[#ebdcd2] bg-[#fbf8f5] p-3.5">
-        <button
+      <div className="border-t border-[#ebdcd2]/70 bg-white/40 p-3.5 backdrop-blur-xl">
+        <motion.button
           type="button"
           onClick={onCreate}
           disabled={creating}
-          className={`group flex w-full items-center justify-center gap-2 rounded-2xl bg-[#c96f4a] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#b55e39] hover:shadow-md active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_RING}`}
+          whileTap={creating ? undefined : { scale: 0.97 }}
+          className={`group flex w-full items-center justify-center gap-2 rounded-2xl bg-[#c96f4a] px-4 py-2.5 text-xs font-semibold text-white shadow-[0_8px_20px_-8px_rgba(201,111,74,0.8)] transition hover:bg-[#b55e39] hover:shadow-[0_10px_24px_-8px_rgba(201,111,74,0.9)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_RING}`}
         >
           {creating ? (
             <Loader2
@@ -152,7 +183,7 @@ export default function JournalSidebar({
             />
           )}
           Catatan Baru
-        </button>
+        </motion.button>
       </div>
     </aside>
   );

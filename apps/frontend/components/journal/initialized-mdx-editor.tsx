@@ -5,8 +5,6 @@ import {
   BlockTypeSelect,
   BoldItalicUnderlineToggles,
   CreateLink,
-  InsertCodeBlock,
-  InsertThematicBreak,
   ListsToggle,
   MDXEditor,
   Separator,
@@ -52,14 +50,15 @@ function InitializedMDXEditor({
         markdownShortcutPlugin(),
         toolbarPlugin({
           toolbarClassName: 'renjana-mdx-toolbar',
+          // Single shared contents for PC bubble AND mobile static bar.
+          // Same buttons, same order everywhere — only the presentation
+          // (floating pill vs sticky bar) differs per device.
+          // Code fences (```) and dividers (---) stay available through
+          // markdownShortcutPlugin, so no capability is lost.
           toolbarContents: () => (
             <>
-              <span className="renjana-only-static">
-                <UndoRedo />
-              </span>
-              <span className="renjana-only-static">
-                <Separator />
-              </span>
+              <UndoRedo />
+              <Separator />
               <BlockTypeSelect />
               <Separator />
               <BoldItalicUnderlineToggles options={['Bold', 'Italic']} />
@@ -67,10 +66,6 @@ function InitializedMDXEditor({
               <Separator />
               <ListsToggle />
               <CreateLink />
-              <span className="renjana-only-static">
-                <InsertCodeBlock />
-                <InsertThematicBreak />
-              </span>
             </>
           ),
         }),

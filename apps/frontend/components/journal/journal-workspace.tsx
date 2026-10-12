@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { MotionConfig } from 'motion/react';
 import { BookMarked, ChevronRight, Lock, Save, Trash2, Users } from 'lucide-react';
 import JournalSidebar from '@/components/journal/journal-side-bar';
 import JournalTopbar from '@/components/journal/journal-topbar';
@@ -10,6 +11,12 @@ import JournalErrorBanner from '@/components/journal/journal-error-banner';
 import ConfirmDialog from '@/components/journal/confirm-dialogue';
 import { UNTITLED } from '@/lib/constants/journal';
 import { useJournal } from '@/hooks/note/use-journal';
+import {
+  downloadJournalMarkdown,
+  printJournal,
+  splitJournalBody,
+} from '@/lib/journal-export';
+import { formatEditedAt, formatFullDate } from '@renjana/utils';
 import { JournalResponse } from '@renjana/types';
 
 interface JournalWorkspaceProps {
@@ -50,6 +57,27 @@ export default function JournalWorkspace({ initialItems = [] }: JournalWorkspace
   const handleSave = async () => {
     const ok = await journal.save();
     if (ok) triggerToast('Jurnal tersimpan');
+  };
+
+  const handlePrint = () => {
+    if (!journal.selected) return;
+    printJournal();
+  };
+
+  const handleExportMarkdown = () => {
+    const entry = journal.selected;
+    if (!entry) return;
+    downloadJournalMarkdown(
+      {
+        title: journal.selectedTitle || UNTITLED,
+        body: splitJournalBody(journal.content),
+        tags: journal.tags,
+        entryDateLabel: `Dibuat: ${formatFullDate(entry.entryDate)}`,
+        updatedLabel: `Terakhir disunting: ${formatEditedAt(entry.updatedAt)}`,
+      },
+      entry.entryDate.slice(0, 10),
+    );
+    triggerToast('File jurnal terunduh ke perangkat');
   };
 
   const handleSelect = (id: string) => {
@@ -104,6 +132,7 @@ export default function JournalWorkspace({ initialItems = [] }: JournalWorkspace
   };
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="flex h-screen flex-col overflow-hidden bg-[#f7f3ee] text-[#2c2523] antialiased">
       <JournalTopbar
         title={title}
@@ -115,13 +144,14 @@ export default function JournalWorkspace({ initialItems = [] }: JournalWorkspace
         onSave={handleSave}
         onToggleSidebar={() => setSidebarOpen((previous) => !previous)}
         onShareClick={() => setShareDialogOpen(true)}
-        onDownload={() => triggerToast('Jurnal berhasil diunduh ke perangkat (PDF)')}
+        onPrint={handlePrint}
+        onExportMarkdown={handleExportMarkdown}
         onDeleteClick={() => setDeleteDialogOpen(true)}
         onRetrySave={journal.retrySave}
       />
 
       {/* Body */}
-      <div className="relative flex-1 overflow-hidden pt-14">
+      <div className="relative flex-1 overflow-hidden pt-20">
         {sidebarOpen && (
           <button
             type="button"
@@ -136,7 +166,7 @@ export default function JournalWorkspace({ initialItems = [] }: JournalWorkspace
             type="button"
             onClick={() => setSidebarOpen(true)}
             title="Buka daftar jurnal"
-            className="absolute left-0 top-8 z-30 flex items-center rounded-r-2xl border-y border-r border-[#eddcd2] bg-[#fbf8f5]/95 px-2 py-3 text-[#665c54] backdrop-blur-md transition-all duration-300 hover:translate-x-1 hover:bg-white hover:px-3 hover:text-[#c96f4a] motion-reduce:transition-none"
+            className="absolute left-0 top-24 z-30 hidden items-center rounded-r-2xl border-y border-r border-white/50 bg-[#fffdf9]/80 px-2 py-3 text-[#665c54] shadow-[0_12px_30px_-12px_rgba(60,40,30,0.3)] backdrop-blur-xl transition-all duration-300 hover:translate-x-1 hover:bg-white/95 hover:px-3 hover:text-[#c96f4a] motion-reduce:transition-none md:flex"
           >
             <span className="flex flex-col items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#faebe6]/90 text-[#c96f4a]">
@@ -166,7 +196,7 @@ export default function JournalWorkspace({ initialItems = [] }: JournalWorkspace
         />
 
         {/* Main editor area */}
-        <main className="h-full overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
+        <main className="h-full overflow-y-auto px-3 py-6 sm:px-8 sm:py-8 lg:px-12">
           <JournalErrorBanner message={journal.error} onClose={journal.dismissError} />
 
           <JournalEditor
@@ -260,5 +290,6 @@ export default function JournalWorkspace({ initialItems = [] }: JournalWorkspace
 
       <JournalToast message={toast} />
     </div>
+    </MotionConfig>
   );
 }

@@ -1,6 +1,7 @@
 import { FOCUS_RING, UNTITLED } from '@/lib/constants/journal';
 import { JournalResponse } from '@renjana/types';
 import { formatStamp } from '@renjana/utils';
+import { motion } from 'motion/react';
 import { Users, Lock } from 'lucide-react';
 
 interface JournalCardProps {
@@ -34,8 +35,8 @@ function previewOf(content: string): string {
 
 function tagToneClass(index: number): string {
   return index % 2 === 0
-    ? 'bg-[#faebe6] text-[#c96f4a]'
-    : 'bg-[#f4ebe1] text-[#7d6756]';
+    ? 'bg-[#faebe6]/90 text-[#c96f4a]'
+    : 'bg-[#f4ebe1]/90 text-[#7d6756]';
 }
 
 export default function JournalCard({
@@ -46,18 +47,22 @@ export default function JournalCard({
   const { title } = splitContent(entry.content);
 
   return (
-    <button
+    <motion.button
       type="button"
       onClick={() => onSelect(entry.id)}
       aria-current={active ? 'true' : undefined}
-      className={`group relative w-full overflow-hidden rounded-2xl p-3.5 text-left transition duration-200 motion-reduce:transition-none ${FOCUS_RING} ${
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      className={`group relative w-full overflow-hidden rounded-2xl p-3.5 text-left backdrop-blur transition-colors duration-200 motion-reduce:transition-none ${FOCUS_RING} ${
         active
-          ? 'border border-[#c96f4a]/40 bg-white shadow-sm'
-          : 'border border-transparent bg-[#faf5ef] hover:border-[#eddcd2] hover:bg-white hover:shadow-sm'
+          ? 'border border-[#c96f4a]/40 bg-white shadow-[0_10px_28px_-12px_rgba(60,40,30,0.3)]'
+          : 'border border-white/50 bg-white/55 hover:border-[#eddcd2] hover:bg-white/90 hover:shadow-[0_10px_28px_-14px_rgba(60,40,30,0.35)]'
       }`}
     >
       {active && (
-        <span
+        <motion.span
+          layoutId="journal-active-rail"
+          transition={{ type: 'spring', stiffness: 500, damping: 38 }}
           className="absolute inset-y-0 left-0 w-1.5 rounded-l bg-[#c96f4a]"
           aria-hidden
         />
@@ -65,8 +70,10 @@ export default function JournalCard({
 
       <span className="mb-1 flex items-center justify-between text-[11px] text-[#8c7e75]">
         <span
-          className={`flex items-center gap-1 font-medium ${
-            entry.isShared ? 'text-[#c96f4a]' : 'text-[#665c54]'
+          className={`flex items-center gap-1 rounded-full px-1.5 py-0.5 font-medium backdrop-blur ${
+            entry.isShared
+              ? 'bg-[#faebe6]/80 text-[#c96f4a]'
+              : 'bg-white/60 text-[#665c54]'
           }`}
         >
           {entry.isShared ? (
@@ -96,13 +103,13 @@ export default function JournalCard({
           {entry.tags.slice(0, 3).map((tag, index) => (
             <span
               key={tag}
-              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tagToneClass(index)}`}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium backdrop-blur ${tagToneClass(index)}`}
             >
               {tag}
             </span>
           ))}
         </span>
       )}
-    </button>
+    </motion.button>
   );
 }

@@ -12,7 +12,8 @@
 .renjana-mdx.is-static .renjana-mdx-toolbar,
 .renjana-mdx.is-static .mdxeditor-toolbar {
   position: sticky;
-  top: 0;
+  top: auto;
+  bottom: 0;
   z-index: 20;
   display: flex;
   align-items: center;
@@ -20,10 +21,13 @@
   overflow-x: auto;
   border: 1px solid #e5d5c8;
   border-radius: 16px;
-  background: #fffdf9;
+  background: rgba(255, 253, 249, 0.88);
   padding: 6px 10px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 12px rgba(60, 40, 30, 0.06);
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  margin-top: 16px;
+  box-shadow: 0 -4px 18px -6px rgba(60, 40, 30, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   scrollbar-width: thin;
 }
 
@@ -60,10 +64,11 @@
   transform: translate(-50%, calc(-100% - 10px)) scale(1);
 }
 
-/* Bubble keeps only inline formatting — block actions live in the
-   (hidden here) static-only group. */
-.renjana-mdx.is-bubble .renjana-only-static {
-  display: none;
+.renjana-mdx.is-bubble .renjana-mdx-toolbar,
+.renjana-mdx.is-bubble .mdxeditor-toolbar {
+  transition:
+    opacity 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 260ms cubic-bezier(0.34, 1.35, 0.64, 1);
 }
 
 /* ── Toolbar buttons (shared light tokens, both modes) ───────── */
@@ -131,6 +136,10 @@
   color: #2c2523;
 }
 
+.renjana-mdx.is-static .mdxeditor-toolbar > * {
+  flex-shrink: 0;
+}
+
 /* ── Editable prose (paper typography) ───────────────────────── */
 .renjana-mdx .renjana-prose {
   outline: none;
@@ -144,6 +153,10 @@
 
 .renjana-mdx .renjana-prose > [data-lexical-editor] {
   outline: none;
+}
+
+.renjana-prose ::selection {
+  background: #faebe6;
 }
 
 .renjana-prose h1 {

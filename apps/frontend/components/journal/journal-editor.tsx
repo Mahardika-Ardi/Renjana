@@ -56,7 +56,7 @@ export default function JournalEditor({
     return (
       <div className="mx-auto w-full max-w-3xl">
         <article
-          className={`relative flex min-h-[820px] items-center justify-center rounded-3xl border border-[#ede3da] bg-white p-8 sm:p-12 md:p-14 ${PAPER_SHADOW}`}
+          className={`relative flex min-h-[60vh] items-center justify-center rounded-3xl border border-[#ede3da] bg-white p-6 sm:p-12 md:min-h-[820px] md:p-14 ${PAPER_SHADOW}`}
         >
           <p className="text-center font-serif text-lg text-[#8c7e75]">
             {detailLoading ? 'Memuat jurnal…' : 'Belum ada jurnal. Buat catatan baru untuk mulai menulis.'}
@@ -69,7 +69,8 @@ export default function JournalEditor({
   return (
     <div className="mx-auto w-full max-w-3xl">
       <article
-        className={`relative min-h-[820px] rounded-3xl border border-[#ede3da] bg-white p-8 sm:p-12 md:p-14 ${PAPER_SHADOW}`}
+        id="journal-article"
+        className={`relative min-h-[820px] rounded-3xl border border-[#ede3da] bg-white p-5 sm:p-8 md:p-14 ${PAPER_SHADOW}`}
       >
         <header className="mb-5 border-b border-[#f1e6de] pb-4">
           <input
@@ -80,10 +81,10 @@ export default function JournalEditor({
             placeholder={UNTITLED}
             aria-label="Judul jurnal"
             autoComplete="off"
-            className="mb-2 w-full bg-transparent font-serif text-3xl font-medium tracking-tight text-[#2c2523] outline-none transition placeholder:text-[#c3b3a6] focus:border-b-2 focus:border-[#c96f4a] sm:text-4xl"
+            className="mb-2 w-full border-b-2 border-transparent bg-transparent font-serif text-2xl font-medium tracking-tight text-[#2c2523] outline-none transition-colors placeholder:text-[#c3b3a6] focus:border-[#c96f4a] sm:text-3xl md:text-4xl"
           />
           <TagEditor tags={tags} onChange={onTagsChange} />
-          <div className="mt-2 flex items-center space-x-2 text-xs text-[#8c7e75]">
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#8c7e75]">
             <span className="flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" aria-hidden />
               <span>
@@ -93,7 +94,7 @@ export default function JournalEditor({
                 </time>
               </span>
             </span>
-            <span aria-hidden>•</span>
+            <span aria-hidden className="hidden sm:inline">•</span>
             <span className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" aria-hidden />
               <span>

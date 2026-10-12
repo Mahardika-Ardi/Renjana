@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import '@mdxeditor/editor/style.css';
 import 'style/globals.css';
 import 'style/markdown-editor.css';
+import 'style/print.css';
 
 export const metadata: Metadata = {
   title: 'Renjana',
