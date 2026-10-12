@@ -57,12 +57,14 @@ export default function ForgotPasswordForm() {
                     transition-colors
                   `,
 
-            logo: `
+            logo: {
+              style: `
                     absolute
                     left-4
                     top-7.5
                     -translate-y-1/2
                   `,
+            },
 
             input: `w-full
                     bg-[#eeeeed]
@@ -121,12 +123,14 @@ export default function ForgotPasswordForm() {
                     transition-colors
                   `,
 
-            logo: `
+            logo: {
+              style: `
                     absolute
                     left-4
                     top-7.5
                     -translate-y-1/2
                   `,
+            },
 
             input: `w-full
                     bg-[#eeeeed]

@@ -23,6 +23,34 @@ export const toString = (value: unknown): string => {
 };
 
 // ---- Date Utilities --------------------------------------------
+const dayKeyFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: "Asia/Jakarta",
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+const fullDateFormatter = new Intl.DateTimeFormat('id-ID', {
+  timeZone: "Asia/Jakarta",
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+
+const shortDateFormatter = new Intl.DateTimeFormat('id-ID', {
+  timeZone: "Asia/Jakarta",
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+
+const timeFormatter = new Intl.DateTimeFormat('id-ID', {
+  timeZone: "Asia/Jakarta",
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
 export const formatDate = (date: Date | string, locale = 'en-US'): string =>
   new Date(date).toLocaleDateString(locale, {
     day: 'numeric',
@@ -59,6 +87,39 @@ export const getISOWeek = (date: Date): { week: number; year: number } => {
 
 export const daysBetween = (a: Date, b: Date): number =>
   Math.abs(Math.floor((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)));
+
+export function parseDate(iso: string): Date | null {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function formatFullDate(iso: string): string {
+  const date = parseDate(iso);
+  return date ? fullDateFormatter.format(date) : '—';
+}
+
+export function formatEditedAt(iso: string): string {
+  const date = parseDate(iso);
+  return date
+    ? `${shortDateFormatter.format(date)}, ${timeFormatter.format(date)}`
+    : '—';
+}
+
+/** "Hari ini, 10:24" · "Kemarin, 21:15" · "18 Okt 2024" */
+export function formatStamp(iso: string): string {
+  const date = parseDate(iso);
+  if (!date) return '—';
+
+  const today = new Date();
+  const yesterday = new Date(today.getTime() - 86_400_000);
+  const key = dayKeyFormatter.format(date);
+
+  if (key === dayKeyFormatter.format(today))
+    return `Hari ini, ${timeFormatter.format(date)}`;
+  if (key === dayKeyFormatter.format(yesterday))
+    return `Kemarin, ${timeFormatter.format(date)}`;
+  return shortDateFormatter.format(date);
+}
 
 // ---- Validation Utilities -------------------------------------
 export const isValidEmail = (email: string): boolean =>

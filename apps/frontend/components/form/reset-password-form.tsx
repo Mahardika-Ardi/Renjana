@@ -40,7 +40,6 @@ export default function ResetPasswordForm() {
           value={password}
           required
           status={loading}
-          autoComplete="new-password"
           disabled={loading}
           onChange={(event) => setPassword(event.target.value)}
           placeholder="Enter your new password"
@@ -63,12 +62,14 @@ export default function ResetPasswordForm() {
                     transition-colors
                   `,
 
-            logo: `
+            logo: {
+              style: `
                     absolute
                     left-4
                     top-7.5
                     -translate-y-1/2
                   `,
+            },
 
             input: `w-full
                     bg-[#eeeeed]
@@ -98,7 +99,6 @@ export default function ResetPasswordForm() {
           value={confirmPassword}
           required
           status={loading}
-          autoComplete="new-password"
           disabled={loading}
           onChange={(event) => setConfirmPassword(event.target.value)}
           placeholder="Confirm your new password"
@@ -121,12 +121,14 @@ export default function ResetPasswordForm() {
                     transition-colors
                   `,
 
-            logo: `
+            logo: {
+              style: `
                     absolute
                     left-4
                     top-7.5
                     -translate-y-1/2
                   `,
+            },
 
             input: `w-full
                     bg-[#eeeeed]

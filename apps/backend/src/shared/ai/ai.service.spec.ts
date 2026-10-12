@@ -7,13 +7,24 @@ describe('AiService', () => {
   let config: any;
 
   const mockItems: EmotionDumpItem[] = [
-    { id: 'dump-1', content: 'Aku merasa sedih karena pasangan tidak mendengarkan aku' },
+    {
+      id: 'dump-1',
+      content: 'Aku merasa sedih karena pasangan tidak mendengarkan aku',
+    },
     { id: 'dump-2', content: 'Kamu selalu menyalahkan aku untuk segalanya' },
   ];
 
   const mockRefinedResults: RefinedResultItem[] = [
-    { id: 'dump-1', refinedContent: 'Aku merasa sedih ketika aku tidak terdengar. Aku butuh ruang untuk berbagi perasaan.' },
-    { id: 'dump-2', refinedContent: 'Aku merasa tersiksa ketika aku selalu mendapat tuduhan. Aku berharap kita bisa saling memahami.' },
+    {
+      id: 'dump-1',
+      refinedContent:
+        'Aku merasa sedih ketika aku tidak terdengar. Aku butuh ruang untuk berbagi perasaan.',
+    },
+    {
+      id: 'dump-2',
+      refinedContent:
+        'Aku merasa tersiksa ketika aku selalu mendapat tuduhan. Aku berharap kita bisa saling memahami.',
+    },
   ];
 
   const createModule = (apiKey: string | null = 'sk-test-key') => {
@@ -26,14 +37,11 @@ describe('AiService', () => {
     };
 
     return Test.createTestingModule({
-      providers: [
-        AiService,
-        { provide: ConfigService, useValue: config },
-      ],
+      providers: [AiService, { provide: ConfigService, useValue: config }],
     }).compile();
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
@@ -45,7 +53,9 @@ describe('AiService', () => {
 
       expect(results).toHaveLength(2);
       expect(results[0].id).toBe('dump-1');
-      expect(results[0].refinedContent).toContain('Aku merasa perlu mengungkapkan');
+      expect(results[0].refinedContent).toContain(
+        'Aku merasa perlu mengungkapkan',
+      );
     });
 
     it('should return fallback for empty input', async () => {
@@ -61,7 +71,13 @@ describe('AiService', () => {
 
       // Mock OpenAI client
       const mockCreate = jest.fn().mockResolvedValue({
-        choices: [{ message: { content: JSON.stringify({ results: mockRefinedResults }) } }],
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({ results: mockRefinedResults }),
+            },
+          },
+        ],
       });
       (service as any).openai = {
         chat: { completions: { create: mockCreate } },
@@ -91,7 +107,9 @@ describe('AiService', () => {
       const results = await service.refineEmotionDumps(mockItems);
 
       expect(results).toHaveLength(2);
-      expect(results[0].refinedContent).toContain('Aku merasa perlu mengungkapkan');
+      expect(results[0].refinedContent).toContain(
+        'Aku merasa perlu mengungkapkan',
+      );
     });
 
     it('should fallback on invalid JSON response', async () => {
@@ -108,7 +126,9 @@ describe('AiService', () => {
       const results = await service.refineEmotionDumps(mockItems);
 
       expect(results).toHaveLength(2);
-      expect(results[0].refinedContent).toContain('Aku merasa perlu mengungkapkan');
+      expect(results[0].refinedContent).toContain(
+        'Aku merasa perlu mengungkapkan',
+      );
     });
 
     it('should fallback when results array is empty', async () => {
@@ -125,7 +145,9 @@ describe('AiService', () => {
       const results = await service.refineEmotionDumps(mockItems);
 
       expect(results).toHaveLength(2);
-      expect(results[0].refinedContent).toContain('Aku merasa perlu mengungkapkan');
+      expect(results[0].refinedContent).toContain(
+        'Aku merasa perlu mengungkapkan',
+      );
     });
   });
 

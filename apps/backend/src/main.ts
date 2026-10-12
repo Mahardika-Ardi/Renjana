@@ -45,7 +45,8 @@ async function bootstrap() {
 
   // ── Swagger (dev & production) ───────────────────────────────────────
   const enableSwagger =
-    process.env.ENABLE_SWAGGER !== 'false' && process.env.NODE_ENV !== 'production';
+    process.env.ENABLE_SWAGGER !== 'false' &&
+    process.env.NODE_ENV !== 'production';
 
   if (enableSwagger) {
     const config = new DocumentBuilder()

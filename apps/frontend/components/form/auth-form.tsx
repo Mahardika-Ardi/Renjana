@@ -79,12 +79,14 @@ export default function AuthForm({ type }: { type: AuthTypes }) {
                     tracking-wider
                   `,
 
-                    logo: `
+                    logo: {
+                      style: `
                     absolute
                     left-4
                     top-8.5
                     -translate-y-1/2
                   `,
+                    },
 
                     input: `
                     w-full
@@ -136,12 +138,14 @@ export default function AuthForm({ type }: { type: AuthTypes }) {
               ml-4
             `,
 
-              logo: `
+              logo: {
+                style: `
               absolute
               left-4
               top-8.5
               -translate-y-1/2
             `,
+              },
 
               input: `
               w-full
@@ -203,12 +207,14 @@ export default function AuthForm({ type }: { type: AuthTypes }) {
               transition-colors
             `,
 
-              logo: `
+              logo: {
+                style: `
               absolute
               left-4
               top-8.5
               -translate-y-1/2
             `,
+              },
 
               input: `
               w-full

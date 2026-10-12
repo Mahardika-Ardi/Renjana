@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { getCurrentDateFormatted } from '@renjana/utils';
 import Profile from '@/components/profile/photo-profile';
+import Link from 'next/link';
 
 export default function HomePage() {
   const [glasses, setGlasses] = useState(4);
@@ -285,12 +286,14 @@ export default function HomePage() {
                 </span>
               </div>
 
-              <button
-                type="button"
-                className="text-xs font-semibold tracking-wide text-[#825a2e]"
-              >
-                Open Journal →
-              </button>
+              <Link href={'/note/journal'}>
+                <button
+                  type="button"
+                  className="text-xs font-semibold tracking-wide text-[#825a2e]"
+                >
+                  Open Journal →
+                </button>
+              </Link>
             </div>
           </article>
 

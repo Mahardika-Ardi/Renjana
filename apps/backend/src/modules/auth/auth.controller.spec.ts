@@ -34,6 +34,7 @@ describe('AuthController', () => {
       forgotPassword: jest.fn(),
       resetPassword: jest.fn(),
       getMe: jest.fn(),
+      acceptInvite: jest.fn(),
       generateInviteCode: jest.fn(),
       issueSseTicket: jest.fn(),
     };
@@ -354,8 +355,9 @@ describe('AuthController', () => {
   describe('generateInvite', () => {
     it('should call authService.generateInviteUrl and return envelope', async () => {
       const invite = {
-        inviteUrl: 'http://localhost:3000/register?inviteToken=token123',
+        inviteUrl: 'http://localhost:3000/invite?token=token123',
         token: 'token123',
+        code: 'token123',
         expiresAt: new Date(),
       };
       authService.generateInviteUrl = jest.fn().mockResolvedValue(invite);
@@ -386,6 +388,27 @@ describe('AuthController', () => {
       expect(result).toEqual({
         message: 'Tautan undangan valid',
         data: validResult,
+      });
+    });
+  });
+
+  describe('acceptInvite', () => {
+    it('should call authService.acceptInvite and return envelope', async () => {
+      const me = { id: 'user-1', couple: { id: 'couple-1' } };
+      authService.acceptInvite.mockResolvedValue(me);
+
+      const result = await controller.acceptInvite(
+        { token: 'token123' },
+        mockUser,
+      );
+
+      expect(authService.acceptInvite).toHaveBeenCalledWith(
+        'user-1',
+        'token123',
+      );
+      expect(result).toEqual({
+        message: 'Berhasil terhubung dengan pasangan',
+        data: me,
       });
     });
   });

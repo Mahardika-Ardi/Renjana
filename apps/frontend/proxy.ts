@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { refreshTokenOnServer } from '@/lib/api/refresh-token';
 
 const AUTH_COOKIE = 'renjana_access';
 const REFRESH_COOKIE = 'renjana_refresh';
-const REFRESH_ENDPOINT = `${process.env.API_URL}/auth/refresh`;
 
 const PUBLIC_ROUTES = [
   '/',
@@ -17,43 +17,30 @@ export default async function proxy(request: NextRequest) {
 
   const isStaticAsset =
     pathname.startsWith('/_next/') || pathname.includes('.');
-
-  if (isStaticAsset) {
-    return NextResponse.next();
-  }
+  if (isStaticAsset) return NextResponse.next();
 
   const isPublicRoute = PUBLIC_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
-
-  if (isPublicRoute) {
-    return NextResponse.next();
-  }
+  if (isPublicRoute) return NextResponse.next();
 
   const accessToken = request.cookies.get(AUTH_COOKIE)?.value;
-
-  if (accessToken) {
-    return NextResponse.next();
-  }
+  if (accessToken) return NextResponse.next();
 
   const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;
 
   if (refreshToken) {
-    try {
-      const refreshRes = await fetch(REFRESH_ENDPOINT, {
-        method: 'POST',
-        headers: { Cookie: request.headers.get('cookie') ?? '' },
-      });
+    const setCookies = await refreshTokenOnServer(
+      request.headers.get('cookie') ?? '',
+    );
 
-      if (refreshRes.ok) {
-        const response = NextResponse.next();
-        const setCookieHeader = refreshRes.headers.get('set-cookie');
-        if (setCookieHeader) {
-          response.headers.set('set-cookie', setCookieHeader);
-        }
-        return response;
+    if (setCookies) {
+      const response = NextResponse.next();
+      for (const cookie of setCookies) {
+        response.headers.append('set-cookie', cookie);
       }
-    } catch {}
+      return response;
+    }
   }
 
   const loginUrl = new URL('/login', request.url);
