@@ -89,15 +89,7 @@ describe('MoodService', () => {
     });
   });
 
-  describe('updateForUser', () => {
-    it('should throw ForbiddenException as mood is permanently locked', async () => {
-      await expect(
-        service.updateForUser('user-1', 'mood-1', {
-          mood: MoodValue.VERY_GOOD,
-        }),
-      ).rejects.toThrow(ForbiddenException);
-    });
-  });
+
 
   describe('findOneForUser', () => {
     it('should return the mood log if owned by user', async () => {

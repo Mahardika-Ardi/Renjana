@@ -21,10 +21,16 @@ describe('UserCleanupCronService', () => {
       couple: { deleteMany: jest.fn() },
       coupleInvite: { deleteMany: jest.fn() },
       streakLog: { deleteMany: jest.fn() },
+      streakNudge: { deleteMany: jest.fn() },
       score360: { deleteMany: jest.fn() },
       weeklyCheckin: { deleteMany: jest.fn() },
       individualGoalProgress: { deleteMany: jest.fn() },
       todoItem: { deleteMany: jest.fn() },
+      moodLog: { deleteMany: jest.fn() },
+      habitLog: { deleteMany: jest.fn() },
+      habitTemplate: { deleteMany: jest.fn() },
+      journalEntry: { deleteMany: jest.fn() },
+      emotionDump: { deleteMany: jest.fn() },
       $transaction: jest.fn(),
     };
 
@@ -106,12 +112,20 @@ describe('UserCleanupCronService', () => {
         where: { senderId: 'user-1' },
       });
       expect(prisma.streakLog.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
+      expect(prisma.streakNudge.deleteMany).toHaveBeenCalledWith({
+        where: { OR: [{ senderId: 'user-1' }, { receiverId: 'user-1' }] },
+      });
       expect(prisma.score360.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
       expect(prisma.weeklyCheckin.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
       expect(prisma.individualGoalProgress.deleteMany).toHaveBeenCalledWith({
         where: { userId: 'user-1' },
       });
       expect(prisma.todoItem.deleteMany).toHaveBeenCalledWith({ where: { creatorId: 'user-1' } });
+      expect(prisma.moodLog.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
+      expect(prisma.habitLog.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
+      expect(prisma.habitTemplate.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
+      expect(prisma.journalEntry.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
+      expect(prisma.emotionDump.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
       expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: 'user-1' } });
 
       expect(adminClient.auth.admin.deleteUser).toHaveBeenCalledWith('user-1');

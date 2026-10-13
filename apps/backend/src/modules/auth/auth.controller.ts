@@ -25,10 +25,8 @@ import {
   LoginDto,
   VerifyEmailDto,
   RequestResetCodeDto,
-  ForgotPasswordDto,
   VerifyResetCodeDto,
   ResetPasswordFinalDto,
-  ResetPasswordDto,
   DeleteAccountDto,
   AcceptInviteDto,
 } from './dto';
@@ -259,31 +257,7 @@ export class AuthController {
     return result;
   }
 
-  // ── Legacy Aliases ──────────────────────────────────────────
-  @Public()
-  @Post('forgot-password')
-  @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 3, ttl: 300_000 } })
-  @ApiOperation({ summary: 'Minta kode/link reset password (alias)' })
-  async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    return this.authService.requestResetCode(dto.email);
-  }
 
-  @Public()
-  @Post('reset-password')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Reset password (alias)' })
-  async resetPassword(
-    @Body() dto: ResetPasswordDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const result = await this.authService.resetPassword(
-      dto.token,
-      dto.newPassword,
-    );
-    clearAuthCookies(res, cookieOptions());
-    return result;
-  }
 
   // ── Get Current User (me) ───────────────────────────────────
   @Get('me')

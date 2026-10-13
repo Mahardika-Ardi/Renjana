@@ -28,8 +28,6 @@ export class RequestResetCodeDto {
   email: string;
 }
 
-export class ForgotPasswordDto extends RequestResetCodeDto {}
-
 export class VerifyResetCodeDto {
   @ApiProperty({
     example: 'budi@email.com',
@@ -77,13 +75,4 @@ export class ResetPasswordFinalDto {
   newPassword: string;
 }
 
-export class ResetPasswordDto {
-  @ApiProperty({ description: 'Token dari email / step reset password' })
-  @IsString()
-  token: string;
 
-  @ApiProperty({ example: 'BudiNew1234!' })
-  @IsString()
-  @Length(8, 100)
-  newPassword: string;
-}

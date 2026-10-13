@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../database';
 import { MoodValue } from '@prisma/client';
 import { StreakService } from '../streak';
-import { CreateMoodDto, UpdateMoodDto } from './dto';
+import { CreateMoodDto } from './dto';
 
 @Injectable()
 export class MoodService {
@@ -104,14 +104,7 @@ export class MoodService {
     return moodLog;
   }
 
-  /**
-   * Update log mood milik user aktif (termasuk toggle intensity & notes)
-   */
-  async updateForUser(userId: string, id: string, dto: UpdateMoodDto) {
-    throw new ForbiddenException(
-      'Emoji mood tracker yang sudah disubmit terkunci permanen dan tidak dapat diedit.',
-    );
-  }
+
 
   /**
    * Hapus log mood milik user aktif
