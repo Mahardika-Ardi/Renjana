@@ -4,6 +4,11 @@ import { useMemo } from 'react';
 import { Calendar, Clock } from 'lucide-react';
 import { JournalResponse } from '@renjana/types';
 import { formatEditedAt, formatFullDate } from '@renjana/utils';
+import {
+  composeContent,
+  splitBody,
+  splitTitleLine,
+} from '@/lib/journal-content';
 import { PAPER_SHADOW, UNTITLED } from '@/lib/constants/journal';
 import TagEditor from './tag-editor';
 import MarkdownEditor from './markdown-editor';
@@ -15,30 +20,6 @@ interface JournalEditorProps {
   detailLoading: boolean;
   onContentChange: (value: string) => void;
   onTagsChange: (tags: string[]) => void;
-}
-
-function splitTitleLine(content: string): string {
-  const normalized = (content ?? '').replace(/\r\n/g, '\n');
-  const lineBreak = normalized.indexOf('\n');
-  const raw = lineBreak === -1 ? normalized : normalized.slice(0, lineBreak);
-  // Strip only the `#` marker itself — never trim. Trimming here would
-  // swallow every space the user types on its way back into the input.
-  return raw.replace(/^#+\s?/, '');
-}
-
-function splitBody(content: string): string {
-  const normalized = (content ?? '').replace(/\r\n/g, '\n');
-  const lineBreak = normalized.indexOf('\n');
-  if (lineBreak === -1) return '';
-  return normalized.slice(lineBreak + 1).replace(/^\n+/, '');
-}
-
-function composeContent(title: string, body: string): string {
-  // A blank title keeps its (empty) first-line slot so the body's first
-  // line is never promoted into the title on the next split.
-  if (!title.trim()) return body ? `\n${body}` : '';
-  if (!body) return `# ${title}\n`;
-  return `# ${title}\n\n${body}`;
 }
 
 export default function JournalEditor({

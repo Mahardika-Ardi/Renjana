@@ -6,9 +6,11 @@ import { getCurrentDateFormatted } from '@renjana/utils';
 import Profile from '@/components/profile/photo-profile';
 import LatestEntryCard from '@/components/home/latest-entry-card';
 import { useGetUserProfile } from '@/hooks/auth/get-user-profile';
+import { useMounted } from '@/lib/use-mounted';
 
 export default function HomePage() {
   const [glasses, setGlasses] = useState(4);
+  const mounted = useMounted();
   const { user, loading: userLoading } = useGetUserProfile();
 
   const hydrationPercentage = Math.min((glasses / 8) * 100, 100);
@@ -36,7 +38,12 @@ export default function HomePage() {
               }
             })()}
             <span className="font-serif italic font-semibold text-[#875e2f]">
-              {user?.name ?? (userLoading ? '…' : 'Teman')}
+              {/* Pre-mount renders the placeholder so the first client paint
+                  matches the server HTML (cached username must not leak
+                  into hydration). */}
+              {!mounted || userLoading
+                ? '…'
+                : (user?.name ?? 'Teman')}
             </span>
           </h1>
 

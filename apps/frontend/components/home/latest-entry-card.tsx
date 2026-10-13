@@ -1,28 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { journalApi } from '@/lib/api/journal';
+import { CACHE_TTL, cacheKeys } from '@/lib/api/cache';
+import { useCachedResource } from '@/hooks/use-cached-resource';
+import { useMounted } from '@/lib/use-mounted';
 import { JournalResponse } from '@renjana/types';
+import { previewOf, splitTitleDisplay } from '@/lib/journal-content';
 import { formatShortDate } from '@renjana/utils';
-
-function splitTitle(content: string): string {
-  const normalized = (content ?? '').replace(/\r\n/g, '\n');
-  const lineBreak = normalized.indexOf('\n');
-  const raw = lineBreak === -1 ? normalized : normalized.slice(0, lineBreak);
-  return raw.replace(/^#+\s*/, '').trim() || 'Tanpa Judul';
-}
-
-function previewOf(content: string): string {
-  const normalized = (content ?? '').replace(/\r\n/g, '\n');
-  const lineBreak = normalized.indexOf('\n');
-  const body =
-    lineBreak === -1
-      ? normalized
-      : normalized.slice(lineBreak + 1).replace(/^\n+/, '');
-  const source = body.trim() || normalized.trim();
-  return source.replace(/\s+/g, ' ').slice(0, 160);
-}
 
 function BookIcon() {
   return (
@@ -42,35 +27,28 @@ function BookIcon() {
 }
 
 export default function LatestEntryCard() {
-  const [entry, setEntry] = useState<JournalResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
+  const mounted = useMounted();
+  const {
+    data: list,
+    loading,
+    error,
+  } = useCachedResource<JournalResponse[]>(
+    cacheKeys.journalLatest,
+    async () => {
+      const res = await journalApi.getAll({ page: '1', limit: '1' });
+      return (res.data as unknown as { items: JournalResponse[] }).items ?? [];
+    },
+    { ttlMs: CACHE_TTL.JOURNAL_LATEST },
+  );
 
-  useEffect(() => {
-    let ignore = false;
+  const entry = list?.[0] ?? null;
+  // A background revalidation failure must never wipe a cached entry —
+  // only fail visibly when there is nothing to show.
+  const failed = error !== null && !entry;
 
-    const load = async () => {
-      try {
-        const res = await journalApi.getAll({ page: '1', limit: '1' });
-        if (ignore) return;
-        const list =
-          (res.data as unknown as { items: JournalResponse[] }).items ?? [];
-        setEntry(list[0] ?? null);
-      } catch {
-        if (!ignore) setFailed(true);
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    };
-
-    load();
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  if (loading) {
+  // Pre-mount (and server) output is always the skeleton: cached entry
+  // data must not leak into the first client paint (hydration mismatch).
+  if (!mounted || loading) {
     return (
       <article
         aria-busy="true"
@@ -126,7 +104,7 @@ export default function LatestEntryCard() {
     );
   }
 
-  const title = splitTitle(entry.content);
+  const title = splitTitleDisplay(entry.content) || 'Tanpa Judul';
 
   return (
     <article className="min-h-72.5 rounded-[30px] bg-[#f0efed] p-7 md:p-8">
