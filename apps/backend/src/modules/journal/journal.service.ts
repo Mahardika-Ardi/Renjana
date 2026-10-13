@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database';
 import { StreakService } from '../streak';
@@ -15,10 +16,22 @@ export class JournalService {
   ) {}
 
   /**
-   * Buat entry jurnal baru untuk user aktif
+   * Buat entry jurnal baru untuk user aktif (Hanya 1 catatan per hari)
    */
   async create(userId: string, dto: CreateJournalDto) {
-    const entryDate = dto.entryDate ? new Date(dto.entryDate) : new Date();
+    const rawDate = dto.entryDate ? new Date(dto.entryDate) : new Date();
+    const entryDate = new Date(rawDate.toISOString().slice(0, 10));
+
+    // Validasi: 1 catatan jurnal per hari
+    const existing = await this.prisma.journalEntry.findUnique({
+      where: { userId_entryDate: { userId, entryDate } },
+    });
+
+    if (existing) {
+      throw new ConflictException(
+        'Catatan jurnal untuk hari ini sudah ada. Anda dapat mengedit catatan yang sudah ada.',
+      );
+    }
 
     const entry = await this.prisma.journalEntry.create({
       data: {
@@ -29,9 +42,6 @@ export class JournalService {
         isShared: dto.isShared ?? false,
       },
     });
-
-    // Fire-and-forget log engagement for streak calculation
-    this.streakService.logEngagement(userId).catch(() => {});
 
     return entry;
   }

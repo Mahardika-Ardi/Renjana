@@ -74,7 +74,7 @@ describe('AuthController', () => {
         'refresh-token-1',
         expect.objectContaining({
           httpOnly: true,
-          path: '/api/v1/auth',
+          path: '/',
         }),
       );
       expect(result).toEqual({
