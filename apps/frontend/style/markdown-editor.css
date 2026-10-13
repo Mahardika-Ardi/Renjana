@@ -8,27 +8,60 @@
   position: relative;
 }
 
-/* ── Static toolbar (phone / tablet) ─────────────────────────── */
+/* ── Static toolbar (phone / tablet): floating bottom dock ─────
+   Fixed to the viewport (never in-flow), so it stays put while the
+   journal scrolls and can never cover the topbar settings. Paints
+   below the sidebar overlay (z-40) and dialogs (z-50) by design. */
 .renjana-mdx.is-static .renjana-mdx-toolbar,
 .renjana-mdx.is-static .mdxeditor-toolbar {
-  position: sticky;
+  position: fixed;
   top: auto;
-  bottom: 0;
-  z-index: 20;
+  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
   display: flex;
   align-items: center;
   gap: 2px;
   overflow-x: auto;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 24px));
   border: 1px solid #e5d5c8;
-  border-radius: 16px;
-  background: rgba(255, 253, 249, 0.88);
-  padding: 6px 10px;
-  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
-  margin-top: 16px;
-  box-shadow: 0 -4px 18px -6px rgba(60, 40, 30, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 253, 249, 0.92);
+  padding: 6px 12px;
+  box-shadow: 0 12px 32px -8px rgba(60, 40, 30, 0.28);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   scrollbar-width: thin;
+  scrollbar-color: #d4a373 transparent;
+}
+
+/* Breathing room so the dock never hides the journal's last lines. */
+.renjana-mdx.is-static {
+  padding-bottom: 92px;
+}
+
+/* Themed scroll strip inside the dock */
+.renjana-mdx.is-static .renjana-mdx-toolbar::-webkit-scrollbar,
+.renjana-mdx.is-static .mdxeditor-toolbar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.renjana-mdx.is-static .renjana-mdx-toolbar::-webkit-scrollbar-track,
+.renjana-mdx.is-static .mdxeditor-toolbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.renjana-mdx.is-static .renjana-mdx-toolbar::-webkit-scrollbar-thumb,
+.renjana-mdx.is-static .mdxeditor-toolbar::-webkit-scrollbar-thumb {
+  background: #e3d5ca;
+  border-radius: 999px;
+}
+
+.renjana-mdx.is-static .renjana-mdx-toolbar::-webkit-scrollbar-thumb:hover,
+.renjana-mdx.is-static .mdxeditor-toolbar::-webkit-scrollbar-thumb:hover {
+  background: #c96f4a;
 }
 
 /* ── Floating bubble toolbar (PC only) ─────────────────────────

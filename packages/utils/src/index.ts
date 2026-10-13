@@ -45,6 +45,13 @@ const shortDateFormatter = new Intl.DateTimeFormat('id-ID', {
   year: 'numeric',
 });
 
+const shortEnDateFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'Asia/Jakarta',
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+
 const timeFormatter = new Intl.DateTimeFormat('id-ID', {
   timeZone: "Asia/Jakarta",
   hour: '2-digit',
@@ -103,6 +110,12 @@ export function formatEditedAt(iso: string): string {
   return date
     ? `${shortDateFormatter.format(date)}, ${timeFormatter.format(date)}`
     : '—';
+}
+
+/** "Oct 18, 2025" — short English date, no clock time. */
+export function formatShortDate(iso: string): string {
+  const date = parseDate(iso);
+  return date ? shortEnDateFormatter.format(date) : '—';
 }
 
 /** "Hari ini, 10:24" · "Kemarin, 21:15" · "18 Okt 2024" */

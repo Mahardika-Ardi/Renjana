@@ -59,6 +59,17 @@ export default function JournalTopbar({
       className="fixed inset-x-3 top-3 z-20 flex h-14 shrink-0 items-center justify-between rounded-2xl border border-white/50 bg-[#fffdf9]/75 px-4 shadow-[0_12px_36px_-12px_rgba(60,40,30,0.25)] backdrop-blur-xl sm:inset-x-6 sm:px-5"
     >
       <div className="flex min-w-0 items-center gap-3">
+        <motion.button
+          type="button"
+          onClick={onToggleSidebar}
+          title="Daftar jurnal"
+          aria-label="Buka atau tutup daftar jurnal"
+          whileTap={{ scale: 0.9 }}
+          className="rounded-full p-1.5 text-[#8c7e75] transition hover:bg-[#f5efe6] hover:text-[#2c2523] md:hidden"
+        >
+          <Menu className="h-4 w-4" aria-hidden />
+        </motion.button>
+
         <div className="flex min-w-0 items-center gap-2.5 text-xs">
           <span className="max-w-45 truncate font-semibold text-[#2c2523] sm:max-w-xs">
             {title}
@@ -126,19 +137,6 @@ export default function JournalTopbar({
             aria-hidden
           />
         </motion.button>
-
-        <div className="relative md:hidden">
-          <motion.button
-            type="button"
-            onClick={onToggleSidebar}
-            title="Daftar jurnal"
-            aria-label="Buka atau tutup daftar jurnal"
-            whileTap={{ scale: 0.9 }}
-            className="rounded-full p-1.5 text-[#8c7e75] transition hover:bg-[#f5efe6] hover:text-[#2c2523] md:hidden"
-          >
-            <Menu className="h-4 w-4" aria-hidden />
-          </motion.button>
-        </div>
 
         <div className="relative" ref={menuRef}>
           <motion.button

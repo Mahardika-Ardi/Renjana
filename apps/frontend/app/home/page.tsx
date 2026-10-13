@@ -4,10 +4,12 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { getCurrentDateFormatted } from '@renjana/utils';
 import Profile from '@/components/profile/photo-profile';
-import Link from 'next/link';
+import LatestEntryCard from '@/components/home/latest-entry-card';
+import { useGetUserProfile } from '@/hooks/auth/get-user-profile';
 
 export default function HomePage() {
   const [glasses, setGlasses] = useState(4);
+  const { user, loading: userLoading } = useGetUserProfile();
 
   const hydrationPercentage = Math.min((glasses / 8) * 100, 100);
 
@@ -34,7 +36,7 @@ export default function HomePage() {
               }
             })()}
             <span className="font-serif italic font-semibold text-[#875e2f]">
-              Elias
+              {user?.name ?? (userLoading ? '…' : 'Teman')}
             </span>
           </h1>
 
@@ -252,50 +254,7 @@ export default function HomePage() {
         ========================== */}
         <section className="mt-16 grid grid-cols-1 gap-5 md:grid-cols-[1.55fr_1fr]">
           {/* Latest Entry */}
-          <article className="min-h-72.5 rounded-[30px] bg-[#f0efed] p-7 md:p-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white">
-                  <BookIcon />
-                </div>
-
-                <h3 className="text-xl font-semibold">Latest Entry</h3>
-              </div>
-
-              <span className="text-xs font-medium text-[#575650]">OCT 23</span>
-            </div>
-
-            <div className="mt-7">
-              <div className="text-4xl leading-none text-[#d9d6cf]">“</div>
-
-              <p className="-mt-1 max-w-127.5 text-[15px] leading-6 text-[#242420]">
-                Found an unexpected moment of clarity during the morning walk.
-                The fog was lifting off the lake, and for a second, the noise of
-                the upcoming week just evaporated. I need to...
-              </p>
-            </div>
-
-            <div className="mt-7 flex items-end justify-between border-t border-[#d7d4ce] pt-5">
-              <div className="flex gap-2">
-                <span className="rounded-full bg-white px-3 py-1 text-[10px] text-[#55544e]">
-                  #clarify
-                </span>
-
-                <span className="rounded-full bg-white px-3 py-1 text-[10px] text-[#55544e]">
-                  #morning
-                </span>
-              </div>
-
-              <Link href={'/note/journal'}>
-                <button
-                  type="button"
-                  className="text-xs font-semibold tracking-wide text-[#825a2e]"
-                >
-                  Open Journal →
-                </button>
-              </Link>
-            </div>
-          </article>
+          <LatestEntryCard />
 
           {/* Shared Focus */}
           <article className="min-h-72.5 rounded-[30px] bg-[#b4b68d] p-7 text-[#3e4326]">
@@ -404,23 +363,6 @@ function PlayIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
       <path d="M8 5v14l11-7L8 5Z" />
-    </svg>
-  );
-}
-
-function BookIcon() {
-  return (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#8b602f"
-      strokeWidth="1.8"
-    >
-      <path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2V4Z" />
-      <path d="M7 4v14" />
-      <path d="M11 8h5M11 11h5" />
     </svg>
   );
 }
