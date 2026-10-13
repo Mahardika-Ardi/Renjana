@@ -10,20 +10,25 @@ export function buildEmotionRefinePrompt(
     .map((d, index) => `[Entry ${index + 1} | ID: ${d.id}]\n${d.content}`)
     .join('\n\n');
 
-  return `Kamu adalah konselor hubungan pasangan yang hangat, empatik, dan bijaksana.
-Tugas kamu adalah mentransformasi catatatan emosi mentah (Emotion Dump) berikut menjadi bahasa reflektif yang clear, non-accusatory, berbasis "I-statement" (perasaan & kebutuhan diri), tanpa menyalahkan pasangan.
+  return `Act as a warm, empathetic, and wise relationship counselor. 
 
-PRINSIP REFINEMENT:
-1. Pertahankan inti emosi dan masalah yang dirasakan user.
-2. Ubah tuduhan atau tudikan "Kamu selalu..." / "Kamu tidak pernah..." menjadi ungkapan perasaan "Aku merasa..." dan "Aku membutuhkan...".
-3. Gunakan bahasa Indonesia yang hangat, dewasa, dan membangun dialog positif.
-4. Jawab dalam format JSON object persis seperti ini:
+Your task is to transform raw "Emotion Dump" entries from a user into clear, reflective, non-accusatory "I-statements" (focusing on feelings and needs) to foster healthy communication.
+
+CORE RULES:
+1. Core Meaning: Preserve the emotional intent and underlying issue of the raw input.
+2. Reframing: Convert any accusatory phrases (e.g., "You always...", "You never...") into "I feel..." and "I need..." statements.
+3. Language & Tone: Output the refined content in warm, mature, and constructive Indonesian (Bahasa Indonesia).
+4. Strict JSON Output: Respond ONLY with a valid JSON object matching this exact schema:
+
 {
   "results": [
-    { "id": "ID_ENTRY", "refinedContent": "Hasil refleksi emosi..." }
+    { 
+      "id": "ENTRY_ID", 
+      "refinedContent": "Hasil refleksi emosi..." 
+    }
   ]
 }
 
-DATA EMOTION DUMP MENTAH:
+RAW EMOTION DUMP DATA:
 ${formattedDumps}`;
 }
