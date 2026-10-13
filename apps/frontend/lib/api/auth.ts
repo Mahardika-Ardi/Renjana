@@ -1,10 +1,12 @@
 import { api } from './client';
 
 import type {
+  AcceptInviteDto,
   ApiResponse,
   AuthResponse,
   AuthUser,
   ForgotPasswordDto,
+  InviteResponse,
   LoginDto,
   RegisterDto,
   ResetPasswordFinalDto,
@@ -48,5 +50,16 @@ export const authApi = {
 
   getUserProfile() {
     return api.get<ApiResponse<AuthUser>>(`${AUTH_BASE_URL}/me`);
+  },
+
+  invite() {
+    return api.post<ApiResponse<InviteResponse>>(`${AUTH_BASE_URL}/invite`);
+  },
+
+  acceptInvite(dto: AcceptInviteDto) {
+    return api.post<ApiResponse<AuthUser>>(
+      `${AUTH_BASE_URL}/invite/accept`,
+      dto,
+    );
   },
 };

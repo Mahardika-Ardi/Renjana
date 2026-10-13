@@ -13,27 +13,27 @@ export interface LeafViewportConfig {
  * HP
  */
 const MOBILE_LEAF_CONFIG: LeafViewportConfig = {
-  count: 50,
-  minSize: 30,
-  maxSize: 50,
+  count: 70,
+  minSize: 50,
+  maxSize: 80,
 };
 
 /**
  * TABLET
  */
 const TABLET_LEAF_CONFIG: LeafViewportConfig = {
-  count: 60,
-  minSize: 35,
-  maxSize: 45,
+  count: 100,
+  minSize: 50,
+  maxSize: 90,
 };
 
 /**
  * DESKTOP
  */
 const DESKTOP_LEAF_CONFIG: LeafViewportConfig = {
-  count: 90,
+  count: 180,
   minSize: 50,
-  maxSize: 110,
+  maxSize: 100,
 };
 
 /**

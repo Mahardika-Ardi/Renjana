@@ -15,3 +15,7 @@
 <a href="https://www.flaticon.com/free-icons/otp" title="otp icons">Otp icons created by Nur syifa fauziah - Flaticon</a>
 
 <a href="https://www.flaticon.com/free-icons/user" title="user icons">User icons created by Magnific - Flaticon</a>
+
+<a href="https://www.flaticon.com/free-icons/search" title="search icons">Search icons created by Catalin Fertu - Flaticon</a>
+
+<a href="https://www.flaticon.com/free-icons/heart" title="heart icons">Heart icons created by Those Icons - Flaticon</a>

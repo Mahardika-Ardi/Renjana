@@ -8,7 +8,7 @@ import Button from './Button';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
-  logoName?: 'card' | 'mail' | 'lock' | 'otp';
+  logoName?: 'card' | 'mail' | 'lock' | 'otp' | 'search';
   href?: string;
   otp?: boolean;
   status?: boolean;
@@ -16,7 +16,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   classes?: {
     label?: string;
     input?: string;
-    logo?: string;
+    logo?: { style?: string; width?: number; height?: number };
     link?: string;
     icon?: string;
   };
@@ -27,6 +27,7 @@ const InputIcons = {
   mail: '/icons/mail.svg',
   lock: '/icons/padlock.svg',
   otp: '/icons/password.svg',
+  search: '/icons/search.svg',
 };
 
 export default function Input({
@@ -69,13 +70,13 @@ export default function Input({
         )}
       </div>
       <div className="relative group">
-        <span aria-hidden="true" className={classes?.logo}>
+        <span aria-hidden="true" className={classes?.logo?.style}>
           {logoName && (
             <Image
               src={InputIcons[logoName]}
               alt={logoName}
-              width={25}
-              height={25}
+              width={classes?.logo?.width ?? 25}
+              height={classes?.logo?.height ?? 25}
             />
           )}
         </span>

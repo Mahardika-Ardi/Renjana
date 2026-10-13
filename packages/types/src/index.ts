@@ -18,37 +18,6 @@ export interface JwtRefreshPayload extends JwtPayload {
 export type AuthTypes =
   'Sign In' | 'Sign Up' | 'Forgot Password' | 'Reset Password';
 
-// ---- Auth Responses --------------------------------------------
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number; // seconds
-}
-
-export interface AuthUser {
-  id: string;
-  email: string;
-  name: string;
-  avatarUrl: string | null;
-  isEmailVerified: boolean;
-  coupleId: string | null;
-  partnerId: string | null;
-  couple?: string;
-}
-
-export interface AuthResponse {
-  user: AuthUser;
-  tokens: AuthTokens;
-}
-
-// ---- API Response Wrapper --------------------------------------
-export interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-  timestamp: string;
-}
-
 // ---- Couple Types ----------------------------------------------
 export interface CoupleInfo {
   id: string;
@@ -60,6 +29,16 @@ export interface CoupleInfo {
   currentStreak: number;
 }
 
+/** Couple summary embedded in GET /auth/me (AuthService.getMe). */
+export interface MeCoupleInfo {
+  id: string;
+  partnerId: string | null;
+  partnerName: string | null;
+  partnerAvatarUrl: string | null;
+  currentStreak: number;
+}
+
+// ---- DTO -------------------------------------------------------
 export interface LoginDto {
   email: string;
   password: string;
@@ -72,7 +51,6 @@ export interface RegisterDto {
   inviteToken?: string;
 }
 
-// ---- Password Reset Types ---------------------------------------
 export interface RequestResetCodeDto {
   email: string;
 }
@@ -84,11 +62,6 @@ export interface ForgotPasswordDto {
 export interface VerifyResetCodeDto {
   email: string;
   code: string;
-}
-
-export interface VerifyResetCodeResponse {
-  resetToken: string;
-  expiresIn: number;
 }
 
 export interface ResetPasswordFinalDto {
@@ -108,15 +81,88 @@ export interface AcceptInviteDto {
   password?: string;
 }
 
-export interface AcceptInviteResponse {
-  coupleId: string;
-  partner: {
-    id: string;
-    name: string;
-    email: string;
-    avatarUrl: string | null;
+export interface CreateJournalDto {
+  content: string;
+  tags: string[];
+  /** YYYY-MM-DD */
+  entryDate: string;
+  isShared: boolean;
+}
+
+export type UpdateJournalDto = Partial<CreateJournalDto>;
+
+// ---- API Response Wrapper --------------------------------------
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  timestamp: string;
+}
+
+// ---- Response ------------------------------------------------
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number; // seconds
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl: string | null;
+  isEmailVerified: boolean;
+  coupleId: string | null;
+  partnerId: string | null;
+  couple: MeCoupleInfo | null;
+}
+
+export interface AuthResponse {
+  user: AuthUser;
+  tokens: AuthTokens;
+}
+export interface VerifyResetCodeResponse {
+  resetToken: string;
+  expiresIn: number;
+}
+
+export interface JournalResponse {
+  id: string;
+  userId: string;
+  content: string;
+  tags: string[];
+  entryDate: string;
+  isShared: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ObjectJournalResponse {
+  items: [JournalResponse];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
   };
-  connectedAt: Date | string;
-  tokens?: AuthTokens;
-  user?: AuthUser;
+}
+
+export interface DeletedResponse {
+  message: string;
+}
+
+export interface InviteResponse {
+  inviteUrl: string;
+  token: string;
+  code: string;
+  expiresAt: Date;
+}
+
+// ---- Query and Params ----------------------------------------------
+export interface JournalQueryParams {
+  page?: string;
+  limit?: string;
+  startDate?: string;
+  endDate?: string;
 }

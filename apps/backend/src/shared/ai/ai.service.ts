@@ -23,9 +23,11 @@ export class AiService {
     const apiKey = this.config.get<string>('openai.apiKey');
     this.modelName = this.config.get<string>('openai.model') || 'gpt-4o-mini';
 
-    if (apiKey && apiKey.startsWith('sk-') && !apiKey.includes('your-openai')) {
+    if (apiKey && !apiKey.includes('your-openai')) {
       this.openai = new OpenAI({ apiKey });
-      this.logger.log(`AiService initialized with OpenAI model: ${this.modelName}`);
+      this.logger.log(
+        `AiService initialized with OpenAI model: ${this.modelName}`,
+      );
     } else {
       this.logger.warn(
         'OPENAI_API_KEY belum dikonfigurasi di .env. AI Service akan menggunakan mode Refinement lokal/fallback.',
@@ -43,7 +45,9 @@ export class AiService {
 
     // Fallback if OpenAI client is not configured
     if (!this.openai) {
-      this.logger.log(`Using fallback refinement for ${items.length} emotion dumps.`);
+      this.logger.log(
+        `Using fallback refinement for ${items.length} emotion dumps.`,
+      );
       return items.map((item) => ({
         id: item.id,
         refinedContent: this.fallbackRefine(item.content),
@@ -77,7 +81,10 @@ export class AiService {
         refinedContent: this.fallbackRefine(item.content),
       }));
     } catch (err: any) {
-      this.logger.error(`Error calling OpenAI API for emotion refinement: ${err.message}`, err.stack);
+      this.logger.error(
+        `Error calling OpenAI API for emotion refinement: ${err.message}`,
+        err.stack,
+      );
       return items.map((item) => ({
         id: item.id,
         refinedContent: this.fallbackRefine(item.content),

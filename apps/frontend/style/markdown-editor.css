@@ -1,0 +1,298 @@
+/* Renjana MDXEditor theme — paper journal styling.
+   Imported after `@mdxeditor/editor/style.css` in `app/layout.tsx`,
+   so these rules win on equal specificity. Tailwind handles the outer
+   layout; this file styles MDXEditor internals (toolbar, popups,
+   content-editable typography) which Tailwind cannot reach. */
+
+.renjana-mdx {
+  position: relative;
+}
+
+/* ── Static toolbar (phone / tablet): floating bottom dock ─────
+   Fixed to the viewport (never in-flow), so it stays put while the
+   journal scrolls and can never cover the topbar settings. Paints
+   below the sidebar overlay (z-40) and dialogs (z-50) by design. */
+.renjana-mdx.is-static .renjana-mdx-toolbar,
+.renjana-mdx.is-static .mdxeditor-toolbar {
+  position: fixed;
+  top: auto;
+  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 24px));
+  border: 1px solid #e5d5c8;
+  border-radius: 999px;
+  background: rgba(255, 253, 249, 0.92);
+  padding: 6px 12px;
+  box-shadow: 0 12px 32px -8px rgba(60, 40, 30, 0.28);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  scrollbar-width: thin;
+  scrollbar-color: #d4a373 transparent;
+}
+
+/* Breathing room so the dock never hides the journal's last lines. */
+.renjana-mdx.is-static {
+  padding-bottom: 92px;
+}
+
+/* Themed scroll strip inside the dock */
+.renjana-mdx.is-static .renjana-mdx-toolbar::-webkit-scrollbar,
+.renjana-mdx.is-static .mdxeditor-toolbar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.renjana-mdx.is-static .renjana-mdx-toolbar::-webkit-scrollbar-track,
+.renjana-mdx.is-static .mdxeditor-toolbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.renjana-mdx.is-static .renjana-mdx-toolbar::-webkit-scrollbar-thumb,
+.renjana-mdx.is-static .mdxeditor-toolbar::-webkit-scrollbar-thumb {
+  background: #e3d5ca;
+  border-radius: 999px;
+}
+
+.renjana-mdx.is-static .renjana-mdx-toolbar::-webkit-scrollbar-thumb:hover,
+.renjana-mdx.is-static .mdxeditor-toolbar::-webkit-scrollbar-thumb:hover {
+  background: #c96f4a;
+}
+
+/* ── Floating bubble toolbar (PC only) ─────────────────────────
+   Light paper pill: dark-on-cream for maximum readability. */
+.renjana-mdx.is-bubble .renjana-mdx-toolbar,
+.renjana-mdx.is-bubble .mdxeditor-toolbar {
+  position: absolute;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #fffdf9;
+  color: #2c2523;
+  border: 1px solid #e5d5c8;
+  border-radius: 14px;
+  padding: 6px 10px;
+  box-shadow:
+    0 16px 40px -6px rgba(60, 40, 30, 0.25),
+    0 4px 16px rgba(60, 40, 30, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 10px)) scale(0.97);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+  white-space: nowrap;
+}
+
+.renjana-mdx.is-bubble.has-selection .renjana-mdx-toolbar,
+.renjana-mdx.is-bubble.has-selection .mdxeditor-toolbar {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, calc(-100% - 10px)) scale(1);
+}
+
+.renjana-mdx.is-bubble .renjana-mdx-toolbar,
+.renjana-mdx.is-bubble .mdxeditor-toolbar {
+  transition:
+    opacity 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 260ms cubic-bezier(0.34, 1.35, 0.64, 1);
+}
+
+/* ── Toolbar buttons (shared light tokens, both modes) ───────── */
+.renjana-mdx .mdxeditor-toolbar button {
+  border-radius: 8px;
+  min-width: 32px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #2c2523;
+}
+
+.renjana-mdx .mdxeditor-toolbar button:hover {
+  background: #f5efe6;
+  color: #2c2523;
+}
+
+.renjana-mdx .mdxeditor-toolbar button:disabled {
+  color: #c3b3a6;
+  background: transparent;
+}
+
+.renjana-mdx .mdxeditor-toolbar button[data-state='on'],
+.renjana-mdx .mdxeditor-toolbar button[aria-pressed='true'] {
+  background: #faebe6;
+  color: #b5502a;
+}
+
+.renjana-mdx .mdxeditor-toolbar button:focus-visible {
+  outline: 2px solid #c96f4a;
+  outline-offset: 1px;
+}
+
+.renjana-mdx .mdxeditor-toolbar [role='separator'],
+.renjana-mdx .mdxeditor-toolbar [data-orientation='vertical'] {
+  background: #e0d0c4;
+  opacity: 1;
+  margin: 0 4px;
+}
+
+/* ── Toolbar popups: block-type menu, link dialog ────────────── */
+.renjana-mdx .mdxeditor-select-content,
+.renjana-mdx [role='listbox'],
+.renjana-mdx [role='menu'],
+.renjana-mdx [role='dialog'] {
+  background: #fffdf9;
+  border: 1px solid #e5d5c8;
+  border-radius: 12px;
+  color: #2c2523;
+  box-shadow: 0 16px 40px -6px rgba(60, 40, 30, 0.25);
+}
+
+/* Radix option rows inside the block-type menu */
+.renjana-mdx .mdxeditor-select-content {
+  z-index: 50;
+}
+.renjana-mdx .mdxeditor-select-content [role='option'] {
+  color: #2c2523;
+  border-radius: 8px;
+}
+
+.renjana-mdx .mdxeditor-select-content [role='option'][data-highlighted] {
+  background: #f5efe6;
+  color: #2c2523;
+}
+
+.renjana-mdx.is-static .mdxeditor-toolbar > * {
+  flex-shrink: 0;
+}
+
+/* ── Editable prose (paper typography) ───────────────────────── */
+.renjana-mdx .renjana-prose {
+  outline: none;
+  font-family: var(--font-serif, Georgia, 'Times New Roman', serif);
+  font-size: 1.125rem;
+  line-height: 1.75;
+  color: #38312d;
+  caret-color: #c96f4a;
+  min-height: 420px;
+}
+
+.renjana-mdx .renjana-prose > [data-lexical-editor] {
+  outline: none;
+}
+
+.renjana-prose ::selection {
+  background: #faebe6;
+}
+
+.renjana-prose h1 {
+  font-size: 1.875rem;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #2c2523;
+  margin: 0.3em 0 0.35em;
+}
+
+.renjana-prose h2 {
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 600;
+  color: #2c2523;
+  margin: 0.55em 0 0.3em;
+}
+
+.renjana-prose h3 {
+  font-size: 1.25rem;
+  line-height: 1.4;
+  font-weight: 600;
+  color: #2c2523;
+  margin: 0.5em 0 0.25em;
+}
+
+.renjana-prose p {
+  margin: 0 0 0.6em;
+}
+
+.renjana-prose a {
+  color: #c96f4a;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.renjana-prose blockquote {
+  border-left: 3px solid #e3b79f;
+  background: #faf5ef;
+  border-radius: 0 12px 12px 0;
+  padding: 0.5em 0.9em;
+  margin: 0 0 0.7em;
+  font-style: italic;
+  color: #665c54;
+}
+
+.renjana-prose ul,
+.renjana-prose ol {
+  padding-left: 1.5rem;
+  margin: 0 0 0.6em;
+}
+
+.renjana-prose ul {
+  list-style: disc;
+}
+
+.renjana-prose ol {
+  list-style: decimal;
+}
+
+.renjana-prose li {
+  margin: 0.15em 0;
+}
+
+.renjana-prose li::marker {
+  color: #c96f4a;
+}
+
+.renjana-prose code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  background: #f4ebe1;
+  color: #9a4a28;
+  border-radius: 6px;
+  padding: 0.15em 0.4em;
+}
+
+.renjana-prose pre {
+  background: #faf5ef;
+  border: 1px solid #eedfd5;
+  border-radius: 14px;
+  padding: 0.7em 0.9em;
+  margin: 0 0 0.8em;
+  overflow-x: auto;
+}
+
+.renjana-prose pre code {
+  background: transparent;
+  color: #38312d;
+  padding: 0;
+}
+
+.renjana-prose hr {
+  border: none;
+  border-top: 1px solid #eddcd2;
+  margin: 1.1em auto;
+  width: 60%;
+}
+
+.renjana-mdx [data-lexical-placeholder],
+.renjana-mdx .mdxeditor-placeholder {
+  color: #b3a599;
+  font-family: var(--font-serif, Georgia, serif);
+  font-style: italic;
+}
