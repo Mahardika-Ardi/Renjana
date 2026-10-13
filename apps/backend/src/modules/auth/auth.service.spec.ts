@@ -217,6 +217,7 @@ describe('AuthService', () => {
       isEmailVerified: false,
       coupleId: null,
       partnerId: null,
+      couple: null,
     };
 
     it('normalizes email and rejects duplicates', async () => {

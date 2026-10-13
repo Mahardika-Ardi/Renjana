@@ -49,7 +49,7 @@ export default function HomePage() {
         <section className="relative mb-16 overflow-hidden rounded-[38px] bg-[#f1eee8] px-6 py-16 shadow-[0_15px_35px_rgba(60,50,40,0.05)] md:px-10 md:py-20">
           <div className="relative mx-auto flex max-w-212.5 items-center justify-between">
             {/* Arka */}
-            <Profile />
+            <Profile who="me" user={user} loading={userLoading} />
 
             {/* Heartbeat */}
             <div className="absolute left-[18%] right-[18%] top-8.75 h-37.5">
@@ -101,7 +101,7 @@ export default function HomePage() {
             </div>
 
             {/* Senja */}
-            <Profile />
+            <Profile who="partner" user={user} loading={userLoading} />
           </div>
 
           {/* Connection text */}

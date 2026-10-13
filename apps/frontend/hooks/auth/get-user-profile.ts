@@ -4,12 +4,15 @@ import { authApi } from '@/lib/api/auth';
 import { AuthUser } from '@renjana/types';
 import { useEffect, useState } from 'react';
 
-export function useGetUserProfile() {
+export function useGetUserProfile(options?: { enabled?: boolean }) {
+  const enabled = options?.enabled ?? true;
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
+
     let isMounted = true;
 
     const fetchUserProfile = async () => {
@@ -44,11 +47,11 @@ export function useGetUserProfile() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [enabled]);
 
   return {
     user,
-    loading,
+    loading: enabled ? loading : false,
     error,
   };
 }

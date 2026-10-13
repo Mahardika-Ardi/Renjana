@@ -1,4 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { AiService, EmotionDumpItem, RefinedResultItem } from './ai.service';
 import { ConfigService } from '@nestjs/config';
 

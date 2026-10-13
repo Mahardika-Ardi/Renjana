@@ -29,6 +29,15 @@ export interface CoupleInfo {
   currentStreak: number;
 }
 
+/** Couple summary embedded in GET /auth/me (AuthService.getMe). */
+export interface MeCoupleInfo {
+  id: string;
+  partnerId: string | null;
+  partnerName: string | null;
+  partnerAvatarUrl: string | null;
+  currentStreak: number;
+}
+
 // ---- DTO -------------------------------------------------------
 export interface LoginDto {
   email: string;
@@ -106,7 +115,7 @@ export interface AuthUser {
   isEmailVerified: boolean;
   coupleId: string | null;
   partnerId: string | null;
-  couple?: string;
+  couple: MeCoupleInfo | null;
 }
 
 export interface AuthResponse {

@@ -762,6 +762,7 @@ export class AuthService {
       isEmailVerified: user.isEmailVerified,
       coupleId: null,
       partnerId: null,
+      couple: null,
     };
   }
 
