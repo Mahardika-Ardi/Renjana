@@ -6,5 +6,9 @@ function subscribe(): () => void {
 
 /** True only after client hydration. Server and pre-mount client render identically (false). */
 export function useMounted(): boolean {
-  return useSyncExternalStore(subscribe, () => true, () => false);
+  return useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false,
+  );
 }
