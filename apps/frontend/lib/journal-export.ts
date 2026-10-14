@@ -1,6 +1,8 @@
 /* Client-only journal export. No requests, no uploads, no server storage:
    everything here runs on text already loaded in the browser. */
 
+import { splitBody } from './journal-content';
+
 export interface JournalExportInput {
   title: string;
   body: string;
@@ -20,10 +22,7 @@ export function slugify(value: string): string {
 }
 
 export function splitJournalBody(content: string): string {
-  const normalized = (content ?? '').replace(/\r\n/g, '\n');
-  const lineBreak = normalized.indexOf('\n');
-  if (lineBreak === -1) return '';
-  return normalized.slice(lineBreak + 1).replace(/^\n+/, '');
+  return splitBody(content);
 }
 
 export function buildJournalMarkdown(input: JournalExportInput): string {

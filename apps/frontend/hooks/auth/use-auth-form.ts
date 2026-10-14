@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { authApi } from '@/lib/api/auth';
+import { cacheClearAll } from '@/lib/api/cache';
 import { AuthTypes } from '@renjana/types';
 
 interface AuthFormState {
@@ -52,6 +53,8 @@ export function useAuthForm(type: AuthTypes) {
           password: form.password,
         });
 
+        // New session: never show the previous account's cached data.
+        cacheClearAll();
         router.push('/home');
 
         return;
@@ -63,6 +66,7 @@ export function useAuthForm(type: AuthTypes) {
         password: form.password,
       });
 
+      cacheClearAll();
       router.push('/home');
     } catch (error) {
       if (error instanceof Error) {

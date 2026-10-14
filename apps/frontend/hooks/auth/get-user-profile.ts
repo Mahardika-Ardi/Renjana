@@ -1,57 +1,16 @@
 'use client';
 
 import { authApi } from '@/lib/api/auth';
+import { CACHE_TTL, cacheKeys } from '@/lib/api/cache';
+import { useCachedResource } from '@/hooks/use-cached-resource';
 import { AuthUser } from '@renjana/types';
-import { useEffect, useState } from 'react';
 
 export function useGetUserProfile(options?: { enabled?: boolean }) {
-  const enabled = options?.enabled ?? true;
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, loading, error } = useCachedResource<AuthUser>(
+    cacheKeys.me,
+    async () => (await authApi.getUserProfile()).data as AuthUser,
+    { ttlMs: CACHE_TTL.ME, enabled: options?.enabled },
+  );
 
-  useEffect(() => {
-    if (!enabled) return;
-
-    let isMounted = true;
-
-    const fetchUserProfile = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const res = await authApi.getUserProfile();
-
-        if (isMounted) {
-          setUser(res.data as AuthUser);
-        }
-      } catch (error) {
-        if (!isMounted) return;
-
-        const message =
-          error instanceof Error
-            ? error.message
-            : 'Something went wrong. Please try again.';
-
-        console.log(message);
-        setError(message);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchUserProfile();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [enabled]);
-
-  return {
-    user,
-    loading: enabled ? loading : false,
-    error,
-  };
+  return { user: data, loading, error };
 }

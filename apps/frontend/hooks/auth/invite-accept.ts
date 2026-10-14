@@ -8,7 +8,5 @@ export function InviteOrAccept() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-    const { user } = useGetUserProfile();
-    
-    
+  const { user } = useGetUserProfile();
 }
