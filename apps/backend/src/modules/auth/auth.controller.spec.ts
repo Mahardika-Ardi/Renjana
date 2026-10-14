@@ -31,8 +31,6 @@ describe('AuthController', () => {
       deleteAccount: jest.fn(),
       verifyEmail: jest.fn(),
       sendVerificationEmail: jest.fn(),
-      forgotPassword: jest.fn(),
-      resetPassword: jest.fn(),
       getMe: jest.fn(),
       acceptInvite: jest.fn(),
       generateInviteCode: jest.fn(),
@@ -74,7 +72,7 @@ describe('AuthController', () => {
         'refresh-token-1',
         expect.objectContaining({
           httpOnly: true,
-          path: '/api/v1/auth',
+          path: '/',
         }),
       );
       expect(result).toEqual({
@@ -306,36 +304,7 @@ describe('AuthController', () => {
     });
   });
 
-  describe('forgotPassword', () => {
-    it('should call authService.requestResetCode with the email', async () => {
-      const result = { message: 'Kode verifikasi telah dikirim ke email Anda' };
-      authService.requestResetCode = jest.fn().mockResolvedValue(result);
 
-      const res2 = await controller.forgotPassword({
-        email: 'andi@test.com',
-      });
-
-      expect(authService.requestResetCode).toHaveBeenCalledWith('andi@test.com');
-      expect(res2).toEqual(result);
-    });
-  });
-
-  describe('resetPassword', () => {
-    it('should call authService.resetPassword and clear cookies', async () => {
-      const dto = { token: 'reset-token', newPassword: 'newpass123' };
-      const result = { message: 'Password berhasil direset' };
-      authService.resetPassword.mockResolvedValue(result);
-
-      const res2 = await controller.resetPassword(dto, res);
-
-      expect(authService.resetPassword).toHaveBeenCalledWith(
-        'reset-token',
-        'newpass123',
-      );
-      expect(res.clearCookie).toHaveBeenCalledTimes(2);
-      expect(res2).toEqual(result);
-    });
-  });
 
   describe('getMe', () => {
     it('should return user profile envelope', async () => {

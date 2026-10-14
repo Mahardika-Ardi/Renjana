@@ -84,6 +84,11 @@ enum NotificationType {
   GOAL_PROGRESS
 }
 
+enum NudgeStatus {
+  PENDING
+  REPLIED
+}
+
 // ================================================================
 // USER & AUTH
 // ================================================================
@@ -137,6 +142,8 @@ model User {
   notifications   Notification[]
   
   refreshTokens   RefreshToken[]
+  nudgesSent      StreakNudge[]  @relation("NudgeSender")
+  nudgesReceived  StreakNudge[]  @relation("NudgeReceiver")
 
   @@map("users")
 }
@@ -187,6 +194,7 @@ model Couple {
   periodRecaps      PeriodRecap[]
   jointGoals        JointGoal[]
   milestones        Milestone[]
+  streakNudges      StreakNudge[]
 
   @@map("couples")
 }
@@ -282,7 +290,7 @@ model JournalEntry {
   
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, entryDate])
+  @@unique([userId, entryDate])
   @@map("journal_entries")
 }
 
@@ -364,6 +372,24 @@ model StreakLog {
 
   @@unique([streakId, userId, engagedDate])
   @@map("streak_logs")
+}
+
+model StreakNudge {
+  id          String      @id @default(uuid()) @db.Uuid
+  coupleId    String      @map("couple_id") @db.Uuid
+  senderId    String      @map("sender_id") @db.Uuid
+  receiverId  String      @map("receiver_id") @db.Uuid
+  nudgeDate   DateTime    @map("nudge_date") @db.Date
+  status      NudgeStatus @default(PENDING)
+  repliedAt   DateTime?   @map("replied_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  couple      Couple      @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  sender      User        @relation("NudgeSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User        @relation("NudgeReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([coupleId, nudgeDate])
+  @@map("streak_nudges")
 }
 
 // ================================================================

@@ -166,3 +166,46 @@ export interface JournalQueryParams {
   startDate?: string;
   endDate?: string;
 }
+
+// ---- Streak & Nudge Types ----------------------------------------
+export type NudgeStatus = 'PENDING' | 'REPLIED';
+
+export type TodayNudgeState =
+  | 'IDLE'
+  | 'WAITING_PARTNER'
+  | 'WAITING_YOU'
+  | 'COMPLETED';
+
+export interface TodayNudgeInfo {
+  status: TodayNudgeState;
+  nudgeId?: string;
+  senderId?: string;
+  receiverId?: string;
+  repliedAt?: string | null;
+}
+
+export interface StreakCouplePartner {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+}
+
+export interface StreakResponse {
+  currentStreak: number;
+  longestStreak: number;
+  lastEngagedAt: string | null;
+  couple: {
+    id: string;
+    user1: StreakCouplePartner;
+    user2: StreakCouplePartner;
+  };
+  todayNudge: TodayNudgeInfo;
+  recentLogs: Array<{ userId: string; engagedDate: string }>;
+}
+
+export interface NudgeActionResult {
+  message: string;
+  status: TodayNudgeState;
+  currentStreak?: number;
+  longestStreak?: number;
+}

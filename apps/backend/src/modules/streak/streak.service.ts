@@ -3,70 +3,31 @@ import {
   Logger,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database';
+import { SseService } from '../../infrastructure/sse';
+import { NudgeStatus } from '@prisma/client';
+
+export type TodayNudgeState =
+  | 'IDLE'
+  | 'WAITING_PARTNER'
+  | 'WAITING_YOU'
+  | 'COMPLETED';
 
 @Injectable()
 export class StreakService {
   private readonly logger = new Logger(StreakService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private sseService: SseService,
+  ) {}
 
   /**
-   * Log daily engagement for a user (called when user performs daily actions like Journal, Emotion Dump, To-do)
+   * Helper internal untuk mengambil couple aktif user beserta streak & partner
    */
-  async logEngagement(userId: string) {
-    const couple = await this.prisma.couple.findFirst({
-      where: {
-        OR: [{ user1Id: userId }, { user2Id: userId }],
-        isActive: true,
-      },
-      include: { streak: true },
-    });
-
-    if (!couple) return null; // User not in an active couple connection
-
-    let streak = couple.streak;
-    if (!streak) {
-      streak = await this.prisma.streak.create({
-        data: { coupleId: couple.id },
-      });
-    }
-
-    const todayStr = this.getNormalizedDateString(new Date());
-    const todayDate = new Date(todayStr);
-
-    // Upsert today's streak log for this user
-    await this.prisma.streakLog.upsert({
-      where: {
-        streakId_userId_engagedDate: {
-          streakId: streak.id,
-          userId,
-          engagedDate: todayDate,
-        },
-      },
-      create: {
-        streakId: streak.id,
-        userId,
-        engagedDate: todayDate,
-      },
-      update: {},
-    });
-
-    // Update lastEngagedAt
-    await this.prisma.streak.update({
-      where: { id: streak.id },
-      data: { lastEngagedAt: new Date() },
-    });
-
-    // Recalculate & cache streak
-    return this.calculateAndUpdateStreak(streak.id, couple.user1Id, couple.user2Id);
-  }
-
-  /**
-   * Get current streak info for the user's couple
-   */
-  async getStreak(userId: string) {
+  private async getActiveCouple(userId: string) {
     const couple = await this.prisma.couple.findFirst({
       where: {
         OR: [{ user1Id: userId }, { user2Id: userId }],
@@ -83,6 +44,8 @@ export class StreakService {
       throw new ForbiddenException('Kamu belum terhubung dengan pasangan');
     }
 
+    const partnerId = couple.user1Id === userId ? couple.user2Id : couple.user1Id;
+
     let streak = couple.streak;
     if (!streak) {
       streak = await this.prisma.streak.create({
@@ -90,14 +53,215 @@ export class StreakService {
       });
     }
 
-    // Lazy calculate streak on fetch
+    return { couple, partnerId, streak };
+  }
+
+  /**
+   * Kirim senggolan / trigger ke pasangan untuk hari ini
+   */
+  async sendNudge(userId: string) {
+    const { couple, partnerId } = await this.getActiveCouple(userId);
+
+    const todayStr = this.getNormalizedDateString(new Date());
+    const todayDate = new Date(todayStr);
+
+    const existingNudge = await this.prisma.streakNudge.findUnique({
+      where: {
+        coupleId_nudgeDate: {
+          coupleId: couple.id,
+          nudgeDate: todayDate,
+        },
+      },
+    });
+
+    if (existingNudge) {
+      if (existingNudge.status === NudgeStatus.REPLIED) {
+        return {
+          message: 'Kalian sudah saling senggol dan streak bertambah hari ini!',
+          status: 'COMPLETED' as TodayNudgeState,
+          nudgeId: existingNudge.id,
+        };
+      }
+
+      if (existingNudge.senderId === userId) {
+        return {
+          message: 'Kamu sudah menyenggol pasanganmu hari ini, menunggu balasan.',
+          status: 'WAITING_PARTNER' as TodayNudgeState,
+          nudgeId: existingNudge.id,
+        };
+      }
+
+      // Jika pasangan sudah senggol duluan dan statusnya PENDING, aksi ini langsung membalas
+      return this.replyNudge(userId);
+    }
+
+    const newNudge = await this.prisma.streakNudge.create({
+      data: {
+        coupleId: couple.id,
+        senderId: userId,
+        receiverId: partnerId,
+        nudgeDate: todayDate,
+        status: NudgeStatus.PENDING,
+      },
+    });
+
+    // Pancarkan event realtime ke pasangan
+    this.sseService.emit(couple.id, 'streak.nudged', {
+      nudgeId: newNudge.id,
+      senderId: userId,
+      receiverId: partnerId,
+      nudgeDate: todayStr,
+    });
+
+    return {
+      message: 'Senggolan berhasil dikirim ke pasangan!',
+      status: 'WAITING_PARTNER' as TodayNudgeState,
+      nudgeId: newNudge.id,
+    };
+  }
+
+  /**
+   * Balas senggolan pasangan agar streak resmi terhitung +1
+   */
+  async replyNudge(userId: string) {
+    const { couple, streak } = await this.getActiveCouple(userId);
+
+    const todayStr = this.getNormalizedDateString(new Date());
+    const todayDate = new Date(todayStr);
+
+    const nudge = await this.prisma.streakNudge.findUnique({
+      where: {
+        coupleId_nudgeDate: {
+          coupleId: couple.id,
+          nudgeDate: todayDate,
+        },
+      },
+    });
+
+    if (!nudge || nudge.status !== NudgeStatus.PENDING) {
+      if (nudge?.status === NudgeStatus.REPLIED) {
+        return {
+          message: 'Senggolan sudah dibalas sebelumnya!',
+          status: 'COMPLETED' as TodayNudgeState,
+          currentStreak: streak.currentStreak,
+        };
+      }
+      throw new BadRequestException(
+        'Tidak ada senggolan yang menunggu balasan untuk hari ini.',
+      );
+    }
+
+    if (nudge.receiverId !== userId) {
+      throw new ForbiddenException(
+        'Hanya pasangan yang disenggol yang dapat membalas senggolan ini.',
+      );
+    }
+
+    // Update status senggol menjadi REPLIED
+    await this.prisma.streakNudge.update({
+      where: { id: nudge.id },
+      data: {
+        status: NudgeStatus.REPLIED,
+        repliedAt: new Date(),
+      },
+    });
+
+    // Catat log keaktifan untuk kedua pasangan pada hari ini
+    await Promise.all([
+      this.prisma.streakLog.upsert({
+        where: {
+          streakId_userId_engagedDate: {
+            streakId: streak.id,
+            userId: nudge.senderId,
+            engagedDate: todayDate,
+          },
+        },
+        create: {
+          streakId: streak.id,
+          userId: nudge.senderId,
+          engagedDate: todayDate,
+        },
+        update: {},
+      }),
+      this.prisma.streakLog.upsert({
+        where: {
+          streakId_userId_engagedDate: {
+            streakId: streak.id,
+            userId: nudge.receiverId,
+            engagedDate: todayDate,
+          },
+        },
+        create: {
+          streakId: streak.id,
+          userId: nudge.receiverId,
+          engagedDate: todayDate,
+        },
+        update: {},
+      }),
+    ]);
+
+    await this.prisma.streak.update({
+      where: { id: streak.id },
+      data: { lastEngagedAt: new Date() },
+    });
+
+    // Hitung ulang streak dengan kedua user aktif hari ini
     const calculated = await this.calculateAndUpdateStreak(
       streak.id,
       couple.user1Id,
       couple.user2Id,
     );
 
-    // Fetch recent 14 days logs for UI calendar/display
+    // Pancarkan event realtime ke pasangan bahwa streak bertambah
+    this.sseService.emit(couple.id, 'streak.completed', {
+      currentStreak: calculated.currentStreak,
+      longestStreak: calculated.longestStreak,
+      nudgeId: nudge.id,
+    });
+
+    return {
+      message: 'Senggolan dibalas! Streak resmi bertambah +1.',
+      status: 'COMPLETED' as TodayNudgeState,
+      currentStreak: calculated.currentStreak,
+      longestStreak: calculated.longestStreak,
+    };
+  }
+
+  /**
+   * Ambil data streak beserta status senggol hari ini
+   */
+  async getStreak(userId: string) {
+    const { couple, streak } = await this.getActiveCouple(userId);
+
+    const todayStr = this.getNormalizedDateString(new Date());
+    const todayDate = new Date(todayStr);
+
+    const todayNudgeRecord = await this.prisma.streakNudge.findUnique({
+      where: {
+        coupleId_nudgeDate: {
+          coupleId: couple.id,
+          nudgeDate: todayDate,
+        },
+      },
+    });
+
+    let todayNudgeStatus: TodayNudgeState = 'IDLE';
+    if (todayNudgeRecord) {
+      if (todayNudgeRecord.status === NudgeStatus.REPLIED) {
+        todayNudgeStatus = 'COMPLETED';
+      } else if (todayNudgeRecord.senderId === userId) {
+        todayNudgeStatus = 'WAITING_PARTNER';
+      } else {
+        todayNudgeStatus = 'WAITING_YOU';
+      }
+    }
+
+    const calculated = await this.calculateAndUpdateStreak(
+      streak.id,
+      couple.user1Id,
+      couple.user2Id,
+    );
+
     const recentLogs = await this.prisma.streakLog.findMany({
       where: { streakId: streak.id },
       orderBy: { engagedDate: 'desc' },
@@ -113,6 +277,13 @@ export class StreakService {
         user1: couple.user1,
         user2: couple.user2,
       },
+      todayNudge: {
+        status: todayNudgeStatus,
+        nudgeId: todayNudgeRecord?.id,
+        senderId: todayNudgeRecord?.senderId,
+        receiverId: todayNudgeRecord?.receiverId,
+        repliedAt: todayNudgeRecord?.repliedAt?.toISOString() ?? null,
+      },
       recentLogs: recentLogs.map((log) => ({
         userId: log.userId,
         engagedDate: log.engagedDate.toISOString().split('T')[0],
@@ -121,21 +292,43 @@ export class StreakService {
   }
 
   /**
-   * Streak Algorithm: Walks backwards from today with 1-day buffer logic
+   * Log daily engagement cadangan (non-streak altering)
+   */
+  async logEngagement(userId: string) {
+    const couple = await this.prisma.couple.findFirst({
+      where: {
+        OR: [{ user1Id: userId }, { user2Id: userId }],
+        isActive: true,
+      },
+      include: { streak: true },
+    });
+
+    if (!couple) return null;
+
+    let streak = couple.streak;
+    if (!streak) {
+      streak = await this.prisma.streak.create({
+        data: { coupleId: couple.id },
+      });
+    }
+
+    return streak;
+  }
+
+  /**
+   * Algoritma Streak: Membaca hari ke belakang dengan logika 1-day buffer
    */
   private async calculateAndUpdateStreak(
     streakId: string,
     user1Id: string,
     user2Id: string,
   ) {
-    // Fetch last 90 days of logs for this streak
     const logs = await this.prisma.streakLog.findMany({
       where: { streakId },
       orderBy: { engagedDate: 'desc' },
       take: 180,
     });
 
-    // Map logs by YYYY-MM-DD -> Set of active user IDs
     const byDate = new Map<string, Set<string>>();
     for (const log of logs) {
       const dateStr = log.engagedDate.toISOString().split('T')[0];
@@ -154,7 +347,6 @@ export class StreakService {
     const todayUsers = byDate.get(todayStr) || new Set();
     const yesterdayUsers = byDate.get(yesterdayStr) || new Set();
 
-    // If no activity today AND no activity yesterday -> Streak is 0
     if (todayUsers.size === 0 && yesterdayUsers.size === 0) {
       const streak = await this.prisma.streak.update({
         where: { id: streakId },
@@ -163,7 +355,6 @@ export class StreakService {
       return streak;
     }
 
-    // Determine starting point: start from today if active, else yesterday
     let currDate = todayUsers.size > 0 ? todayDate : this.addDays(todayDate, -1);
     let streakCount = 0;
     let keepWalking = true;
@@ -173,31 +364,27 @@ export class StreakService {
       const activeUsers = byDate.get(dateStr) || new Set();
 
       if (activeUsers.size === 2) {
-        // Both active -> Increment streak and continue
         streakCount++;
         currDate = this.addDays(currDate, -1);
       } else if (activeUsers.size === 1) {
-        // Only 1 partner active -> Check if absent partner acted on previous day (Buffer check)
         const activeUserId = Array.from(activeUsers)[0];
         const absentUserId = activeUserId === user1Id ? user2Id : user1Id;
 
-        const prevDateStr = this.getNormalizedDateString(this.addDays(currDate, -1));
+        const prevDateStr = this.getNormalizedDateString(
+          this.addDays(currDate, -1),
+        );
         const prevUsers = byDate.get(prevDateStr) || new Set();
 
         if (prevUsers.has(absentUserId)) {
-          // BUFFER APPLIED: absent partner acted yesterday -> continue walking WITHOUT counting this day
           currDate = this.addDays(currDate, -1);
         } else {
-          // Absent partner did not act yesterday -> STOP (buffer broken)
           keepWalking = false;
         }
       } else {
-        // 0 active -> STOP
         keepWalking = false;
       }
     }
 
-    // Fetch existing streak record to check longestStreak
     const currentRecord = await this.prisma.streak.findUnique({
       where: { id: streakId },
     });
@@ -216,12 +403,8 @@ export class StreakService {
     });
   }
 
-  /**
-   * Get normalized date string in Asia/Jakarta (WIB, UTC+7)
-   * Uses local timezone offset to match cron's day boundary
-   */
   private getNormalizedDateString(date: Date): string {
-    const jakartaOffset = 7 * 60; // WIB = UTC+7 in minutes
+    const jakartaOffset = 7 * 60; // WIB = UTC+7
     const localDate = new Date(date.getTime() + jakartaOffset * 60_000);
     return localDate.toISOString().split('T')[0];
   }

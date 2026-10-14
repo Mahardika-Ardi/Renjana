@@ -71,10 +71,18 @@ export class UserCleanupCronService {
         where: { senderId: userId },
       });
       await tx.streakLog.deleteMany({ where: { userId } });
+      await tx.streakNudge.deleteMany({
+        where: { OR: [{ senderId: userId }, { receiverId: userId }] },
+      });
       await tx.score360.deleteMany({ where: { userId } });
       await tx.weeklyCheckin.deleteMany({ where: { userId } });
       await tx.individualGoalProgress.deleteMany({ where: { userId } });
       await tx.todoItem.deleteMany({ where: { creatorId: userId } });
+      await tx.moodLog.deleteMany({ where: { userId } });
+      await tx.habitLog.deleteMany({ where: { userId } });
+      await tx.habitTemplate.deleteMany({ where: { userId } });
+      await tx.journalEntry.deleteMany({ where: { userId } });
+      await tx.emotionDump.deleteMany({ where: { userId } });
       await tx.user.delete({ where: { id: userId } });
     });
 

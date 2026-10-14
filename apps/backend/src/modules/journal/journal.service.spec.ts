@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, ForbiddenException } from '@nestjs/common';
+import { NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { JournalService } from './journal.service';
 import { UpdateJournalDto } from './dto';
 import { PrismaService } from '../../database';
@@ -51,7 +51,8 @@ describe('JournalService', () => {
   });
 
   describe('create', () => {
-    it('should create a journal entry', async () => {
+    it('should create a journal entry when none exists for the day', async () => {
+      prisma.journalEntry.findUnique.mockResolvedValue(null);
       prisma.journalEntry.create.mockResolvedValue(mockJournalEntry);
 
       const result = await service.create(mockUserId, {
@@ -61,6 +62,7 @@ describe('JournalService', () => {
         isShared: false,
       });
 
+      expect(prisma.journalEntry.findUnique).toHaveBeenCalled();
       expect(prisma.journalEntry.create).toHaveBeenCalledWith({
         data: {
           userId: mockUserId,
@@ -71,6 +73,19 @@ describe('JournalService', () => {
         },
       });
       expect(result).toEqual(mockJournalEntry);
+    });
+
+    it('should throw ConflictException if entry for the day already exists', async () => {
+      prisma.journalEntry.findUnique.mockResolvedValue(mockJournalEntry);
+
+      await expect(
+        service.create(mockUserId, {
+          content: 'Duplicate entry',
+          entryDate: '2026-08-05',
+        }),
+      ).rejects.toThrow(ConflictException);
+
+      expect(prisma.journalEntry.create).not.toHaveBeenCalled();
     });
   });
 

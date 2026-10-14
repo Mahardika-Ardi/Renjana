@@ -2,11 +2,12 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database';
 import { MoodValue } from '@prisma/client';
 import { StreakService } from '../streak';
-import { CreateMoodDto, UpdateMoodDto } from './dto';
+import { CreateMoodDto } from './dto';
 
 @Injectable()
 export class MoodService {
@@ -16,16 +17,25 @@ export class MoodService {
   ) {}
 
   /**
-   * Buat log mood baru untuk user aktif
+   * Buat log mood baru untuk user aktif (Hanya 1 kali submit per hari)
    */
   async create(userId: string, dto: CreateMoodDto) {
     const src = dto.logDate ? new Date(dto.logDate) : new Date();
     const logDate = new Date(src.toISOString().slice(0, 10));
 
-    // ponytail: 1 mood per hari — POST ulang hari sama = update, bukan error
-    const moodLog = await this.prisma.moodLog.upsert({
+    // Validasi: 1 mood per hari. Jika sudah submit, tolak dengan 409 Conflict
+    const existing = await this.prisma.moodLog.findUnique({
       where: { userId_logDate: { userId, logDate } },
-      create: {
+    });
+
+    if (existing) {
+      throw new ConflictException(
+        'Kamu sudah mengisi emoji mood tracker hari ini. Entri mood terkunci dan tidak dapat diubah.',
+      );
+    }
+
+    const moodLog = await this.prisma.moodLog.create({
+      data: {
         userId,
         mood: dto.mood,
         intensity: dto.intensity ?? 3,
@@ -33,16 +43,7 @@ export class MoodService {
         tags: dto.tags ?? [],
         logDate,
       },
-      update: {
-        mood: dto.mood,
-        intensity: dto.intensity ?? 3,
-        notes: dto.notes,
-        tags: dto.tags ?? [],
-      },
     });
-
-    // Fire-and-forget log engagement for streak calculation
-    this.streakService.logEngagement(userId).catch(() => {});
 
     return moodLog;
   }
@@ -103,19 +104,7 @@ export class MoodService {
     return moodLog;
   }
 
-  /**
-   * Update log mood milik user aktif (termasuk toggle intensity & notes)
-   */
-  async updateForUser(userId: string, id: string, dto: UpdateMoodDto) {
-    await this.findOneForUser(userId, id); // Verify ownership
 
-    const data: any = { ...dto };
-
-    return this.prisma.moodLog.update({
-      where: { id },
-      data,
-    });
-  }
 
   /**
    * Hapus log mood milik user aktif
