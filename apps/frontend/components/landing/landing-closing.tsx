@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Heart } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useLanding } from './landing-i18n';
 import { Reveal } from './landing-section';
+import LandingParticles from './landing-particles';
+import RenjanaLogo from '@/components/ui/logo';
 
 export default function LandingClosing() {
   const { t } = useLanding();
@@ -13,6 +15,7 @@ export default function LandingClosing() {
       <section className="px-4 py-16 sm:px-6 sm:py-24">
         <Reveal className="mx-auto max-w-4xl">
           <div className="relative overflow-hidden rounded-[32px] bg-[#c96f4a] px-6 py-14 text-center text-white shadow-[0_28px_70px_-24px_rgba(201,111,74,0.7)] sm:px-12 sm:py-16">
+            <LandingParticles tone="light" />
             <div
               aria-hidden
               className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_90%_at_50%_110%,rgba(255,255,255,0.22),transparent_70%)]"
@@ -42,9 +45,7 @@ export default function LandingClosing() {
           <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
             <div className="max-w-xs">
               <span className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#c96f4a] text-white">
-                  <Heart className="h-4 w-4 fill-current" aria-hidden />
-                </span>
+                <RenjanaLogo className="h-9 w-auto" />
                 <span className="text-sm font-bold tracking-[0.22em] text-[#2c2523]">
                   RENJANA
                 </span>

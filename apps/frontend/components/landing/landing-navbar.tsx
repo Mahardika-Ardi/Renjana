@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'motion/react';
-import { Heart } from 'lucide-react';
+import { motion, useScroll, useTransform } from 'motion/react';
 import { EASE_SMOOTH } from '@/lib/constants/journal';
+import RenjanaLogo from '@/components/ui/logo';
 import { useLanding, type LandingLang } from './landing-i18n';
 
 function LangSwitcher() {
@@ -37,6 +37,13 @@ function LangSwitcher() {
 
 export default function LandingNavbar() {
   const { t } = useLanding();
+  // "You've left the top" cue: the bar firms up as the page scrolls.
+  const { scrollY } = useScroll();
+  const barBg = useTransform(
+    scrollY,
+    [0, 140],
+    ['rgba(255,253,249,0.55)', 'rgba(255,253,249,0.9)'],
+  );
 
   return (
     <motion.header
@@ -45,12 +52,13 @@ export default function LandingNavbar() {
       transition={{ duration: 0.5, ease: EASE_SMOOTH }}
       className="fixed inset-x-3 top-3 z-50 sm:inset-x-6"
     >
-      <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between rounded-2xl border border-white/50 bg-[#fffdf9]/75 px-4 shadow-[0_12px_36px_-12px_rgba(60,40,30,0.25)] backdrop-blur-xl sm:px-5">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#c96f4a] text-white">
-            <Heart className="h-4 w-4 fill-current" aria-hidden />
-          </span>
-          <span className="text-sm font-bold tracking-[0.22em] text-[#2c2523]">
+      <motion.nav
+        style={{ backgroundColor: barBg }}
+        className="mx-auto flex h-14 max-w-6xl items-center justify-between rounded-2xl border border-white/50 px-4 shadow-[0_12px_36px_-12px_rgba(60,40,30,0.25)] backdrop-blur-xl sm:px-5"
+      >
+        <Link href="/" className="flex items-center gap-2" aria-label="Renjana">
+          <RenjanaLogo className="h-9 w-auto" />
+          <span className="hidden text-sm font-bold tracking-[0.22em] text-[#2c2523] sm:inline">
             RENJANA
           </span>
         </Link>
@@ -82,7 +90,7 @@ export default function LandingNavbar() {
             {t.nav.signup}
           </Link>
         </div>
-      </nav>
+      </motion.nav>
     </motion.header>
   );
 }

@@ -3,6 +3,7 @@
 import { HeartHandshake, Lock, ShieldCheck } from 'lucide-react';
 import { useLanding } from './landing-i18n';
 import { Eyebrow, Reveal } from './landing-section';
+import { SoftBlobs } from './landing-decor';
 
 const PRIVACY_ICONS = [Lock, ShieldCheck, HeartHandshake];
 
@@ -12,9 +13,10 @@ export default function LandingPrivacy() {
   return (
     <section
       id="privasi"
-      className="scroll-mt-24 bg-[#2c2523] px-4 py-16 text-[#f5efe6] sm:px-6 sm:py-24"
+      className="relative scroll-mt-24 overflow-hidden bg-[#2c2523] px-4 py-16 text-[#f5efe6] sm:px-6 sm:py-24"
     >
-      <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+      <SoftBlobs tone="ember" />
+      <div className="relative mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
         <Reveal>
           <Eyebrow>{t.privacy.eyebrow}</Eyebrow>
           <h2 className="text-3xl font-semibold tracking-[-0.03em] text-white sm:text-4xl md:text-[44px] md:leading-[1.1]">

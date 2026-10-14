@@ -104,7 +104,7 @@ export default function AuthCard({
             "
             >
               <Image
-                src="/logo/Dark_Theme_Logo.svg"
+                src="/logo/Light_Theme_Logo.svg"
                 alt="Renjana Logo"
                 width={200}
                 height={200}

@@ -3,6 +3,7 @@
 import { BarChart3, CalendarCheck, MessagesSquare } from 'lucide-react';
 import { useLanding } from './landing-i18n';
 import { Eyebrow, Reveal, SectionTitle } from './landing-section';
+import { SoftBlobs } from './landing-decor';
 
 const TEASER_ICONS = [CalendarCheck, MessagesSquare, BarChart3];
 
@@ -12,9 +13,10 @@ export default function LandingComingSoon() {
   return (
     <section
       id="segera-hadir"
-      className="scroll-mt-24 px-4 py-16 sm:px-6 sm:py-24"
+      className="relative scroll-mt-24 overflow-hidden px-4 py-16 sm:px-6 sm:py-24"
     >
-      <div className="mx-auto max-w-6xl">
+      <SoftBlobs tone="dream" />
+      <div className="relative mx-auto max-w-6xl">
         <Reveal className="mx-auto mb-12 max-w-2xl text-center">
           <Eyebrow>{t.coming.eyebrow}</Eyebrow>
           <SectionTitle>{t.coming.title}</SectionTitle>

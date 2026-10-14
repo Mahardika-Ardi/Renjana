@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'motion/react';
+import { useRef } from 'react';
+import { motion, useScroll, useTransform } from 'motion/react';
 import { ArrowRight, Check, Users } from 'lucide-react';
 import { EASE_SMOOTH } from '@/lib/constants/journal';
 import { useLanding } from './landing-i18n';
@@ -9,9 +10,16 @@ import LandingParticles from './landing-particles';
 
 export default function LandingHero() {
   const { t } = useLanding();
+  const sectionRef = useRef<HTMLElement | null>(null);
+  // Gentle parallax: the journal card drifts slower than the scroll.
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start start', 'end start'],
+  });
+  const cardY = useTransform(scrollYProgress, [0, 1], [0, 90]);
 
   return (
-    <section className="relative overflow-hidden px-3 pt-24 sm:px-6 sm:pt-28">
+    <section ref={sectionRef} className="relative overflow-hidden px-3 pt-24 sm:px-6 sm:pt-28">
       <LandingParticles />
       <div
         aria-hidden
@@ -94,10 +102,14 @@ export default function LandingHero() {
         </div>
 
         <motion.div
+          style={{ y: cardY }}
+          className="relative mx-auto w-full max-w-sm"
+        >
+        <motion.div
           initial={{ opacity: 0, y: 32, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.7, ease: EASE_SMOOTH, delay: 0.2 }}
-          className="relative mx-auto w-full max-w-sm"
+          className="relative w-full"
         >
           <motion.div
             animate={{ y: [0, -10, 0] }}
@@ -133,6 +145,7 @@ export default function LandingHero() {
             aria-hidden
             className="absolute -right-4 -top-4 -z-10 h-20 w-20 rounded-full bg-[#f4ebe1]"
           />
+        </motion.div>
         </motion.div>
       </div>
     </section>

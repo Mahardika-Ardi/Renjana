@@ -24,11 +24,11 @@ export default function AuthLogo() {
             md:items-center
             md:justify-center
             md:rounded-full
-            md:bg-[#775530]
+            md:bg-[#f4ebe1]
           "
         >
           <Image
-            src="/logo/Dark_Theme_Logo.svg"
+            src="/logo/Light_Theme_Logo.svg"
             alt="Renjana Logo"
             width={10}
             height={10}

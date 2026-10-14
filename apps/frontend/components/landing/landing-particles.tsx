@@ -3,7 +3,10 @@
 import { useEffect, useRef } from 'react';
 
 const COUNT = 36;
-const COLORS = ['201,111,74', '212,163,115', '181,80,42'];
+const PALETTES = {
+  warm: ['201,111,74', '212,163,115', '181,80,42'],
+  light: ['255,253,249', '250,235,230', '255,255,255'],
+} as const;
 const PARALLAX = 0.15;
 
 /* Line-streak particles for the hero background. Short drifting dashes
@@ -13,11 +16,16 @@ const PARALLAX = 0.15;
  * - renders nothing when the user prefers reduced motion
  * - all setup inside the effect, so SSR output is an empty canvas
  */
-export default function LandingParticles() {
+export default function LandingParticles({
+  tone = 'warm',
+}: {
+  tone?: keyof typeof PALETTES;
+} = {}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const palette = PALETTES[tone];
     const canvas = canvasRef.current;
     if (!canvas) return;
     const parent = canvas.parentElement;
@@ -62,7 +70,7 @@ export default function LandingParticles() {
         vy: (Math.random() - 0.5) * 0.16 - 0.05,
         kick: 0,
         tilt: (Math.random() - 0.5) * 0.5,
-        color: COLORS[i % COLORS.length],
+        color: palette[i % palette.length],
         alpha: 0.1 + Math.random() * 0.16,
         phase: Math.random() * Math.PI * 2,
       }));
@@ -117,7 +125,7 @@ export default function LandingParticles() {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', seed);
     };
-  }, []);
+  }, [tone]);
 
   return (
     <canvas

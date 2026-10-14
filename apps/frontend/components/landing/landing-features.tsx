@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useLanding } from './landing-i18n';
 import { Eyebrow, Reveal, SectionTitle } from './landing-section';
+import { SoftBlobs } from './landing-decor';
 
 const FEATURE_ICONS = [PenLine, Users, Flame, ListChecks, Sparkles, FileDown];
 
@@ -19,9 +20,10 @@ export default function LandingFeatures() {
   return (
     <section
       id="fitur"
-      className="scroll-mt-24 bg-[#f1ece4] px-4 py-16 sm:px-6 sm:py-24"
+      className="relative scroll-mt-24 overflow-hidden bg-[#f1ece4] px-4 py-16 sm:px-6 sm:py-24"
     >
-      <div className="mx-auto max-w-6xl">
+      <SoftBlobs tone="light" />
+      <div className="relative mx-auto max-w-6xl">
         <Reveal className="mx-auto mb-12 max-w-2xl text-center">
           <Eyebrow>{t.features.eyebrow}</Eyebrow>
           <SectionTitle>{t.features.title}</SectionTitle>
