@@ -27,11 +27,16 @@ describe('AiService', () => {
     },
   ];
 
-  const createModule = (apiKey: string | null = 'sk-test-key') => {
+  const createModule = (
+    openAiKey: string | null = 'sk-test-key',
+    geminiKey: string | null = null,
+  ) => {
     config = {
       get: jest.fn((key: string) => {
-        if (key === 'openai.apiKey') return apiKey;
+        if (key === 'openai.apiKey') return openAiKey;
         if (key === 'openai.model') return 'gpt-4o-mini';
+        if (key === 'gemini.apiKey') return geminiKey;
+        if (key === 'gemini.model') return 'gemini-1.5-flash';
         return null;
       }),
     };
@@ -93,6 +98,18 @@ describe('AiService', () => {
           response_format: { type: 'json_object' },
         }),
       );
+    });
+
+    it('should call Gemini API when configured and parse JSON output', async () => {
+      const module = await createModule(null, 'gemini-test-key');
+      const service = module.get<AiService>(AiService);
+
+      jest.spyOn(service as any, 'callGemini').mockResolvedValue(mockRefinedResults);
+
+      const results = await service.refineEmotionDumps(mockItems);
+
+      expect(results).toEqual(mockRefinedResults);
+      expect((service as any).callGemini).toHaveBeenCalled();
     });
 
     it('should fallback on OpenAI error', async () => {

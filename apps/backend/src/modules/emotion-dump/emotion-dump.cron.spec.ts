@@ -46,51 +46,34 @@ describe('EmotionDumpCronService', () => {
     jest.clearAllMocks();
   });
 
-  describe('handleWeeklyEmotionRefinement', () => {
-    it('should return early if no users scheduled today', async () => {
-      prisma.user.findMany.mockResolvedValue([]);
-
-      await service.handleWeeklyEmotionRefinement();
-
-      expect(prisma.user.findMany).toHaveBeenCalled();
-      expect(prisma.emotionDump.findMany).not.toHaveBeenCalled();
-      expect(aiService.refineEmotionDumps).not.toHaveBeenCalled();
-    });
-
+  describe('handleWeeklyEmotionRefinement & processPendingRefinements', () => {
     it('should return early if no private dumps to refine', async () => {
-      prisma.user.findMany.mockResolvedValue([{ id: mockUserId, email: 'test@test.com' }]);
       prisma.emotionDump.findMany.mockResolvedValue([]);
 
-      await service.handleWeeklyEmotionRefinement();
+      const result = await service.handleWeeklyEmotionRefinement();
 
-      expect(prisma.emotionDump.findMany).toHaveBeenCalled();
+      expect(prisma.emotionDump.findMany).toHaveBeenCalledWith({
+        where: { status: EmotionDumpStatus.PRIVATE },
+        select: { id: true, rawContent: true, userId: true },
+        orderBy: { createdAt: 'asc' },
+      });
       expect(aiService.refineEmotionDumps).not.toHaveBeenCalled();
+      expect(result).toEqual({ processed: 0, items: [] });
     });
 
-    it('should process private dumps and update to REFINED', async () => {
-      prisma.user.findMany.mockResolvedValue([{ id: mockUserId, email: 'test@test.com' }]);
+    it('should process private dumps 1-by-1 and update to REFINED', async () => {
       prisma.emotionDump.findMany.mockResolvedValue([mockDump1, mockDump2]);
-      aiService.refineEmotionDumps.mockResolvedValue([
-        { id: 'dump-1', refinedContent: 'Refined 1' },
-        { id: 'dump-2', refinedContent: 'Refined 2' },
-      ]);
-      prisma.emotionDump.update.mockResolvedValue({});
+      aiService.refineEmotionDumps
+        .mockResolvedValueOnce([{ id: 'dump-1', refinedContent: 'Refined 1' }])
+        .mockResolvedValueOnce([{ id: 'dump-2', refinedContent: 'Refined 2' }]);
+      prisma.emotionDump.update.mockImplementation(({ where, data }) => ({
+        id: where.id,
+        refinedContent: data.refinedContent,
+      }));
 
-      await service.handleWeeklyEmotionRefinement();
+      const result = await service.handleWeeklyEmotionRefinement();
 
-      // Verify findMany called with LAST week (not current week)
-      const findManyCall = prisma.emotionDump.findMany.mock.calls[0][0];
-      expect(findManyCall.where.status).toBe(EmotionDumpStatus.PRIVATE);
-      expect(findManyCall.where.weekNumber).toBeDefined();
-      expect(findManyCall.where.weekYear).toBeDefined();
-
-      // Verify AI called with correct items
-      expect(aiService.refineEmotionDumps).toHaveBeenCalledWith([
-        { id: 'dump-1', content: 'Raw content 1' },
-        { id: 'dump-2', content: 'Raw content 2' },
-      ]);
-
-      // Verify updates
+      expect(aiService.refineEmotionDumps).toHaveBeenCalledTimes(2);
       expect(prisma.emotionDump.update).toHaveBeenCalledTimes(2);
       expect(prisma.emotionDump.update).toHaveBeenCalledWith({
         where: { id: 'dump-1' },
@@ -100,27 +83,34 @@ describe('EmotionDumpCronService', () => {
           aiProcessedAt: expect.any(Date),
         }),
       });
+      expect(result.processed).toBe(2);
     });
 
-    it('should handle AI service errors gracefully (returns fallback)', async () => {
-      prisma.user.findMany.mockResolvedValue([{ id: mockUserId, email: 'test@test.com' }]);
+    it('should filter by userId when provided', async () => {
       prisma.emotionDump.findMany.mockResolvedValue([mockDump1]);
-      // AiService catches errors internally and returns fallback, so mock resolved fallback
       aiService.refineEmotionDumps.mockResolvedValue([
-        { id: 'dump-1', refinedContent: 'Fallback refined content' },
+        { id: 'dump-1', refinedContent: 'Refined 1' },
       ]);
-      prisma.emotionDump.update.mockResolvedValue({});
+      prisma.emotionDump.update.mockResolvedValue({ id: 'dump-1', refinedContent: 'Refined 1' });
 
-      await expect(service.handleWeeklyEmotionRefinement()).resolves.not.toThrow();
+      const result = await service.processPendingRefinements(mockUserId);
 
-      // Should still update with fallback content
-      expect(prisma.emotionDump.update).toHaveBeenCalledWith({
-        where: { id: 'dump-1' },
-        data: expect.objectContaining({
-          refinedContent: 'Fallback refined content',
-          status: EmotionDumpStatus.REFINED,
-        }),
+      expect(prisma.emotionDump.findMany).toHaveBeenCalledWith({
+        where: { status: EmotionDumpStatus.PRIVATE, userId: mockUserId },
+        select: { id: true, rawContent: true, userId: true },
+        orderBy: { createdAt: 'asc' },
       });
+      expect(result.processed).toBe(1);
+    });
+
+    it('should handle AI service errors gracefully and continue', async () => {
+      prisma.emotionDump.findMany.mockResolvedValue([mockDump1]);
+      aiService.refineEmotionDumps.mockRejectedValue(new Error('AI failed'));
+
+      const result = await service.processPendingRefinements();
+
+      expect(result.processed).toBe(0);
+      expect(prisma.emotionDump.update).not.toHaveBeenCalled();
     });
   });
 });

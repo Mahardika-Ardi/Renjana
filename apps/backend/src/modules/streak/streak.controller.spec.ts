@@ -11,6 +11,7 @@ describe('StreakController', () => {
   beforeEach(async () => {
     streakService = {
       getStreak: jest.fn(),
+      triggerStreak: jest.fn(),
       sendNudge: jest.fn(),
       replyNudge: jest.fn(),
     };
@@ -32,6 +33,18 @@ describe('StreakController', () => {
 
       expect(streakService.getStreak).toHaveBeenCalledWith('user-1');
       expect(res).toEqual({ message: 'Data streak berhasil diambil', data });
+    });
+  });
+
+  describe('triggerStreak', () => {
+    it('should delegate to streakService.triggerStreak', async () => {
+      const data = { message: 'Senggolan terkirim', status: 'WAITING_PARTNER' };
+      streakService.triggerStreak.mockResolvedValue(data);
+
+      const res = await controller.triggerStreak(mockUser);
+
+      expect(streakService.triggerStreak).toHaveBeenCalledWith('user-1');
+      expect(res).toEqual({ message: 'Senggolan terkirim', data });
     });
   });
 

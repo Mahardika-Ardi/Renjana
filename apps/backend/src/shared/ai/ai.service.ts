@@ -17,20 +17,34 @@ export interface RefinedResultItem {
 export class AiService {
   private readonly logger = new Logger(AiService.name);
   private openai: OpenAI | null = null;
-  private readonly modelName: string;
+  private readonly openaiModel: string;
+  private readonly geminiApiKey: string | null = null;
+  private readonly geminiModel: string;
 
   constructor(private config: ConfigService) {
-    const apiKey = this.config.get<string>('openai.apiKey');
-    this.modelName = this.config.get<string>('openai.model') || 'gpt-4o-mini';
+    const openaiKey = this.config.get<string>('openai.apiKey');
+    this.openaiModel = this.config.get<string>('openai.model') || 'gpt-4o-mini';
 
-    if (apiKey && !apiKey.includes('your-openai')) {
-      this.openai = new OpenAI({ apiKey });
+    if (openaiKey && !openaiKey.includes('your-openai')) {
+      this.openai = new OpenAI({ apiKey: openaiKey });
+    }
+
+    const geminiKey = this.config.get<string>('gemini.apiKey');
+    this.geminiModel =
+      this.config.get<string>('gemini.model') || 'gemini-1.5-flash';
+
+    if (geminiKey && !geminiKey.includes('your-gemini')) {
+      this.geminiApiKey = geminiKey;
       this.logger.log(
-        `AiService initialized with OpenAI model: ${this.modelName}`,
+        `AiService initialized with Gemini API model: ${this.geminiModel}`,
+      );
+    } else if (this.openai) {
+      this.logger.log(
+        `AiService initialized with OpenAI model: ${this.openaiModel}`,
       );
     } else {
       this.logger.warn(
-        'OPENAI_API_KEY belum dikonfigurasi di .env. AI Service akan menggunakan mode Refinement lokal/fallback.',
+        'GEMINI_API_KEY / OPENAI_API_KEY belum dikonfigurasi. AI Service akan menggunakan mode Refinement lokal/fallback.',
       );
     }
   }
@@ -43,57 +57,102 @@ export class AiService {
   ): Promise<RefinedResultItem[]> {
     if (!items || items.length === 0) return [];
 
-    // Fallback if OpenAI client is not configured
-    if (!this.openai) {
-      this.logger.log(
-        `Using fallback refinement for ${items.length} emotion dumps.`,
-      );
-      return items.map((item) => ({
-        id: item.id,
-        refinedContent: this.fallbackRefine(item.content),
-      }));
-    }
+    const prompt = buildEmotionRefinePrompt(items);
 
-    try {
-      const prompt = buildEmotionRefinePrompt(items);
-
-      const completion = await this.openai.chat.completions.create({
-        model: this.modelName,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
-        response_format: { type: 'json_object' },
-      });
-
-      const responseText = completion.choices[0]?.message?.content || '{}';
-      const parsed = JSON.parse(responseText);
-
-      // Expected format: { "results": [{ "id": "...", "refinedContent": "..." }] }
-      const results: RefinedResultItem[] = parsed.results || [];
-
-      if (results.length > 0) {
-        return results;
+    // 1. Try Google Gemini API if configured
+    if (this.geminiApiKey) {
+      try {
+        const geminiResults = await this.callGemini(prompt);
+        if (geminiResults && geminiResults.length > 0) {
+          return geminiResults;
+        }
+      } catch (err: any) {
+        this.logger.warn(
+          `Gemini API refinement failed (${err.message}). Trying fallback refiner...`,
+        );
       }
-
-      // Fallback if parsing failed
-      this.logger.warn('OpenAI returned unexpected format, using fallback');
-      return items.map((item) => ({
-        id: item.id,
-        refinedContent: this.fallbackRefine(item.content),
-      }));
-    } catch (err: any) {
-      this.logger.error(
-        `Error calling OpenAI API for emotion refinement: ${err.message}`,
-        err.stack,
-      );
-      return items.map((item) => ({
-        id: item.id,
-        refinedContent: this.fallbackRefine(item.content),
-      }));
     }
+
+    // 2. Try OpenAI if Gemini was not configured or failed
+    if (this.openai) {
+      try {
+        const openaiResults = await this.callOpenAi(prompt);
+        if (openaiResults && openaiResults.length > 0) {
+          return openaiResults;
+        }
+      } catch (err: any) {
+        this.logger.warn(
+          `OpenAI API refinement failed (${err.message}). Using local fallback...`,
+        );
+      }
+    }
+
+    // 3. Fallback refiner for offline/dev/testing
+    this.logger.log(
+      `Using local fallback refinement for ${items.length} emotion dumps.`,
+    );
+    return items.map((item) => ({
+      id: item.id,
+      refinedContent: this.fallbackRefine(item.content),
+    }));
   }
 
   /**
-   * Fallback refiner for dev/testing when API key is unconfigured
+   * Google Gemini REST API caller
+   */
+  private async callGemini(prompt: string): Promise<RefinedResultItem[]> {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [{ text: prompt }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          responseMimeType: 'application/json',
+        },
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini HTTP ${response.status}: ${errorText}`);
+    }
+
+    const data = (await response.json()) as any;
+    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    const parsed = JSON.parse(rawText);
+
+    return parsed.results || [];
+  }
+
+  /**
+   * OpenAI API caller
+   */
+  private async callOpenAi(prompt: string): Promise<RefinedResultItem[]> {
+    if (!this.openai) return [];
+
+    const completion = await this.openai.chat.completions.create({
+      model: this.openaiModel,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      response_format: { type: 'json_object' },
+    });
+
+    const responseText = completion.choices[0]?.message?.content || '{}';
+    const parsed = JSON.parse(responseText);
+
+    return parsed.results || [];
+  }
+
+  /**
+   * Fallback refiner for dev/testing when API key is unconfigured or rate limited
    */
   private fallbackRefine(raw: string): string {
     return (

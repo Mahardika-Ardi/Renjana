@@ -3,7 +3,6 @@ import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../database';
 import { AiService } from '../../shared/ai';
 import { EmotionDumpStatus } from '@prisma/client';
-import { getISOWeek } from '@renjana/utils';
 
 @Injectable()
 export class EmotionDumpCronService {
@@ -15,85 +14,92 @@ export class EmotionDumpCronService {
   ) {}
 
   /**
-   * Daily Cron at 23:59 WIB — Process AI Refinement for users whose weeklyCheckinDay matches today.
-   * Processes emotion dumps from the PREVIOUS week (the week that just ended).
+   * Weekly Cron every Sunday at 12:00 WIB (Asia/Jakarta)
+   * Processes all pending (PRIVATE) emotion dumps from the week.
    */
-  @Cron('0 59 23 * * *', { timeZone: 'Asia/Jakarta' })
+  @Cron('0 0 12 * * 0', { timeZone: 'Asia/Jakarta' })
   async handleWeeklyEmotionRefinement() {
-    const now = new Date();
-    const todayDayIndex = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-
-    // Calculate LAST week (the week that just ended)
-    const lastWeekDate = new Date(now);
-    lastWeekDate.setDate(lastWeekDate.getDate() - 7);
-    const { week: lastWeekNumber, year: lastWeekYear } = getISOWeek(lastWeekDate);
-
     this.logger.log(
-      `Starting weekly AI emotion refinement for users with weeklyCheckinDay = ${todayDayIndex} (processing week ${lastWeekNumber}/${lastWeekYear})...`,
+      'Starting scheduled weekly AI emotion refinement (Sunday 12:00 WIB)...',
     );
+    return this.processPendingRefinements();
+  }
 
-    // 1. Cari user yang jadwal weekly check-in hari ini
-    const targetUsers = await this.prisma.user.findMany({
-      where: {
-        weeklyCheckinDay: todayDayIndex,
-        deletedAt: null,
-      },
-      select: { id: true, email: true },
-    });
-
-    if (targetUsers.length === 0) {
-      this.logger.log('No users scheduled for check-in today.');
-      return;
+  /**
+   * Process pending emotion dumps sequentially (1-by-1 safe loop)
+   * to ensure zero server memory spike and respect AI rate limits.
+   */
+  async processPendingRefinements(userId?: string) {
+    const where: any = {
+      status: EmotionDumpStatus.PRIVATE,
+    };
+    if (userId) {
+      where.userId = userId;
     }
 
-    const userIds = targetUsers.map((u) => u.id);
-
-    // 2. Cari semua EmotionDump berstatus PRIVATE untuk MINGGU LALU dari target users
-    const privateDumps = await this.prisma.emotionDump.findMany({
-      where: {
-        userId: { in: userIds },
-        status: EmotionDumpStatus.PRIVATE,
-        weekNumber: lastWeekNumber,
-        weekYear: lastWeekYear,
-      },
+    const pendingDumps = await this.prisma.emotionDump.findMany({
+      where,
       select: {
         id: true,
         rawContent: true,
         userId: true,
       },
+      orderBy: { createdAt: 'asc' },
     });
 
-    if (privateDumps.length === 0) {
-      this.logger.log('No private emotion dumps to refine today.');
-      return;
+    if (pendingDumps.length === 0) {
+      this.logger.log(
+        userId
+          ? `No pending emotion dumps to refine for user ${userId}.`
+          : 'No pending emotion dumps to refine today.',
+      );
+      return { processed: 0, items: [] };
     }
 
     this.logger.log(
-      `Found ${privateDumps.length} private emotion dumps to refine for ${targetUsers.length} users.`,
+      `Processing AI refinement for ${pendingDumps.length} pending emotion dumps...`,
     );
 
-    // 3. Batch refinement per user or overall via AiService
-    const itemsToRefine = privateDumps.map((d) => ({
-      id: d.id,
-      content: d.rawContent,
-    }));
+    const processedResults: { id: string; refinedContent: string }[] = [];
 
-    const refinedResults = await this.aiService.refineEmotionDumps(itemsToRefine);
+    // Process 1-by-1 sequentially to prevent server drops or memory spikes
+    for (const dump of pendingDumps) {
+      try {
+        const refinedItems = await this.aiService.refineEmotionDumps([
+          { id: dump.id, content: dump.rawContent },
+        ]);
 
-    // 4. Update status dan refinedContent di DB
-    for (const result of refinedResults) {
-      await this.prisma.emotionDump.update({
-        where: { id: result.id },
-        data: {
-          refinedContent: result.refinedContent,
-          status: EmotionDumpStatus.REFINED,
-          aiProcessedAt: new Date(),
-        },
-      });
+        const refinedContent =
+          refinedItems[0]?.refinedContent ||
+          'Aku merasa perlu mengekspresikan apa yang kurasakan demi kebaikan hubungan kita.';
+
+        const updated = await this.prisma.emotionDump.update({
+          where: { id: dump.id },
+          data: {
+            refinedContent,
+            status: EmotionDumpStatus.REFINED,
+            aiProcessedAt: new Date(),
+          },
+        });
+
+        processedResults.push({
+          id: updated.id,
+          refinedContent: updated.refinedContent || '',
+        });
+      } catch (err: any) {
+        this.logger.error(
+          `Failed refining emotion dump ${dump.id}: ${err.message}`,
+        );
+      }
     }
 
     this.logger.log(
-      `Successfully processed AI refinement for ${refinedResults.length} emotion dumps!`,
+      `Successfully processed AI refinement for ${processedResults.length}/${pendingDumps.length} emotion dumps!`,
     );
+
+    return {
+      processed: processedResults.length,
+      items: processedResults,
+    };
   }
 }

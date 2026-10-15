@@ -26,6 +26,11 @@ export const openaiConfig = registerAs('openai', () => ({
   model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
 }));
 
+export const geminiConfig = registerAs('gemini', () => ({
+  apiKey: process.env.GEMINI_API_KEY || '',
+  model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+}));
+
 export const mailConfig = registerAs('mail', () => ({
   host: process.env.MAIL_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.MAIL_PORT || '587', 10),

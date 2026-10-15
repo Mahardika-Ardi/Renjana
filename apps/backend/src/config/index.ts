@@ -3,6 +3,7 @@ export {
   jwtConfig,
   supabaseConfig,
   openaiConfig,
+  geminiConfig,
   mailConfig,
   redisConfig,
   throttleConfig,
