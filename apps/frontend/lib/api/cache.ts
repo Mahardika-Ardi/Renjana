@@ -115,6 +115,7 @@ export const CACHE_TTL = {
   JOURNAL_LIST: 3 * 60 * 1000,
   JOURNAL_LATEST: 3 * 60 * 1000,
   JOURNAL_DETAIL: 5 * 60 * 1000,
+  TODO_LIST: 3 * 60 * 1000,
 } as const;
 
 export const cacheKeys = {
@@ -123,6 +124,7 @@ export const cacheKeys = {
   journalLatest: 'journals:latest',
   journalDetail: (id: string) => `journals:detail:${id}`,
   journalDetailPrefix: 'journals:detail',
+  todoList: 'todos:list',
 } as const;
 
 /** Drop list + latest + one (or all) detail entries after a journal mutation. */
@@ -132,4 +134,9 @@ export function invalidateJournals(id?: string): void {
   cacheInvalidate(
     id ? cacheKeys.journalDetail(id) : cacheKeys.journalDetailPrefix,
   );
+}
+
+/** Drop the shared todo list after any todo mutation. */
+export function invalidateTodos(): void {
+  cacheInvalidate(cacheKeys.todoList);
 }
