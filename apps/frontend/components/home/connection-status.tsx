@@ -1,4 +1,5 @@
 import Profile from '@/components/profile/photo-profile';
+import InviteButton from '@/components/couple/invite-button';
 import { AuthUser } from '@renjana/types';
 
 interface ConnectionStatusProps {
@@ -62,8 +63,17 @@ export default function ConnectionStatus({ user, userLoading }: ConnectionStatus
           </div>
         </div>
 
-        {/* Senja */}
-        <Profile who="partner" user={user} loading={userLoading} />
+        {/* Senja — partner slot, or invite button when single */}
+        {userLoading || !user ? (
+          <div className="relative z-20 flex flex-col items-center" aria-hidden>
+            <div className="h-16.5 w-16.5 animate-pulse rounded-full border-[3px] border-[#b1a082] bg-[#e8e2d8] motion-reduce:animate-none md:h-18 md:w-18" />
+            <span className="mt-3 h-4 w-16 animate-pulse rounded-full bg-[#e8e2d8] motion-reduce:animate-none" />
+          </div>
+        ) : user.couple ? (
+          <Profile who="partner" user={user} loading={userLoading} />
+        ) : (
+          <InviteButton />
+        )}
       </div>
 
       {/* Connection text */}

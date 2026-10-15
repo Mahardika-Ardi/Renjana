@@ -10,6 +10,7 @@ import type {
   LoginDto,
   RegisterDto,
   ResetPasswordFinalDto,
+  ValidateInviteResponse,
   VerifyResetCodeDto,
   VerifyResetCodeResponse,
 } from '@renjana/types';
@@ -54,6 +55,12 @@ export const authApi = {
 
   invite() {
     return api.post<ApiResponse<InviteResponse>>(`${AUTH_BASE_URL}/invite`);
+  },
+
+  validateInvite(token: string) {
+    return api.get<ApiResponse<ValidateInviteResponse>>(
+      `${AUTH_BASE_URL}/invite/validate?token=${encodeURIComponent(token)}`,
+    );
   },
 
   acceptInvite(dto: AcceptInviteDto) {
