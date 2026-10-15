@@ -1,0 +1,1369 @@
+<!doctype html>
+
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Renjana Rencana — Daftar To-Do &amp; Agenda Pasangan</title>
+    <!-- Tailwind CSS v3 with forms and container queries -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Google Fonts for Modern Warm Typography -->
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Outfit:wght@400;500;600;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#7d562d',
+              'primary-container': '#d4a373',
+              'on-primary': '#ffffff',
+              'on-primary-container': '#5b3912',
+              secondary: '#615f4b',
+              'secondary-container': '#e4e0c7',
+              'on-secondary-container': '#65634f',
+              tertiary: '#5d6143',
+              'tertiary-container': '#acb08c',
+              'on-tertiary-container': '#3f4327',
+              terracotta: '#c8704c',
+              'terracotta-hover': '#b8613f',
+              surface: '#fdfaf6',
+              'on-surface': '#1a1c1c',
+              'on-surface-variant': '#50453b',
+              outline: '#82756a',
+              'outline-variant': '#d4c4b7',
+            },
+            fontFamily: {
+              headline: ['Plus Jakarta Sans', 'sans-serif'],
+              body: ['Outfit', 'sans-serif'],
+            },
+            boxShadow: {
+              soft: '0 4px 16px rgba(200, 160, 130, 0.06)',
+              'soft-hover': '0 10px 24px -4px rgba(125, 86, 45, 0.12)',
+              modal: '0 25px 50px -12px rgba(97, 95, 75, 0.25)',
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        font-family: 'Outfit', sans-serif;
+        background-color: #fdfaf6;
+        color: #1a1c1c;
+      }
+
+      .font-headline {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+      }
+
+      /* Bookshelf ledge 3D styling */
+      .bookshelf-ridge {
+        position: relative;
+        height: 8px;
+        background: linear-gradient(180deg, #e7ddcf 0%, #d8cdbe 100%);
+        border-radius: 9999px;
+        box-shadow:
+          0 3px 6px -1px rgba(97, 95, 75, 0.1),
+          inset 0 1px 1px rgba(255, 255, 255, 0.9);
+      }
+      .bookshelf-ridge::after {
+        content: '';
+        position: absolute;
+        bottom: -4px;
+        left: 2%;
+        right: 2%;
+        height: 4px;
+        background: rgba(125, 86, 45, 0.05);
+        filter: blur(3px);
+        border-radius: 100%;
+      }
+
+      /* Smooth transitions for cards */
+      .todo-card {
+        transition:
+          transform 0.22s ease,
+          box-shadow 0.22s ease,
+          border-color 0.2s ease,
+          background-color 0.2s ease;
+      }
+      .todo-card:hover {
+        transform: translateY(-4px);
+      }
+
+      /* Task completed state */
+      .todo-card.is-completed {
+        background-color: #f6f2ec !important;
+        border-color: #ebdcd2 !important;
+      }
+      .todo-card.is-completed .todo-title {
+        text-decoration: line-through;
+        color: #82756a;
+      }
+      .todo-card.is-completed .todo-desc {
+        color: #a4978c;
+      }
+
+      .check-btn-pulse:active {
+        transform: scale(0.9);
+      }
+    </style>
+  </head>
+  <body
+    class="min-h-screen bg-[#fdfaf6] text-on-surface antialiased flex flex-col selection:bg-[#ffdcbd] selection:text-[#2c1600]"
+  >
+    <!-- 1. Bilah Pencarian Mengambang di Tengah (Top Floating Search) -->
+    <div
+      class="fixed top-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-lg px-4 pointer-events-none"
+    >
+      <div
+        class="pointer-events-auto rounded-full bg-white/90 backdrop-blur-md border border-[#ede3d8] shadow-sm px-6 py-3.5 flex items-center gap-3 transition-shadow hover:shadow-md"
+      >
+        <svg
+          class="w-4 h-4 text-[#c8704c] flex-shrink-0"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewbox="0 0 24 24"
+        >
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="M21 21l-4.35-4.35" stroke-linecap="round"></path>
+        </svg>
+        <input
+          class="w-full bg-transparent text-sm text-on-surface placeholder:text-outline/80 border-none focus:ring-0 p-0 outline-none"
+          id="search-todo-input"
+          placeholder="Cari rencana, tugas, atau tag..."
+          type="text"
+        />
+        <button
+          class="hidden text-outline hover:text-on-surface p-1 rounded-full text-xs flex-shrink-0"
+          id="clear-search-btn"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewbox="0 0 24 24"
+          >
+            <path d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <!-- 4. Floating Action Button (Sudut Kanan Bawah) -->
+    <button
+      class="fixed bottom-8 right-8 z-50 bg-[#c8704c] text-white px-6 py-3.5 rounded-full shadow-lg hover:bg-[#b8613f] flex items-center gap-2.5 font-medium transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+      id="btn-open-modal"
+    >
+      <svg
+        class="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        viewbox="0 0 24 24"
+      >
+        <path
+          d="M12 4.5v15m7.5-7.5h-15"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+      </svg>
+      <span class="tracking-wide text-sm font-semibold">+ Tambah Rencana</span>
+    </button>
+    <!-- Main Content Area: Bookshelf Grid Layout -->
+    <main
+      class="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-24 flex flex-col"
+    >
+      <!-- 2. Banner Ringkasan Agenda Berdua -->
+      <section
+        class="max-w-6xl w-full mx-auto mb-10 p-7 rounded-3xl bg-[#f4ece3]/80 border border-[#ebe0d3] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 shadow-sm"
+      >
+        <div class="space-y-1.5 max-w-xl">
+          <div
+            class="inline-flex items-center gap-2 text-xs font-semibold text-terracotta tracking-wider uppercase"
+          >
+            <span
+              class="w-2 h-2 rounded-full bg-terracotta animate-pulse"
+            ></span>
+            AGENDA BERDUA
+          </div>
+          <h2 class="font-headline font-bold text-2xl text-on-surface">
+            Harmoni Langkah Kecil Bersama
+          </h2>
+          <p class="text-sm text-on-surface-variant leading-relaxed">
+            Setiap rencana adalah bukti cinta yang diwujudkan bersama dalam
+            keseharian.
+          </p>
+        </div>
+        <!-- Quick Metrics Pill / Mini Card -->
+        <div
+          class="flex items-center gap-4 bg-white/90 backdrop-blur-sm px-6 py-3.5 rounded-2xl border border-white shadow-xs self-stretch sm:self-auto justify-around sm:justify-start"
+        >
+          <div class="flex flex-col items-center px-2">
+            <span
+              class="font-headline font-bold text-xl text-terracotta"
+              id="count-active"
+              >6</span
+            >
+            <span class="text-xs text-outline font-medium mt-0.5">Aktif</span>
+          </div>
+          <div class="w-px h-8 bg-[#eee4da]"></div>
+          <div class="flex flex-col items-center px-2">
+            <span
+              class="font-headline font-bold text-xl text-tertiary"
+              id="count-completed"
+              >2</span
+            >
+            <span class="text-xs text-outline font-medium mt-0.5">Selesai</span>
+          </div>
+          <div class="w-px h-8 bg-[#eee4da]"></div>
+          <div class="flex flex-col items-center px-2">
+            <span
+              class="font-headline font-bold text-xl text-primary"
+              id="count-total"
+              >8</span
+            >
+            <span class="text-xs text-outline font-medium mt-0.5">Total</span>
+          </div>
+        </div>
+      </section>
+      <!-- 3. RAK KARTU TO-DO (Bookshelf Grid Layout) -->
+      <div class="flex flex-col gap-12">
+        <!-- Kategori 1: Kencan & Waktu Bersama -->
+        <section class="shelf-section flex flex-col gap-4">
+          <!-- Shelf Header -->
+          <div class="flex items-center justify-between pb-1">
+            <div class="flex items-center gap-2.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-terracotta"></span>
+              <h3 class="font-headline font-bold text-lg text-on-surface">
+                Kencan &amp; Waktu Bersama
+              </h3>
+            </div>
+            <span class="text-xs text-outline font-medium shelf-item-count"
+              >4 Rencana Terpajang</span
+            >
+          </div>
+          <!-- 4 Kolom Simetris Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Card 1: Piknik Senja -->
+            <article
+              class="todo-card relative bg-white rounded-2xl p-5 border border-[#eee4da] shadow-[0_4px_16px_rgba(200,160,130,0.06)] hover:shadow-soft-hover flex flex-col justify-between min-h-[220px]"
+            >
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span
+                    class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#f1ece5] text-[#615f4b]"
+                    >#Kencan</span
+                  >
+                  <div
+                    class="flex items-center -space-x-1.5"
+                    title="Ditugaskan: Bersama (Arka &amp; Senja)"
+                  >
+                    <span
+                      class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container text-[11px] font-bold flex items-center justify-center ring-2 ring-white"
+                      >A</span
+                    >
+                    <span
+                      class="w-6 h-6 rounded-full bg-tertiary-container text-on-tertiary-container text-[11px] font-bold flex items-center justify-center ring-2 ring-white"
+                      >S</span
+                    >
+                  </div>
+                </div>
+                <div>
+                  <h4
+                    class="todo-title font-headline font-semibold text-sm sm:text-base text-on-surface leading-snug"
+                  >
+                    Piknik Senja di Kebun Raya
+                  </h4>
+                  <p
+                    class="todo-desc text-xs text-on-surface-variant mt-1.5 leading-relaxed"
+                  >
+                    Bawa tikar linen krem, termos teh melati favorit, dan buku
+                    puisi.
+                  </p>
+                </div>
+              </div>
+              <div
+                class="flex items-center justify-between pt-3 border-t border-[#f7f1ea]"
+              >
+                <span
+                  class="inline-flex items-center gap-1.5 text-[11px] font-medium text-terracotta bg-[#faebe6] px-2.5 py-1 rounded-lg"
+                >
+                  <svg
+                    class="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewbox="0 0 24 24"
+                  >
+                    <rect height="18" rx="2" width="18" x="3" y="4"></rect>
+                    <line x1="16" x2="16" y1="2" y2="6"></line>
+                    <line x1="8" x2="8" y1="2" y2="6"></line>
+                    <line x1="3" x2="21" y1="10" y2="10"></line>
+                  </svg>
+                  Sabtu, 14 Okt
+                </span>
+                <button
+                  aria-label="Tandai selesai"
+                  class="todo-check-btn check-btn-pulse w-8 h-8 rounded-full border border-outline-variant hover:border-terracotta hover:bg-[#faebe6] text-outline hover:text-terracotta flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <svg
+                    class="w-4 h-4 check-svg"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    viewbox="0 0 24 24"
+                  >
+                    <path
+                      d="M4.5 12.75l6 6 9-13.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+            </article>
+            <!-- Card 2: Reservasi Meja Restoran -->
+            <article
+              class="todo-card relative bg-white rounded-2xl p-5 border border-[#eee4da] shadow-[0_4px_16px_rgba(200,160,130,0.06)] hover:shadow-soft-hover flex flex-col justify-between min-h-[220px]"
+            >
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span
+                    class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#fbe7d5] text-[#623f18]"
+                    >#Spesial</span
+                  >
+                  <div
+                    class="flex items-center gap-1.5 text-[11px] text-outline font-medium"
+                    title="Ditugaskan: Arka"
+                  >
+                    <span>Arka</span>
+                    <span
+                      class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container text-[11px] font-bold flex items-center justify-center ring-2 ring-white"
+                      >A</span
+                    >
+                  </div>
+                </div>
+                <div>
+                  <h4
+                    class="todo-title font-headline font-semibold text-sm sm:text-base text-on-surface leading-snug"
+                  >
+                    Reservasi Meja Restoran Ulang Tahun
+                  </h4>
+                  <p
+                    class="todo-desc text-xs text-on-surface-variant mt-1.5 leading-relaxed"
+                  >
+                    Pilih meja sudut dekat jendela berhias lilin aromaterapi
+                    vanila.
+                  </p>
+                </div>
+              </div>
+              <div
+                class="flex items-center justify-between pt-3 border-t border-[#f7f1ea]"
+              >
+                <span
+                  class="inline-flex items-center gap-1.5 text-[11px] font-medium text-on-surface-variant bg-[#f1ece5] px-2.5 py-1 rounded-lg"
+                >
+                  <svg
+                    class="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewbox="0 0 24 24"
+                  >
+                    <rect height="18" rx="2" width="18" x="3" y="4"></rect>
+                    <line x1="16" x2="16" y1="2" y2="6"></line>
+                    <line x1="8" x2="8" y1="2" y2="6"></line>
+                    <line x1="3" x2="21" y1="10" y2="10"></line>
+                  </svg>
+                  20 Okt
+                </span>
+                <button
+                  aria-label="Tandai selesai"
+                  class="todo-check-btn check-btn-pulse w-8 h-8 rounded-full border border-outline-variant hover:border-terracotta hover:bg-[#faebe6] text-outline hover:text-terracotta flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <svg
+                    class="w-4 h-4 check-svg"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    viewbox="0 0 24 24"
+                  >
+                    <path
+                      d="M4.5 12.75l6 6 9-13.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+            </article>
+            <!-- Card 3: Liburan Akhir Tahun -->
+            <article
+              class="todo-card relative bg-white rounded-2xl p-5 border border-[#eee4da] shadow-[0_4px_16px_rgba(200,160,130,0.06)] hover:shadow-soft-hover flex flex-col justify-between min-h-[220px]"
+            >
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span
+                    class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#eef0d8] text-[#45492d]"
+                    >#Impian</span
+                  >
+                  <div
+                    class="flex items-center -space-x-1.5"
+                    title="Ditugaskan: Bersama (Arka &amp; Senja)"
+                  >
+                    <span
+                      class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container text-[11px] font-bold flex items-center justify-center ring-2 ring-white"
+                      >A</span
+                    >
+                    <span
+                      class="w-6 h-6 rounded-full bg-tertiary-container text-on-tertiary-container text-[11px] font-bold flex items-center justify-center ring-2 ring-white"
+                      >S</span
+                    >
+                  </div>
+                </div>
+                <div>
+                  <h4
+                    class="todo-title font-headline font-semibold text-sm sm:text-base text-on-surface leading-snug"
+                  >
+                    Diskusi Liburan Akhir Tahun
+                  </h4>
+                  <p
+                    class="todo-desc text-xs text-on-surface-variant mt-1.5 leading-relaxed"
+                  >
+                    Pilih antara kabin kabut di pegunungan Dieng atau vila
+                    santai tepi laut.
+                  </p>
+                </div>
+              </div>
+              <div
+                class="flex items-center justify-between pt-3 border-t border-[#f7f1ea]"
+              >
+                <span
+                  class="inline-flex items-center gap-1.5 text-[11px] font-medium text-on-surface-variant bg-[#f1ece5] px-2.5 py-1 rounded-lg"
+                >
+                  <svg
+                    class="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewbox="0 0 24 24"
+                  >
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  Akhir Pekan
+                </span>
+                <button
+                  aria-label="Tandai selesai"
+                  class="todo-check-btn check-btn-pulse w-8 h-8 rounded-full border border-outline-variant hover:border-terracotta hover:bg-[#faebe6] text-outline hover:text-terracotta flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <svg
+                    class="w-4 h-4 check-svg"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    viewbox="0 0 24 24"
+                  >
+                    <path
+                      d="M4.5 12.75l6 6 9-13.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+            </article>
+            <!-- Card 4: Buku Bacaan Bulan Ini -->
+            <article
+              class="todo-card relative bg-white rounded-2xl p-5 border border-[#eee4da] shadow-[0_4px_16px_rgba(200,160,130,0.06)] hover:shadow-soft-hover flex flex-col justify-between min-h-[220px]"
+            >
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span
+                    class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#f1ece5] text-on-surface-variant"
+                    >#Santai</span
+                  >
+                  <div
+                    class="flex items-center gap-1.5 text-[11px] text-outline font-medium"
+                    title="Ditugaskan: Arka"
+                  >
+                    <span>Arka</span>
+                    <span
+                      class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container text-[11px] font-bold flex items-center justify-center ring-2 ring-white"
+                      >A</span
+                    >
+                  </div>
+                </div>
+                <div>
+                  <h4
+                    class="todo-title font-headline font-semibold text-sm sm:text-base text-on-surface leading-snug"
+                  >
+                    Beli Buku Bacaan Bulan Ini
+                  </h4>
+                  <p
+                    class="todo-desc text-xs text-on-surface-variant mt-1.5 leading-relaxed"
+                  >
+                    Mencari buku esai refleksi karya Aan Mansyur di toko buku
+                    lokal.
+                  </p>
+                </div>
+              </div>
+              <div
+                class="flex items-center justify-between pt-3 border-t border-[#f7f1ea]"
+              >
+                <span
+                  class="inline-flex items-center gap-1.5 text-[11px] font-medium text-on-surface-variant bg-[#f1ece5] px-2.5 py-1 rounded-lg"
+                >
+                  Minggu Ini
+                </span>
+                <button
+                  aria-label="Tandai selesai"
+                  class="todo-check-btn check-btn-pulse w-8 h-8 rounded-full border border-outline-variant hover:border-terracotta hover:bg-[#faebe6] text-outline hover:text-terracotta flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <svg
+                    class="w-4 h-4 check-svg"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    viewbox="0 0 24 24"
+                  >
+                    <path
+                      d="M4.5 12.75l6 6 9-13.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+            </article>
+          </div>
+          <!-- Wooden Shelf Ledge -->
+          <div class="bookshelf-ridge mt-2"></div>
+        </section>
+        <!-- Kategori 2: Rutinitas Rumah & Kebutuhan Harian -->
+        <section class="shelf-section flex flex-col gap-4">
+          <!-- Shelf Header -->
+          <div class="flex items-center justify-between pb-1">
+            <div class="flex items-center gap-2.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+              <h3 class="font-headline font-bold text-lg text-on-surface">
+                Rutinitas Rumah &amp; Kebutuhan Harian
+              </h3>
+            </div>
+            <span class="text-xs text-outline font-medium shelf-item-count"
+              >4 Rencana Terpajang</span
+            >
+          </div>
+          <!-- 4 Kolom Simetris Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Card 1: Belanja Bahan Sup Jamur -->
+            <article
+              class="todo-card relative bg-white rounded-2xl p-5 border border-[#eee4da] shadow-[0_4px_16px_rgba(200,160,130,0.06)] hover:shadow-soft-hover flex flex-col justify-between min-h-[220px]"
+            >
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span
+                    class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#f1ece5] text-[#615f4b]"
+                    >#Rumah</span
+                  >
+                  <div
+                    class="flex items-center gap-1.5 text-[11px] text-outline font-medium"
+                    title="Ditugaskan: Senja"
+                  >
+                    <span>Senja</span>
+                    <span
+                      class="w-6 h-6 rounded-full bg-tertiary-container text-on-tertiary-container text-[11px] font-bold flex items-center justify-center ring-2 ring-white"
+                      >S</span
+                    >
+                  </div>
+                </div>
+                <div>
+                  <h4
+                    class="todo-title font-headline font-semibold text-sm sm:text-base text-on-surface leading-snug"
+                  >
+                    Belanja Bahan Sup Jamur
+                  </h4>
+                  <p
+                    class="todo-desc text-xs text-on-surface-variant mt-1.5 leading-relaxed"
+                  >
+                    Jamur tiram segar, kaldu sayur organik, seledri aromatik,
+                    dan roti sourdough.
+                  </p>
+                </div>
+              </div>
+              <div
+                class="flex items-center justify-between pt-3 border-t border-[#f7f1ea]"
+              >
+                <span
+                  class="inline-flex items-center gap-1.5 text-[11px] font-medium text-terracotta bg-[#faebe6] px-2.5 py-1 rounded-lg"
+                >
+                  Hari ini, 17:00
+                </span>
+                <button
+                  aria-label="Tandai selesai"
+                  class="todo-check-btn check-btn-pulse w-8 h-8 rounded-full border border-outline-variant hover:border-terracotta hover:bg-[#faebe6] text-outline hover:text-terracotta flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <svg
+                    class="w-4 h-4 check-svg"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    viewbox="0 0 24 24"
+                  >
+                    <path
+                      d="M4.5 12.75l6 6 9-13.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+            </article>
+            <!-- Card 2: Ganti Filter Air (Initial Completed State) -->
+            <article
+              class="todo-card is-completed relative bg-[#f6f2ec] rounded-2xl p-5 border border-[#ebdcd2] shadow-xs flex flex-col justify-between min-h-[220px]"
+            >
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span
+                    class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#ebe3d7] text-on-surface-variant"
+                    >#Rumah</span
+                  >
+                  <div
+                    class="flex items-center -space-x-1.5"
+                    title="Ditugaskan: Bersama (Arka &amp; Senja)"
+                  >
+                    <span
+                      class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container text-[11px] font-bold flex items-center justify-center ring-2 ring-white"
+                      >A</span
+                    >
+                    <span
+                      class="w-6 h-6 rounded-full bg-tertiary-container text-on-tertiary-container text-[11px] font-bold flex items-center justify-center ring-2 ring-white"
+                      >S</span
+                    >
+                  </div>
+                </div>
+                <div>
+                  <h4
+                    class="todo-title font-headline font-semibold text-sm sm:text-base leading-snug"
+                  >
+                    Ganti Filter Air &amp; Sabun Organik
+                  </h4>
+                  <p class="todo-desc text-xs mt-1.5 leading-relaxed">
+                    Sudah dibersihkan dan dipasang kembali pagi tadi bersama
+                    kopi hangat.
+                  </p>
+                </div>
+              </div>
+              <div
+                class="flex items-center justify-between pt-3 border-t border-[#ebdcd2]"
+              >
+                <span
+                  class="inline-flex items-center gap-1.5 text-[11px] font-medium text-tertiary bg-tertiary-fixed/60 px-2.5 py-1 rounded-lg"
+                >
+                  Selesai Pagi Tadi
+                </span>
+                <button
+                  aria-label="Batal selesai"
+                  class="todo-check-btn check-btn-pulse active w-8 h-8 rounded-full bg-terracotta text-white flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <svg
+                    class="w-4 h-4 check-svg"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    viewbox="0 0 24 24"
+                  >
+                    <path
+                      d="M4.5 12.75l6 6 9-13.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+            </article>
+            <!-- Card 3: Pindahkan Tanaman Monstera -->
+            <article
+              class="todo-card relative bg-white rounded-2xl p-5 border border-[#eee4da] shadow-[0_4px_16px_rgba(200,160,130,0.06)] hover:shadow-soft-hover flex flex-col justify-between min-h-[220px]"
+            >
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span
+                    class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#f1ece5] text-[#615f4b]"
+                    >#Rumah</span
+                  >
+                  <div
+                    class="flex items-center gap-1.5 text-[11px] text-outline font-medium"
+                    title="Ditugaskan: Senja"
+                  >
+                    <span>Senja</span>
+                    <span
+                      class="w-6 h-6 rounded-full bg-tertiary-container text-on-tertiary-container text-[11px] font-bold flex items-center justify-center ring-2 ring-white"
+                      >S</span
+                    >
+                  </div>
+                </div>
+                <div>
+                  <h4
+                    class="todo-title font-headline font-semibold text-sm sm:text-base text-on-surface leading-snug"
+                  >
+                    Pindahkan Monstera ke Balkon
+                  </h4>
+                  <p
+                    class="todo-desc text-xs text-on-surface-variant mt-1.5 leading-relaxed"
+                  >
+                    Agar mendapatkan sinar matahari fajar tanpa terik sore
+                    langsung. Beli pot terakota baru.
+                  </p>
+                </div>
+              </div>
+              <div
+                class="flex items-center justify-between pt-3 border-t border-[#f7f1ea]"
+              >
+                <span
+                  class="inline-flex items-center gap-1.5 text-[11px] font-medium text-on-surface-variant bg-[#f1ece5] px-2.5 py-1 rounded-lg"
+                >
+                  Minggu Sore
+                </span>
+                <button
+                  aria-label="Tandai selesai"
+                  class="todo-check-btn check-btn-pulse w-8 h-8 rounded-full border border-outline-variant hover:border-terracotta hover:bg-[#faebe6] text-outline hover:text-terracotta flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <svg
+                    class="w-4 h-4 check-svg"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    viewbox="0 0 24 24"
+                  >
+                    <path
+                      d="M4.5 12.75l6 6 9-13.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+            </article>
+            <!-- Slot 4: Add Slot Kotak Garis Putus-putus -->
+            <button
+              class="border-2 border-dashed border-[#ddcebe] rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-[#c8704c] hover:bg-white/60 transition-all min-h-[220px] group"
+              id="btn-shelf-add"
+            >
+              <div
+                class="w-12 h-12 rounded-full bg-[#f4ebe1] group-hover:bg-[#faebe6] text-outline group-hover:text-[#c8704c] flex items-center justify-center transition-colors mb-3"
+              >
+                <svg
+                  class="w-6 h-6 transition-transform duration-300 group-hover:scale-110"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewbox="0 0 24 24"
+                >
+                  <path
+                    d="M12 4.5v15m7.5-7.5h-15"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  ></path>
+                </svg>
+              </div>
+              <span
+                class="font-headline font-semibold text-sm text-on-surface group-hover:text-[#c8704c] transition-colors"
+                >Tambah ke Rak Ini</span
+              >
+              <span class="text-xs text-on-surface-variant/70 mt-1"
+                >Tulis rencana rumah tangga baru</span
+              >
+            </button>
+          </div>
+          <!-- Wooden Shelf Ledge -->
+          <div class="bookshelf-ridge mt-2"></div>
+        </section>
+      </div>
+    </main>
+    <!-- POPUP MODAL: Add to To-Do List -->
+    <div
+      class="fixed inset-0 z-50 bg-[#2c2523]/40 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200 ease-out"
+      id="todo-modal-backdrop"
+    >
+      <div
+        class="w-full max-w-lg bg-[#fbf9f6] border border-[#ebdcd2] rounded-3xl p-6 sm:p-7 shadow-modal transform scale-95 opacity-0 transition-all duration-200 ease-out max-h-[92vh] overflow-y-auto"
+        id="todo-modal-card"
+      >
+        <!-- Modal Header -->
+        <div
+          class="flex items-center justify-between pb-4 border-b border-[#ebdcd2]"
+        >
+          <div class="flex items-center gap-2.5">
+            <div
+              class="w-8 h-8 rounded-xl bg-[#faebe6] text-[#c8704c] flex items-center justify-center font-bold"
+            >
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                viewbox="0 0 24 24"
+              >
+                <path
+                  d="M12 4.5v15m7.5-7.5h-15"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                ></path>
+              </svg>
+            </div>
+            <div>
+              <h3 class="font-headline font-bold text-lg text-on-surface">
+                Tambah ke Daftar To-Do
+              </h3>
+              <p class="text-xs text-on-surface-variant font-body">
+                Rencana baru untuk diwujudkan bersama pasangan
+              </p>
+            </div>
+          </div>
+          <button
+            aria-label="Tutup form"
+            class="w-8 h-8 rounded-full bg-[#f3ece4] hover:bg-[#e9e0d6] text-outline hover:text-on-surface flex items-center justify-center transition-colors cursor-pointer"
+            id="btn-close-modal"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewbox="0 0 24 24"
+            >
+              <path
+                d="M6 18L18 6M6 6l12 12"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+            </svg>
+          </button>
+        </div>
+        <!-- Modal Form -->
+        <form class="flex flex-col gap-4 pt-4" id="todo-form">
+          <!-- Task Name / Title -->
+          <div class="space-y-1.5">
+            <label
+              class="font-headline text-xs font-semibold text-on-surface"
+              for="form-title"
+            >
+              Nama Rencana / Tugas <span class="text-terracotta">*</span>
+            </label>
+            <input
+              class="w-full bg-white px-3.5 py-2.5 rounded-xl border border-[#ebdcd2] focus:border-terracotta focus:ring-2 focus:ring-terracotta/20 text-xs sm:text-sm text-on-surface placeholder:text-outline outline-none transition-all"
+              id="form-title"
+              placeholder="Contoh: Menonton matahari terbit di tebing atau belanja mingguan"
+              required=""
+              type="text"
+            />
+          </div>
+          <!-- Category Tag Selection -->
+          <div class="space-y-1.5">
+            <label class="font-headline text-xs font-semibold text-on-surface"
+              >Pilih Kategori</label
+            >
+            <div
+              class="flex items-center gap-1.5 flex-wrap"
+              id="category-selector"
+            >
+              <button
+                class="cat-pill active text-xs font-medium px-3 py-1 rounded-full bg-terracotta text-white transition-all cursor-pointer"
+                data-tag="#Kencan"
+                type="button"
+              >
+                #Kencan
+              </button>
+              <button
+                class="cat-pill text-xs font-medium px-3 py-1 rounded-full bg-[#f1ece5] text-on-surface-variant hover:bg-[#e8e0d6] transition-all cursor-pointer"
+                data-tag="#Rumah"
+                type="button"
+              >
+                #Rumah
+              </button>
+              <button
+                class="cat-pill text-xs font-medium px-3 py-1 rounded-full bg-[#f1ece5] text-on-surface-variant hover:bg-[#e8e0d6] transition-all cursor-pointer"
+                data-tag="#Spesial"
+                type="button"
+              >
+                #Spesial
+              </button>
+              <button
+                class="cat-pill text-xs font-medium px-3 py-1 rounded-full bg-[#f1ece5] text-on-surface-variant hover:bg-[#e8e0d6] transition-all cursor-pointer"
+                data-tag="#Impian"
+                type="button"
+              >
+                #Impian
+              </button>
+              <button
+                class="cat-pill text-xs font-medium px-3 py-1 rounded-full bg-[#f1ece5] text-on-surface-variant hover:bg-[#e8e0d6] transition-all cursor-pointer"
+                data-tag="#Santai"
+                type="button"
+              >
+                #Santai
+              </button>
+            </div>
+          </div>
+          <!-- Assigned To -->
+          <div class="space-y-1.5">
+            <label class="font-headline text-xs font-semibold text-on-surface"
+              >Ditugaskan Kepada</label
+            >
+            <div class="grid grid-cols-3 gap-2" id="assignee-selector">
+              <button
+                class="assign-btn active flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-terracotta bg-[#faebe6] text-terracotta text-xs font-semibold transition-all cursor-pointer"
+                data-assign="mutual"
+                type="button"
+              >
+                <div class="flex items-center -space-x-1">
+                  <span
+                    class="w-4 h-4 rounded-full bg-primary-container text-on-primary-container text-[9px] font-bold flex items-center justify-center"
+                    >A</span
+                  >
+                  <span
+                    class="w-4 h-4 rounded-full bg-tertiary-container text-on-tertiary-container text-[9px] font-bold flex items-center justify-center"
+                    >S</span
+                  >
+                </div>
+                <span>Bersama</span>
+              </button>
+              <button
+                class="assign-btn flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-[#ebdcd2] bg-white text-on-surface-variant text-xs font-medium hover:bg-[#f6efe6] transition-all cursor-pointer"
+                data-assign="arka"
+                type="button"
+              >
+                <span
+                  class="w-4 h-4 rounded-full bg-primary-container text-on-primary-container text-[9px] font-bold flex items-center justify-center"
+                  >A</span
+                >
+                <span>Arka</span>
+              </button>
+              <button
+                class="assign-btn flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-[#ebdcd2] bg-white text-on-surface-variant text-xs font-medium hover:bg-[#f6efe6] transition-all cursor-pointer"
+                data-assign="senja"
+                type="button"
+              >
+                <span
+                  class="w-4 h-4 rounded-full bg-tertiary-container text-on-tertiary-container text-[9px] font-bold flex items-center justify-center"
+                  >S</span
+                >
+                <span>Senja</span>
+              </button>
+            </div>
+          </div>
+          <!-- Due Date / Time -->
+          <div class="space-y-1.5">
+            <label
+              class="font-headline text-xs font-semibold text-on-surface"
+              for="form-date"
+              >Target Tanggal / Waktu</label
+            >
+            <div class="relative">
+              <input
+                class="w-full bg-white pl-9 pr-3.5 py-2.5 rounded-xl border border-[#ebdcd2] focus:border-terracotta focus:ring-2 focus:ring-terracotta/20 text-xs sm:text-sm text-on-surface placeholder:text-outline outline-none transition-all"
+                id="form-date"
+                placeholder="Contoh: Sabtu ini, 15:00 atau 24 Oktober"
+                type="text"
+              />
+              <svg
+                class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewbox="0 0 24 24"
+              >
+                <rect height="18" rx="2" width="18" x="3" y="4"></rect>
+                <line x1="16" x2="16" y1="2" y2="6"></line>
+                <line x1="8" x2="8" y1="2" y2="6"></line>
+                <line x1="3" x2="21" y1="10" y2="10"></line>
+              </svg>
+            </div>
+          </div>
+          <!-- Notes / Subtasks -->
+          <div class="space-y-1.5">
+            <label
+              class="font-headline text-xs font-semibold text-on-surface"
+              for="form-notes"
+              >Catatan &amp; Detail Momen</label
+            >
+            <textarea
+              class="w-full bg-white px-3.5 py-2.5 rounded-xl border border-[#ebdcd2] focus:border-terracotta focus:ring-2 focus:ring-terracotta/20 text-xs sm:text-sm text-on-surface placeholder:text-outline outline-none resize-none transition-all"
+              id="form-notes"
+              placeholder="Tambahkan detail kecil agar momen ini semakin berkesan..."
+              rows="2"
+            ></textarea>
+          </div>
+          <!-- Modal Actions -->
+          <div
+            class="flex items-center justify-end gap-2.5 pt-3 border-t border-[#ebdcd2]"
+          >
+            <button
+              class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-on-surface-variant hover:text-on-surface hover:bg-[#ede5dc] transition-colors cursor-pointer"
+              id="btn-cancel-modal"
+              type="button"
+            >
+              Batal
+            </button>
+            <button
+              class="px-5 py-2.5 rounded-xl bg-terracotta hover:bg-terracotta-hover text-white text-xs sm:text-sm font-semibold shadow-sm hover:shadow active:scale-95 transition-all cursor-pointer"
+              type="submit"
+            >
+              Simpan ke Rak To-Do
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <!-- Toast Notification -->
+    <div
+      class="fixed bottom-6 right-6 z-50 transform translate-y-12 opacity-0 pointer-events-none transition-all duration-300 ease-out bg-white border border-[#eedfd5] shadow-lg rounded-2xl px-4 py-3 flex items-center gap-3"
+      id="toast"
+    >
+      <div
+        class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0"
+      >
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          viewbox="0 0 24 24"
+        >
+          <path
+            d="M4.5 12.75l6 6 9-13.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          ></path>
+        </svg>
+      </div>
+      <div class="text-xs">
+        <p class="font-semibold text-on-surface" id="toast-title">
+          Berhasil Ditambahkan
+        </p>
+        <p class="text-outline" id="toast-desc">
+          Rencana baru telah tersimpan di rak bersama.
+        </p>
+      </div>
+    </div>
+    <!-- Interactive JavaScript -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const openModalBtn = document.getElementById('btn-open-modal');
+        const shelfAddBtn = document.getElementById('btn-shelf-add');
+        const closeModalBtn = document.getElementById('btn-close-modal');
+        const cancelModalBtn = document.getElementById('btn-cancel-modal');
+        const modalBackdrop = document.getElementById('todo-modal-backdrop');
+        const modalCard = document.getElementById('todo-modal-card');
+        const todoForm = document.getElementById('todo-form');
+        const searchInput = document.getElementById('search-todo-input');
+        const clearSearchBtn = document.getElementById('clear-search-btn');
+
+        const countActive = document.getElementById('count-active');
+        const countCompleted = document.getElementById('count-completed');
+        const countTotal = document.getElementById('count-total');
+
+        function openModal() {
+          modalBackdrop.classList.remove('opacity-0', 'pointer-events-none');
+          modalBackdrop.classList.add('opacity-100');
+          modalCard.classList.remove('scale-95', 'opacity-0');
+          modalCard.classList.add('scale-100', 'opacity-100');
+          setTimeout(() => {
+            document.getElementById('form-title').focus();
+          }, 100);
+        }
+
+        function closeModal() {
+          modalCard.classList.remove('scale-100', 'opacity-100');
+          modalCard.classList.add('scale-95', 'opacity-0');
+          modalBackdrop.classList.remove('opacity-100');
+          modalBackdrop.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        if (openModalBtn) openModalBtn.addEventListener('click', openModal);
+        if (shelfAddBtn) shelfAddBtn.addEventListener('click', openModal);
+        if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+        if (cancelModalBtn)
+          cancelModalBtn.addEventListener('click', closeModal);
+
+        if (modalBackdrop) {
+          modalBackdrop.addEventListener('click', (e) => {
+            if (e.target === modalBackdrop) closeModal();
+          });
+        }
+
+        document.addEventListener('keydown', (e) => {
+          if (
+            e.key === 'Escape' &&
+            !modalBackdrop.classList.contains('pointer-events-none')
+          ) {
+            closeModal();
+          }
+        });
+
+        // Category Pill Toggle
+        const catPills = document.querySelectorAll('.cat-pill');
+        let selectedTag = '#Kencan';
+        catPills.forEach((pill) => {
+          pill.addEventListener('click', () => {
+            catPills.forEach((p) => {
+              p.classList.remove('active', 'bg-terracotta', 'text-white');
+              p.classList.add('bg-[#f1ece5]', 'text-on-surface-variant');
+            });
+            pill.classList.add('active', 'bg-terracotta', 'text-white');
+            pill.classList.remove('bg-[#f1ece5]', 'text-on-surface-variant');
+            selectedTag = pill.getAttribute('data-tag');
+          });
+        });
+
+        // Assignee Selector
+        const assignBtns = document.querySelectorAll('.assign-btn');
+        let selectedAssignee = 'mutual';
+        assignBtns.forEach((btn) => {
+          btn.addEventListener('click', () => {
+            assignBtns.forEach((b) => {
+              b.classList.remove(
+                'active',
+                'border-terracotta',
+                'bg-[#faebe6]',
+                'text-terracotta',
+                'font-semibold',
+              );
+              b.classList.add(
+                'border-[#ebdcd2]',
+                'bg-white',
+                'text-on-surface-variant',
+                'font-medium',
+              );
+            });
+            btn.classList.add(
+              'active',
+              'border-terracotta',
+              'bg-[#faebe6]',
+              'text-terracotta',
+              'font-semibold',
+            );
+            btn.classList.remove(
+              'border-[#ebdcd2]',
+              'bg-white',
+              'text-on-surface-variant',
+              'font-medium',
+            );
+            selectedAssignee = btn.getAttribute('data-assign');
+          });
+        });
+
+        // Toast Notification
+        const toast = document.getElementById('toast');
+        const toastTitle = document.getElementById('toast-title');
+        const toastDesc = document.getElementById('toast-desc');
+        let toastTimer = null;
+
+        function showToast(title, desc) {
+          if (toastTimer) clearTimeout(toastTimer);
+          toastTitle.textContent = title;
+          toastDesc.textContent = desc;
+          toast.classList.remove(
+            'translate-y-12',
+            'opacity-0',
+            'pointer-events-none',
+          );
+          toast.classList.add('translate-y-0', 'opacity-100');
+          toastTimer = setTimeout(() => {
+            toast.classList.remove('translate-y-0', 'opacity-100');
+            toast.classList.add(
+              'translate-y-12',
+              'opacity-0',
+              'pointer-events-none',
+            );
+          }, 2800);
+        }
+
+        function updateCounters() {
+          const totalCards = document.querySelectorAll('.todo-card');
+          const completedCards = document.querySelectorAll(
+            '.todo-card.is-completed',
+          );
+          const activeCount = totalCards.length - completedCards.length;
+
+          if (countActive) countActive.textContent = activeCount;
+          if (countCompleted)
+            countCompleted.textContent = completedCards.length;
+          if (countTotal) countTotal.textContent = totalCards.length;
+        }
+
+        // Checkbox click handlers
+        function attachCheckHandlers(root = document) {
+          const checkButtons = root.querySelectorAll('.todo-check-btn');
+          checkButtons.forEach((btn) => {
+            if (btn.dataset.initialized) return;
+            btn.dataset.initialized = 'true';
+
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const card = btn.closest('.todo-card');
+              if (!card) return;
+
+              const isDone = card.classList.contains('is-completed');
+              if (isDone) {
+                card.classList.remove('is-completed', 'bg-[#f6f2ec]');
+                card.classList.add('bg-white');
+                btn.classList.remove('active', 'bg-terracotta', 'text-white');
+                btn.classList.add(
+                  'border',
+                  'border-outline-variant',
+                  'text-outline',
+                );
+                btn.setAttribute('aria-label', 'Tandai selesai');
+                showToast('Status Diperbarui', 'Rencana diaktifkan kembali.');
+              } else {
+                card.classList.add('is-completed', 'bg-[#f6f2ec]');
+                card.classList.remove('bg-white');
+                btn.classList.add('active', 'bg-terracotta', 'text-white');
+                btn.classList.remove(
+                  'border',
+                  'border-outline-variant',
+                  'text-outline',
+                );
+                btn.setAttribute('aria-label', 'Batal selesai');
+                showToast(
+                  'Rencana Terwujud! ✨',
+                  'Janji kecil berhasil dicapai bersama.',
+                );
+              }
+              updateCounters();
+            });
+          });
+        }
+        attachCheckHandlers();
+
+        // Submit Form
+        if (todoForm) {
+          todoForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const title = document.getElementById('form-title').value.trim();
+            const date =
+              document.getElementById('form-date').value.trim() || 'Kapan saja';
+            const notes =
+              document.getElementById('form-notes').value.trim() ||
+              'Rencana santai berdua.';
+
+            if (!title) return;
+
+            let avatarHtml = '';
+            if (selectedAssignee === 'arka') {
+              avatarHtml = `
+              <div class="flex items-center gap-1.5 text-[11px] text-outline font-medium" title="Ditugaskan: Arka">
+                <span>Arka</span>
+                <span class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container text-[11px] font-bold flex items-center justify-center ring-2 ring-white">A</span>
+              </div>
+            `;
+            } else if (selectedAssignee === 'senja') {
+              avatarHtml = `
+              <div class="flex items-center gap-1.5 text-[11px] text-outline font-medium" title="Ditugaskan: Senja">
+                <span>Senja</span>
+                <span class="w-6 h-6 rounded-full bg-tertiary-container text-on-tertiary-container text-[11px] font-bold flex items-center justify-center ring-2 ring-white">S</span>
+              </div>
+            `;
+            } else {
+              avatarHtml = `
+              <div class="flex items-center -space-x-1.5" title="Ditugaskan: Bersama (Arka & Senja)">
+                <span class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container text-[11px] font-bold flex items-center justify-center ring-2 ring-white">A</span>
+                <span class="w-6 h-6 rounded-full bg-tertiary-container text-on-tertiary-container text-[11px] font-bold flex items-center justify-center ring-2 ring-white">S</span>
+              </div>
+            `;
+            }
+
+            const newCard = document.createElement('article');
+            newCard.className =
+              'todo-card relative bg-white rounded-2xl p-5 border border-[#eee4da] shadow-[0_4px_16px_rgba(200,160,130,0.06)] hover:shadow-soft-hover flex flex-col justify-between min-h-[220px] transition-all';
+            newCard.innerHTML = `
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#f1ece5] text-[#615f4b]">${selectedTag}</span>
+                ${avatarHtml}
+              </div>
+              <div>
+                <h4 class="todo-title font-headline font-semibold text-sm sm:text-base text-on-surface leading-snug">${title}</h4>
+                <p class="todo-desc text-xs text-on-surface-variant mt-1.5 leading-relaxed">
+                  ${notes}
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-[#f7f1ea]">
+              <span class="inline-flex items-center gap-1.5 text-[11px] font-medium text-terracotta bg-[#faebe6] px-2.5 py-1 rounded-lg">
+                ${date}
+              </span>
+              <button aria-label="Tandai selesai" class="todo-check-btn check-btn-pulse w-8 h-8 rounded-full border border-outline-variant hover:border-terracotta hover:bg-[#faebe6] text-outline hover:text-terracotta flex items-center justify-center transition-all cursor-pointer">
+                <svg class="w-4 h-4 check-svg" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              </button>
+            </div>
+          `;
+
+            const targetGrid =
+              selectedTag === '#Rumah'
+                ? document.querySelectorAll('.shelf-section .grid')[1]
+                : document.querySelectorAll('.shelf-section .grid')[0];
+
+            if (targetGrid) {
+              targetGrid.insertBefore(newCard, targetGrid.firstChild);
+              attachCheckHandlers(newCard);
+            }
+
+            closeModal();
+            todoForm.reset();
+            updateCounters();
+            showToast(
+              'Rencana Baru Ditambahkan',
+              `"${title}" siap dijalani bersama.`,
+            );
+          });
+        }
+
+        // Realtime search
+        if (searchInput) {
+          searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+
+            if (clearSearchBtn) {
+              if (query.length > 0) {
+                clearSearchBtn.classList.remove('hidden');
+              } else {
+                clearSearchBtn.classList.add('hidden');
+              }
+            }
+
+            const cards = document.querySelectorAll('.todo-card');
+            cards.forEach((card) => {
+              const textContent = card.innerText.toLowerCase();
+              if (!query || textContent.includes(query)) {
+                card.style.display = 'flex';
+              } else {
+                card.style.display = 'none';
+              }
+            });
+          });
+        }
+
+        if (clearSearchBtn && searchInput) {
+          clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            searchInput.dispatchEvent(new Event('input'));
+            searchInput.focus();
+          });
+        }
+      });
+    </script>
+  </body>
+</html>
