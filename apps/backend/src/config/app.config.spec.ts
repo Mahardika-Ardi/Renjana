@@ -1,4 +1,4 @@
-import { appConfig, jwtConfig, supabaseConfig, openaiConfig, mailConfig, throttleConfig } from './app.config';
+import { appConfig, jwtConfig, supabaseConfig, openaiConfig, geminiConfig, mailConfig, throttleConfig } from './app.config';
 
 describe('app.config', () => {
   const originalEnv = { ...process.env };
@@ -103,6 +103,26 @@ describe('app.config', () => {
       const config = openaiConfig() as any;
       expect(config.apiKey).toBe('');
       expect(config.model).toBe('gpt-4o-mini');
+    });
+  });
+
+  describe('geminiConfig', () => {
+    it('should use env values when set', () => {
+      process.env.GEMINI_API_KEY = 'gemini-key';
+      process.env.GEMINI_MODEL = 'gemini-2.0-flash';
+
+      const config = geminiConfig() as any;
+      expect(config.apiKey).toBe('gemini-key');
+      expect(config.model).toBe('gemini-2.0-flash');
+    });
+
+    it('should default model to gemini-1.5-flash', () => {
+      delete process.env.GEMINI_API_KEY;
+      delete process.env.GEMINI_MODEL;
+
+      const config = geminiConfig() as any;
+      expect(config.apiKey).toBe('');
+      expect(config.model).toBe('gemini-1.5-flash');
     });
   });
 

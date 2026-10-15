@@ -57,6 +57,13 @@ export class StreakService {
   }
 
   /**
+   * Aksi harian streak: kirim senggolan atau balas senggolan untuk menambah streak +1
+   */
+  async triggerStreak(userId: string) {
+    return this.sendNudge(userId);
+  }
+
+  /**
    * Kirim senggolan / trigger ke pasangan untuk hari ini
    */
   async sendNudge(userId: string) {
