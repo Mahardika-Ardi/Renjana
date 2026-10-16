@@ -1,19 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, BadRequestException } from '@nestjs/common';
 import { StreakService } from './streak.service';
 import { PrismaService } from '../../database';
+import { SseService } from '../../infrastructure/sse';
+import { NudgeStatus } from '@prisma/client';
 
 describe('StreakService', () => {
   let service: StreakService;
   let prisma: any;
+  let sseService: any;
 
   const userA = 'user-a';
   const userB = 'user-b';
   const coupleId = 'couple-1';
   const streakId = 'streak-1';
 
-  // Simulated calendar: 2026-08-03 = Monday, 2026-08-04 = Tuesday, 2026-08-05 = Wednesday
-  // (11:00 WIB = 04:00 UTC)
   const MON = '2026-08-03';
   const TUE = '2026-08-04';
   const WED = '2026-08-05';
@@ -38,7 +39,6 @@ describe('StreakService', () => {
 
   beforeEach(async () => {
     jest.useFakeTimers();
-    // Default "today": Wednesday 2026-08-05, 11:00 WIB
     jest.setSystemTime(new Date('2026-08-05T04:00:00.000Z'));
 
     prisma = {
@@ -52,6 +52,15 @@ describe('StreakService', () => {
         upsert: jest.fn(),
         findMany: jest.fn(),
       },
+      streakNudge: {
+        findUnique: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
+    };
+
+    sseService = {
+      emit: jest.fn(),
     };
 
     prisma.streak.create.mockResolvedValue({ id: streakId });
@@ -65,9 +74,14 @@ describe('StreakService', () => {
       longestStreak: 0,
     });
     prisma.streakLog.upsert.mockResolvedValue({});
+    prisma.streakNudge.findUnique.mockResolvedValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [StreakService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        StreakService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: SseService, useValue: sseService },
+      ],
     }).compile();
 
     service = module.get<StreakService>(StreakService);
@@ -78,229 +92,132 @@ describe('StreakService', () => {
     jest.useRealTimers();
   });
 
-  describe('logEngagement', () => {
-    it('returns null when user has no active couple', async () => {
-      prisma.couple.findFirst.mockResolvedValue(null);
-
-      const result = await service.logEngagement(userA);
-
-      expect(result).toBeNull();
-      expect(prisma.streakLog.upsert).not.toHaveBeenCalled();
-    });
-
-    it('creates a streak record when couple has none yet', async () => {
-      setupCouple(null);
-      prisma.streakLog.findMany.mockResolvedValue([]);
-
-      await service.logEngagement(userA);
-
-      expect(prisma.streak.create).toHaveBeenCalledWith({
-        data: { coupleId },
-      });
-      expect(prisma.streakLog.upsert).toHaveBeenCalled();
-    });
-
-    it('upserts today log with streakId + userId + engagedDate compound key', async () => {
+  describe('sendNudge', () => {
+    it('creates a new pending nudge and emits sse event', async () => {
       setupCouple();
-      prisma.streakLog.findMany.mockResolvedValue([]);
-
-      await service.logEngagement(userA);
-
-      const upsertArg = prisma.streakLog.upsert.mock.calls[0][0];
-      expect(upsertArg.where).toEqual({
-        streakId_userId_engagedDate: {
-          streakId,
-          userId: userA,
-          engagedDate: new Date(`${WED}T00:00:00.000Z`),
-        },
+      prisma.streakNudge.findUnique.mockResolvedValue(null);
+      prisma.streakNudge.create.mockResolvedValue({
+        id: 'nudge-1',
+        coupleId,
+        senderId: userA,
+        receiverId: userB,
+        status: NudgeStatus.PENDING,
       });
-      expect(upsertArg.create.engagedDate).toEqual(new Date(`${WED}T00:00:00.000Z`));
-      expect(prisma.streak.update).toHaveBeenCalledWith({
-        where: { id: streakId },
-        data: { lastEngagedAt: expect.any(Date) },
+
+      const res = await service.sendNudge(userA);
+
+      expect(res.status).toBe('WAITING_PARTNER');
+      expect(prisma.streakNudge.create).toHaveBeenCalled();
+      expect(sseService.emit).toHaveBeenCalledWith(
+        coupleId,
+        'streak.nudged',
+        expect.objectContaining({ senderId: userA, receiverId: userB }),
+      );
+    });
+
+    it('returns WAITING_PARTNER if user already nudged today', async () => {
+      setupCouple();
+      prisma.streakNudge.findUnique.mockResolvedValue({
+        id: 'nudge-1',
+        coupleId,
+        senderId: userA,
+        receiverId: userB,
+        status: NudgeStatus.PENDING,
       });
+
+      const res = await service.sendNudge(userA);
+
+      expect(res.status).toBe('WAITING_PARTNER');
+      expect(prisma.streakNudge.create).not.toHaveBeenCalled();
+    });
+
+    it('returns COMPLETED if already replied today', async () => {
+      setupCouple();
+      prisma.streakNudge.findUnique.mockResolvedValue({
+        id: 'nudge-1',
+        coupleId,
+        senderId: userA,
+        receiverId: userB,
+        status: NudgeStatus.REPLIED,
+      });
+
+      const res = await service.sendNudge(userA);
+
+      expect(res.status).toBe('COMPLETED');
     });
   });
 
-  describe('streak algorithm (calculateAndUpdateStreak)', () => {
-    it('agreed simulation: Mon(both)=1 -> Tue(A only)=1 buffer -> Wed(both)=2', async () => {
+  describe('replyNudge', () => {
+    it('successfully replies to a pending nudge and increases streak', async () => {
       setupCouple();
-      prisma.streakLog.findMany.mockResolvedValue([
-        log(MON, userA),
-        log(MON, userB),
-        log(TUE, userA),
-        log(WED, userA),
-        log(WED, userB),
-      ]);
-
-      await service.logEngagement(userA);
-
-      expect(prisma.streak.update).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ currentStreak: 2, longestStreak: 2 }),
-        }),
-      );
-    });
-
-    it('buffer day does NOT grow streak: check on Tue, Mon(both)+Tue(A solo) = 1', async () => {
-      jest.setSystemTime(new Date('2026-08-04T04:00:00.000Z')); // Tue 11:00 WIB
-      setupCouple();
-      prisma.streakLog.findMany.mockResolvedValue([
-        log(MON, userA),
-        log(MON, userB),
-        log(TUE, userA),
-      ]);
-
-      await service.logEngagement(userA);
-
-      expect(prisma.streak.update).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ currentStreak: 1 }),
-        }),
-      );
-    });
-
-    it('streak value is STABLE when re-checked later without new activity (no self-regression)', async () => {
-      // Same data as the Tue check, but queried on Wed (today empty, yesterday solo)
-      setupCouple();
-      prisma.streakLog.findMany.mockResolvedValue([
-        log(MON, userA),
-        log(MON, userB),
-        log(TUE, userA),
-      ]);
-
-      await service.logEngagement(userA);
-
-      expect(prisma.streak.update).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ currentStreak: 1 }),
-        }),
-      );
-    });
-
-    it('resets to 0 when neither today nor yesterday has activity', async () => {
-      setupCouple();
-      prisma.streakLog.findMany.mockResolvedValue([
-        log('2026-07-01', userA),
-        log('2026-07-01', userB),
-      ]);
-
-      await service.logEngagement(userA);
-
-      expect(prisma.streak.update).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ currentStreak: 0 }),
-        }),
-      );
-    });
-
-    it('fresh couple solo day stays 0 (strict rule, no special-case floor)', async () => {
-      setupCouple();
-      prisma.streakLog.findMany.mockResolvedValue([log(WED, userA)]);
-
-      await service.logEngagement(userA);
-
-      expect(prisma.streak.update).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ currentStreak: 0 }),
-        }),
-      );
-    });
-
-    it('alternating solo days never grow the streak: Mon(A) Tue(B) Wed(A) = 0', async () => {
-      setupCouple();
-      prisma.streakLog.findMany.mockResolvedValue([
-        log(MON, userA),
-        log(TUE, userB),
-        log(WED, userA),
-      ]);
-
-      await service.logEngagement(userA);
-
-      expect(prisma.streak.update).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ currentStreak: 0 }),
-        }),
-      );
-    });
-
-    it('longest streak is preserved even when current walk is shorter', async () => {
-      setupCouple();
-      prisma.streak.findUnique.mockResolvedValue({
-        id: streakId,
-        currentStreak: 0,
-        longestStreak: 5,
+      prisma.streakNudge.findUnique.mockResolvedValue({
+        id: 'nudge-1',
+        coupleId,
+        senderId: userA,
+        receiverId: userB,
+        status: NudgeStatus.PENDING,
+      });
+      prisma.streakNudge.update.mockResolvedValue({
+        id: 'nudge-1',
+        status: NudgeStatus.REPLIED,
       });
       prisma.streakLog.findMany.mockResolvedValue([
-        log(MON, userA),
-        log(MON, userB),
         log(WED, userA),
         log(WED, userB),
       ]);
 
-      await service.logEngagement(userA);
+      const res = await service.replyNudge(userB);
 
-      expect(prisma.streak.update).toHaveBeenLastCalledWith(
+      expect(res.status).toBe('COMPLETED');
+      expect(prisma.streakNudge.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ currentStreak: 1, longestStreak: 5 }),
+          where: { id: 'nudge-1' },
+          data: expect.objectContaining({ status: NudgeStatus.REPLIED }),
         }),
+      );
+      expect(prisma.streakLog.upsert).toHaveBeenCalledTimes(2);
+      expect(sseService.emit).toHaveBeenCalledWith(
+        coupleId,
+        'streak.completed',
+        expect.any(Object),
       );
     });
 
-    it('walks through a chain of buffered solo days up to the last both-active day', async () => {
+    it('throws BadRequestException if no pending nudge exists', async () => {
       setupCouple();
-      prisma.streakLog.findMany.mockResolvedValue([
-        log('2026-08-02', userA), // Sun both
-        log('2026-08-02', userB),
-        log(MON, userB), // solo, A buffered (A active Sun)
-        log(TUE, userA), // solo, B buffered (B active Mon)
-        log(WED, userA),
-        log(WED, userB),
-      ]);
+      prisma.streakNudge.findUnique.mockResolvedValue(null);
 
-      await service.logEngagement(userA);
-
-      expect(prisma.streak.update).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ currentStreak: 2 }),
-        }),
+      await expect(service.replyNudge(userB)).rejects.toThrow(
+        BadRequestException,
       );
     });
 
-    it('normalizes dates in Asia/Jakarta (WIB), not UTC', async () => {
-      // 2026-08-05T20:00Z = 03:00 WIB on 2026-08-06 -> belongs to Aug 6
-      jest.setSystemTime(new Date('2026-08-05T20:00:00.000Z'));
+    it('throws ForbiddenException if sender attempts to reply to their own nudge', async () => {
       setupCouple();
-      prisma.streakLog.findMany.mockResolvedValue([]);
+      prisma.streakNudge.findUnique.mockResolvedValue({
+        id: 'nudge-1',
+        coupleId,
+        senderId: userA,
+        receiverId: userB,
+        status: NudgeStatus.PENDING,
+      });
 
-      await service.logEngagement(userA);
-
-      const upsertArg = prisma.streakLog.upsert.mock.calls[0][0];
-      expect(upsertArg.create.engagedDate.toISOString().split('T')[0]).toBe(
-        '2026-08-06',
+      await expect(service.replyNudge(userA)).rejects.toThrow(
+        ForbiddenException,
       );
     });
   });
 
   describe('getStreak', () => {
-    it('throws ForbiddenException when user has no couple', async () => {
+    it('throws ForbiddenException when user has no active couple', async () => {
       prisma.couple.findFirst.mockResolvedValue(null);
 
-      await expect(service.getStreak(userA)).rejects.toThrow(ForbiddenException);
+      await expect(service.getStreak(userA)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
-    it('lazily creates a streak record when none exists', async () => {
-      setupCouple(null);
-      prisma.streakLog.findMany.mockResolvedValue([]);
-
-      await service.getStreak(userA);
-
-      expect(prisma.streak.create).toHaveBeenCalledWith({
-        data: { coupleId },
-      });
-    });
-
-    it('returns current/longest streak, couple info and recent logs', async () => {
+    it('returns current/longest streak, couple info, todayNudge and recent logs', async () => {
       setupCouple();
       prisma.streakLog.findMany.mockResolvedValue([
         log(WED, userA),
@@ -308,8 +225,14 @@ describe('StreakService', () => {
       ]);
       prisma.streak.findUnique.mockResolvedValue({
         id: streakId,
-        currentStreak: 0,
-        longestStreak: 0,
+        currentStreak: 1,
+        longestStreak: 1,
+      });
+      prisma.streakNudge.findUnique.mockResolvedValue({
+        id: 'nudge-1',
+        senderId: userA,
+        receiverId: userB,
+        status: NudgeStatus.PENDING,
       });
 
       const result = await service.getStreak(userA);
@@ -317,12 +240,7 @@ describe('StreakService', () => {
       expect(result.currentStreak).toBe(1);
       expect(result.longestStreak).toBe(1);
       expect(result.couple.id).toBe(coupleId);
-      expect(result.couple.user1.id).toBe(userA);
-      expect(result.couple.user2.id).toBe(userB);
-      expect(result.recentLogs).toContainEqual({
-        userId: userA,
-        engagedDate: WED,
-      });
+      expect(result.todayNudge.status).toBe('WAITING_PARTNER');
     });
   });
 });

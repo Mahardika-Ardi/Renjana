@@ -4,10 +4,8 @@ export { RefreshTokenDto } from './refresh-token.dto';
 export {
   VerifyEmailDto,
   RequestResetCodeDto,
-  ForgotPasswordDto,
   VerifyResetCodeDto,
   ResetPasswordFinalDto,
-  ResetPasswordDto,
 } from './email.dto';
 export { DeleteAccountDto } from './delete-account.dto';
 export { AcceptInviteDto } from './accept-invite.dto';

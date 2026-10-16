@@ -135,15 +135,13 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, this.BCRYPT_ROUNDS);
 
-    const user = await this.prisma.$transaction(async (tx) => {
-      return tx.user.create({
-        data: {
-          id: supabaseUserId ?? undefined,
-          email,
-          name: dto.name.trim(),
-          passwordHash,
-        },
-      });
+    const user = await this.prisma.user.create({
+      data: {
+        id: supabaseUserId ?? undefined,
+        email,
+        name: dto.name.trim(),
+        passwordHash,
+      },
     });
 
     this.sendVerificationEmail(user.id, user.email, user.name).catch((err) => {
@@ -610,50 +608,7 @@ export class AuthService {
     return { message: 'Password berhasil diubah. Silakan login kembali.' };
   }
 
-  // Alias methods for backward-compatibility
-  async forgotPassword(email: string) {
-    return this.requestResetCode(email);
-  }
 
-  async resetPassword(token: string, newPassword: string) {
-    const tokenKey = `reset_token:${token}`;
-    const raw = await this.redisService.get(tokenKey);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return this.resetPasswordFinal(parsed.email, token, newPassword);
-    }
-
-    // Fallback if legacy JWT token was passed
-    try {
-      const payload = this.jwtService.verify<{ sub: string; purpose: string }>(
-        token,
-        {
-          secret: this.config.get<string>('jwt.secret'),
-        },
-      );
-
-      if (payload.purpose !== 'password-reset') {
-        throw new BadRequestException('Token tidak valid');
-      }
-
-      const passwordHash = await bcrypt.hash(newPassword, this.BCRYPT_ROUNDS);
-      await this.prisma.user.update({
-        where: { id: payload.sub },
-        data: { passwordHash },
-      });
-
-      await this.prisma.refreshToken.updateMany({
-        where: { userId: payload.sub, revokedAt: null },
-        data: { revokedAt: new Date() },
-      });
-
-      return { message: 'Password berhasil diubah. Silakan login kembali.' };
-    } catch {
-      throw new BadRequestException(
-        'Token reset password tidak valid atau sudah kadaluarsa',
-      );
-    }
-  }
 
   // ================================================================
   // GET CURRENT USER (me)

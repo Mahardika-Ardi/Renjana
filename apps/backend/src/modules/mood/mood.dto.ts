@@ -62,34 +62,3 @@ export class CreateMoodDto {
   @IsString({ each: true })
   tags?: string[];
 }
-
-export class UpdateMoodDto {
-  @ApiPropertyOptional({
-    description: 'Mood value baru',
-    enum: MoodValue,
-  })
-  @IsOptional()
-  @IsEnum(MoodValue)
-  mood?: MoodValue;
-
-  @ApiPropertyOptional({
-    description: 'Intensity level baru 1-5',
-    minimum: 1,
-    maximum: 5,
-  })
-  @IsOptional()
-  @IsInt()
-  intensity?: number;
-
-  @ApiPropertyOptional({ description: 'Catatan baru' })
-  @IsOptional()
-  @IsString()
-  notes?: string;
-
-  @ApiPropertyOptional({ description: 'Tag baru', isArray: true })
-  @IsOptional()
-  @ArrayMinSize(1)
-  @ArrayMaxSize(5)
-  @IsString({ each: true })
-  tags?: string[];
-}

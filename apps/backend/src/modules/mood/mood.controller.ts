@@ -2,7 +2,6 @@ import {
   Controller,
   Post,
   Get,
-  Patch,
   Delete,
   Body,
   Param,
@@ -20,7 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { MoodService } from './mood.service';
-import { CreateMoodDto, UpdateMoodDto } from './dto';
+import { CreateMoodDto } from './dto';
 import { CurrentUser } from '../../shared/decorators';
 
 @ApiTags('Mood (Daily Layer)')
@@ -65,18 +64,7 @@ export class MoodController {
     return this.moodService.findOneForUser(user.id, id);
   }
 
-  @Patch(':id')
-  @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Update log mood' })
-  @ApiResponse({ status: 200, description: 'Log mood berhasil diperbarui' })
-  async update(
-    @CurrentUser() user: any,
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateMoodDto,
-  ) {
-    const data = await this.moodService.updateForUser(user.id, id, dto);
-    return { message: 'Log mood berhasil diperbarui', data };
-  }
+
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
