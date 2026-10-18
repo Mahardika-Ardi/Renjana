@@ -1,11 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EmotionDumpController } from './emotion-dump.controller';
 import { EmotionDumpService } from './emotion-dump.service';
+import { EmotionDumpCronService } from './emotion-dump.cron';
 import { EmotionDumpStatus } from '@prisma/client';
 
 describe('EmotionDumpController', () => {
   let controller: EmotionDumpController;
   let emotionDumpService: any;
+  let emotionDumpCronService: any;
 
   const mockUser = { id: 'user-1', email: 'andi@test.com' };
 
@@ -18,9 +20,16 @@ describe('EmotionDumpController', () => {
       updateForUser: jest.fn(),
     };
 
+    emotionDumpCronService = {
+      processPendingRefinements: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EmotionDumpController],
-      providers: [{ provide: EmotionDumpService, useValue: emotionDumpService }],
+      providers: [
+        { provide: EmotionDumpService, useValue: emotionDumpService },
+        { provide: EmotionDumpCronService, useValue: emotionDumpCronService },
+      ],
     }).compile();
 
     controller = module.get<EmotionDumpController>(EmotionDumpController);
@@ -113,6 +122,21 @@ describe('EmotionDumpController', () => {
       expect(res).toEqual({
         message: 'Status Emotion Dump berhasil diperbarui',
         data,
+      });
+    });
+  });
+
+  describe('triggerRefine', () => {
+    it('should delegate to cronService.processPendingRefinements', async () => {
+      const mockResult = { processed: 2, items: [{ id: 'd-1', refinedContent: 'Refined' }] };
+      emotionDumpCronService.processPendingRefinements.mockResolvedValue(mockResult);
+
+      const res = await controller.triggerRefine(mockUser);
+
+      expect(emotionDumpCronService.processPendingRefinements).toHaveBeenCalledWith('user-1');
+      expect(res).toEqual({
+        message: 'Berhasil memproses AI Refine untuk 2 entri Emotion Dump.',
+        data: mockResult,
       });
     });
   });

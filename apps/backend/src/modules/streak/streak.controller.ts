@@ -25,6 +25,21 @@ export class StreakController {
     return { message: 'Data streak berhasil diambil', data };
   }
 
+  @Post()
+  @ApiOperation({
+    summary:
+      'Aksi streak harian: kirim senggolan atau balas senggolan untuk menambah streak +1',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Senggolan dikirim (WAITING_PARTNER) atau streak berhasil +1 (COMPLETED)',
+  })
+  async triggerStreak(@CurrentUser() user: any) {
+    const data = await this.streakService.triggerStreak(user.id);
+    return { message: data.message, data };
+  }
+
   @Post('nudge')
   @ApiOperation({
     summary:

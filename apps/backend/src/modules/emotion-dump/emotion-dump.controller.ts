@@ -6,6 +6,8 @@ import {
   Body,
   Param,
   Query,
+  HttpCode,
+  HttpStatus,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import {
@@ -17,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { EmotionDumpService } from './emotion-dump.service';
+import { EmotionDumpCronService } from './emotion-dump.cron';
 import { CreateEmotionDumpDto, UpdateEmotionDumpDto } from './dto';
 import { CurrentUser } from '../../shared/decorators';
 import { EmotionDumpStatus } from '@prisma/client';
@@ -25,7 +28,10 @@ import { EmotionDumpStatus } from '@prisma/client';
 @ApiBearerAuth('access-token')
 @Controller('emotion-dumps')
 export class EmotionDumpController {
-  constructor(private readonly emotionDumpService: EmotionDumpService) {}
+  constructor(
+    private readonly emotionDumpService: EmotionDumpService,
+    private readonly cronService: EmotionDumpCronService,
+  ) {}
 
   @Post()
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
@@ -34,6 +40,25 @@ export class EmotionDumpController {
   async create(@CurrentUser() user: any, @Body() dto: CreateEmotionDumpDto) {
     const data = await this.emotionDumpService.create(user.id, dto);
     return { message: 'Emotion Dump berhasil dibuat (Status: PRIVATE)', data };
+  }
+
+  @Post('trigger-refine')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiOperation({
+    summary:
+      'Trigger instan AI Refine untuk Emotion Dump pending milik user (testing & on-demand)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Proses AI Refinement berhasil dijalankan',
+  })
+  async triggerRefine(@CurrentUser() user: any) {
+    const data = await this.cronService.processPendingRefinements(user.id);
+    return {
+      message: `Berhasil memproses AI Refine untuk ${data.processed} entri Emotion Dump.`,
+      data,
+    };
   }
 
   @Get()
