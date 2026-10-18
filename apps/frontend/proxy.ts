@@ -10,6 +10,7 @@ const PUBLIC_ROUTES = [
   '/register',
   '/forgot-password',
   '/reset-password',
+  '/invite',
 ];
 
 export default async function proxy(request: NextRequest) {
@@ -44,7 +45,12 @@ export default async function proxy(request: NextRequest) {
   }
 
   const loginUrl = new URL('/login', request.url);
-  loginUrl.searchParams.set('redirect', pathname);
+  // Preserve the full destination (path + query, e.g. /home?invite=…)
+  // so invite tokens survive the auth round-trip.
+  loginUrl.searchParams.set(
+    'redirect',
+    `${pathname}${request.nextUrl.search}`,
+  );
   return NextResponse.redirect(loginUrl);
 }
 

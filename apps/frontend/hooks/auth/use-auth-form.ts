@@ -46,6 +46,21 @@ export function useAuthForm(type: AuthTypes) {
     setLoading(true);
     setError(null);
 
+    // Honor the proxy's ?redirect= (e.g. /home?invite=…) so invite tokens
+    // survive login/register. Same-origin paths only — never open redirects.
+    const redirectTo = (() => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const target = params.get('redirect');
+        if (target && target.startsWith('/') && !target.startsWith('//')) {
+          return target;
+        }
+      } catch {
+        // ignore, fall through to default
+      }
+      return '/home';
+    })();
+
     try {
       if (type === 'Sign In') {
         await authApi.login({
@@ -55,7 +70,7 @@ export function useAuthForm(type: AuthTypes) {
 
         // New session: never show the previous account's cached data.
         cacheClearAll();
-        router.push('/home');
+        router.push(redirectTo);
 
         return;
       }
@@ -67,7 +82,7 @@ export function useAuthForm(type: AuthTypes) {
       });
 
       cacheClearAll();
-      router.push('/home');
+      router.push(redirectTo);
     } catch (error) {
       if (error instanceof Error) {
         console.log(error.message);
