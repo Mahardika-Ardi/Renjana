@@ -35,6 +35,7 @@ import {
 } from './config';
 import { CloudinaryModule } from './infrastructure/cloudinary';
 import { UsersModule } from './modules/users';
+import { ConsultationModule } from './modules/consultation';
 
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { UsersModule } from './modules/users';
     TodoModule,
     MoodModule,
     HabitModule,
+    ConsultationModule,
   ],
   controllers: [AppController],
   providers: [
