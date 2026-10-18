@@ -1,4 +1,4 @@
-import { appConfig, jwtConfig, supabaseConfig, openaiConfig, geminiConfig, mailConfig, throttleConfig } from './app.config';
+import { appConfig, jwtConfig, supabaseConfig, openaiConfig, geminiConfig, mailConfig, throttleConfig, cloudinaryConfig } from './app.config';
 
 describe('app.config', () => {
   const originalEnv = { ...process.env };
@@ -171,6 +171,30 @@ describe('app.config', () => {
       const config = throttleConfig() as any;
       expect(config.ttl).toBe(60000);
       expect(config.limit).toBe(100);
+    });
+  });
+
+  describe('cloudinaryConfig', () => {
+    it('should use env values when set', () => {
+      process.env.CLOUDINARY_CLOUD_NAME = 'my-cloud';
+      process.env.CLOUDINARY_API_KEY = '123456';
+      process.env.CLOUDINARY_API_SECRET = 'secret123';
+
+      const config = cloudinaryConfig() as any;
+      expect(config.cloudName).toBe('my-cloud');
+      expect(config.apiKey).toBe('123456');
+      expect(config.apiSecret).toBe('secret123');
+    });
+
+    it('should use default fallback values when env missing', () => {
+      delete process.env.CLOUDINARY_CLOUD_NAME;
+      delete process.env.CLOUDINARY_API_KEY;
+      delete process.env.CLOUDINARY_API_SECRET;
+
+      const config = cloudinaryConfig() as any;
+      expect(config.cloudName).toBe('dyfx8cxx9');
+      expect(config.apiKey).toBe('928821851254591');
+      expect(config.apiSecret).toBe('apeiZLrcSMgf8cytpPSEybnhbzg');
     });
   });
 });

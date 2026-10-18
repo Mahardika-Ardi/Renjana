@@ -144,6 +144,7 @@ model User {
   refreshTokens   RefreshToken[]
   nudgesSent      StreakNudge[]  @relation("NudgeSender")
   nudgesReceived  StreakNudge[]  @relation("NudgeReceiver")
+  consultationSessions ConsultationSession[]
 
   @@map("users")
 }
@@ -626,3 +627,40 @@ model Notification {
 
   @@map("notifications")
 }
+
+// ================================================================
+// COUNSELING & CHATBOT LAYER
+// ================================================================
+
+enum MessageSender {
+  USER
+  ASSISTANT
+}
+
+model ConsultationSession {
+  id          String                @id @default(uuid()) @db.Uuid
+  userId      String                @map("user_id") @db.Uuid
+  title       String                @default("Konsultasi Hubungan")
+  createdAt   DateTime              @default(now()) @map("created_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    ConsultationMessage[]
+
+  @@index([userId, updatedAt])
+  @@map("consultation_sessions")
+}
+
+model ConsultationMessage {
+  id          String              @id @default(uuid()) @db.Uuid
+  sessionId   String              @map("session_id") @db.Uuid
+  sender      MessageSender       @default(USER)
+  content     String
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  session     ConsultationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@map("consultation_messages")
+}
+

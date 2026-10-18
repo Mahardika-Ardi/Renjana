@@ -2,6 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { buildEmotionRefinePrompt } from './prompts/emotion-refine.prompt';
+import {
+  buildCounselorSystemPrompt,
+  CoupleContext,
+  ChatHistoryMessage,
+} from './prompts/relationship-counselor.prompt';
 
 export interface EmotionDumpItem {
   id: string;
@@ -161,4 +166,146 @@ export class AiService {
       '". Aku berharap kita bisa membicarakan ini dengan tenang demi kebaikan hubungan kita.'
     );
   }
+
+  /**
+   * Memberikan respon konsultasi hubungan interaktif
+   */
+  async generateCounselingAdvice(
+    history: ChatHistoryMessage[],
+    context: CoupleContext,
+  ): Promise<string> {
+    const systemPrompt = buildCounselorSystemPrompt(context);
+
+    // 1. Coba Google Gemini API
+    if (this.geminiApiKey) {
+      try {
+        const geminiAdvice = await this.callGeminiCounselor(
+          systemPrompt,
+          history,
+        );
+        if (geminiAdvice) return geminiAdvice;
+      } catch (err: any) {
+        this.logger.warn(
+          `Gemini counseling advice failed (${err.message}). Trying fallback...`,
+        );
+      }
+    }
+
+    // 2. Coba OpenAI jika Gemini gagal atau tidak ada key
+    if (this.openai) {
+      try {
+        const openaiAdvice = await this.callOpenAiCounselor(
+          systemPrompt,
+          history,
+        );
+        if (openaiAdvice) return openaiAdvice;
+      } catch (err: any) {
+        this.logger.warn(
+          `OpenAI counseling advice failed (${err.message}). Using local fallback...`,
+        );
+      }
+    }
+
+    // 3. Fallback konselor hubungan lokal
+    return this.fallbackCounselorAdvice(history, context);
+  }
+
+  /**
+   * Pemanggil Google Gemini untuk konsultasi hubungan
+   */
+  private async callGeminiCounselor(
+    systemPrompt: string,
+    history: ChatHistoryMessage[],
+  ): Promise<string | null> {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
+
+    // Format percakapan multi-turn untuk Gemini API
+    const contents: any[] = [];
+
+    // Sertakan system instruction sebagai bagian konteks awal
+    const effectiveHistory = history.slice(-10); // Ambil maksimal 10 pesan terakhir untuk efisiensi
+    for (const msg of effectiveHistory) {
+      contents.push({
+        role: msg.sender === 'USER' ? 'user' : 'model',
+        parts: [{ text: msg.content }],
+      });
+    }
+
+    if (contents.length === 0) return null;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: {
+          parts: [{ text: systemPrompt }],
+        },
+        contents,
+        generationConfig: {
+          temperature: 0.7,
+        },
+      }),
+      signal: AbortSignal.timeout(6000),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini HTTP ${response.status}: ${errorText}`);
+    }
+
+    const data = (await response.json()) as any;
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    return text ? text.trim() : null;
+  }
+
+  /**
+   * Pemanggil OpenAI untuk konsultasi hubungan
+   */
+  private async callOpenAiCounselor(
+    systemPrompt: string,
+    history: ChatHistoryMessage[],
+  ): Promise<string | null> {
+    if (!this.openai) return null;
+
+    const messages: any[] = [{ role: 'system', content: systemPrompt }];
+    const effectiveHistory = history.slice(-10);
+    for (const msg of effectiveHistory) {
+      messages.push({
+        role: msg.sender === 'USER' ? 'user' : 'assistant',
+        content: msg.content,
+      });
+    }
+
+    const completion = await this.openai.chat.completions.create({
+      model: this.openaiModel,
+      messages,
+      temperature: 0.7,
+    });
+
+    const responseText = completion.choices[0]?.message?.content;
+    return responseText ? responseText.trim() : null;
+  }
+
+  /**
+   * Fallback konselor hubungan lokal saat mode offline/dev/timeout
+   */
+  private fallbackCounselorAdvice(
+    history: ChatHistoryMessage[],
+    context: CoupleContext,
+  ): string {
+    const partner = context.partnerName || 'pasanganmu';
+    const lastUserMessage =
+      [...history].reverse().find((m) => m.sender === 'USER')?.content || '';
+
+    return (
+      `Halo ${context.userName}, wajar banget kalau kamu merasa bingung atau khawatir saat melihat ${partner} bersikap berbeda dari biasanya. ` +
+      `Terkadang, perubahan sikap seperti ini bukan karena masalah di antara kalian, melainkan karena ${partner} mungkin sedang mengalami kelelahan mental, tekanan pekerjaan, atau butuh ruang sejenak untuk memulihkan energinya.\n\n` +
+      `Beberapa saran yang bisa kamu coba:\n` +
+      `1. Berikan ruang dengan hangat: Jangan langsung menuntut penjelasan. Coba kirimkan pesan sederhana seperti: "Hai ${partner}, aku ada di sini ya kalau kamu butuh teman cerita atau mau istirahat dulu."\n` +
+      `2. Tunjukkan kehadiran tanpa tekanan: Coba bawakan minuman favoritnya atau tanyakan apakah ada hal kecil yang bisa kamu bantu.\n` +
+      `3. Jaga ketenangan dirimu: Ingat bahwa suasana hatinya saat ini bersifat sementara. Tetaplah menjadi ruang yang aman untuknya.\n\n` +
+      `Semoga suasana hatinya segera membaik ya, ${context.userName}. Kamu sudah melakukan yang terbaik dengan berusaha memahaminya.`
+    );
+  }
 }
+

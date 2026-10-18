@@ -181,4 +181,50 @@ describe('AiService', () => {
       expect(result).toContain('berharap kita bisa membicarakan');
     });
   });
+
+  describe('generateCounselingAdvice', () => {
+    const mockHistory = [
+      { sender: 'USER' as const, content: 'Pasanganku lagi bad mood terus' },
+    ];
+    const mockContext = {
+      userName: 'Arka',
+      partnerName: 'Senja',
+      relationshipStatus: 'DATING',
+      partnerRecentMood: 'BAD',
+      partnerRecentMoodNotes: 'Lagi stres kerjaan',
+    };
+
+    it('should return fallback counseling advice when no external AI configured', async () => {
+      const module = await createModule(null, null);
+      const service = module.get<AiService>(AiService);
+
+      const advice = await service.generateCounselingAdvice(
+        mockHistory,
+        mockContext,
+      );
+
+      expect(advice).toContain('Arka');
+      expect(advice).toContain('Senja');
+      expect(advice).toContain('Beberapa saran yang bisa kamu coba');
+      expect(advice).toContain('Semoga suasana hatinya segera membaik');
+    });
+
+    it('should call callGeminiCounselor when gemini key is provided', async () => {
+      const module = await createModule(null, 'gemini-test-key');
+      const service = module.get<AiService>(AiService);
+
+      jest
+        .spyOn(service as any, 'callGeminiCounselor')
+        .mockResolvedValue('Halo Arka, wajar jika kamu merasa cemas...');
+
+      const advice = await service.generateCounselingAdvice(
+        mockHistory,
+        mockContext,
+      );
+
+      expect(advice).toContain('Halo Arka');
+      expect((service as any).callGeminiCounselor).toHaveBeenCalled();
+    });
+  });
 });
+
