@@ -1,4 +1,5 @@
 import { FOCUS_RING, UNTITLED } from '@/lib/constants/journal';
+import { previewOf, splitTitleDisplay } from '@/lib/journal-content';
 import { JournalResponse } from '@renjana/types';
 import { formatStamp } from '@renjana/utils';
 import { motion } from 'motion/react';
@@ -8,29 +9,6 @@ interface JournalCardProps {
   entry: JournalResponse;
   active: boolean;
   onSelect: (id: string) => void;
-}
-
-function splitContent(content: string): { title: string; body: string } {
-  const normalized = (content ?? '').replace(/\r\n/g, '\n');
-  const lineBreak = normalized.indexOf('\n');
-
-  if (lineBreak === -1) {
-    return { title: normalized.replace(/^#+\s*/, '').trim(), body: '' };
-  }
-
-  return {
-    title: normalized
-      .slice(0, lineBreak)
-      .replace(/^#+\s*/, '')
-      .trim(),
-    body: normalized.slice(lineBreak + 1).replace(/^\n+/, ''),
-  };
-}
-
-function previewOf(content: string): string {
-  const { body } = splitContent(content);
-  const source = body.trim() || content.trim();
-  return source.replace(/\s+/g, ' ').slice(0, 160);
 }
 
 function tagToneClass(index: number): string {
@@ -44,7 +22,7 @@ export default function JournalCard({
   active,
   onSelect,
 }: JournalCardProps) {
-  const { title } = splitContent(entry.content);
+  const title = splitTitleDisplay(entry.content);
 
   return (
     <motion.button

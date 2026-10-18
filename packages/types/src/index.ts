@@ -159,6 +159,52 @@ export interface InviteResponse {
   expiresAt: Date;
 }
 
+// ---- Todo ------------------------------------------------------
+export type TodoCategory =
+  | 'HOME'
+  | 'ERRANDS'
+  | 'SOCIAL'
+  | 'PLANS'
+  | 'FINANCES'
+  | 'OTHER';
+
+export type TodoStatus = 'PENDING' | 'COMPLETED';
+
+export interface CreateTodoDto {
+  title: string;
+  description?: string;
+  category?: TodoCategory;
+  /** YYYY-MM-DD */
+  dueDate?: string;
+}
+
+export type UpdateTodoDto = Partial<CreateTodoDto>;
+
+export interface TodoCreator {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+}
+
+export interface TodoResponse {
+  id: string;
+  coupleId: string;
+  creatorId: string;
+  title: string;
+  description: string | null;
+  category: TodoCategory;
+  status: TodoStatus;
+  dueDate: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  creator: TodoCreator;
+}
+
+export interface TodoListResponse {
+  items: TodoResponse[];
+}
+
 // ---- Query and Params ----------------------------------------------
 export interface JournalQueryParams {
   page?: string;

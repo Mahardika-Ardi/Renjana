@@ -1,4 +1,5 @@
 import React from 'react';
+import RenjanaLogo from './logo';
 
 interface NavbarProps {
   children: React.ReactNode;
@@ -12,7 +13,7 @@ export default function Navbar({ children }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-red-600">Renjana</span>
+            <RenjanaLogo className="h-9 w-auto" />
           </div>
           {children}
         </div>

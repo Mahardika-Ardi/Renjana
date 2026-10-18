@@ -1,24 +1,22 @@
 'use client';
 
 import { journalApi } from '@/lib/api/journal';
-import { SAVE_INTERVAL, ShelfFilter, type SaveState } from '@/lib/constants/journal';
+import {
+  CACHE_TTL,
+  cacheGet,
+  cacheInvalidate,
+  cacheKeys,
+  cacheSet,
+  invalidateJournals,
+} from '@/lib/api/cache';
+import { splitBody, splitTitleDisplay } from '@/lib/journal-content';
+import {
+  SAVE_INTERVAL,
+  ShelfFilter,
+  type SaveState,
+} from '@/lib/constants/journal';
 import { JournalResponse } from '@renjana/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-function splitContent(content: string): { title: string; body: string } {
-  const normalized = (content ?? '').replace(/\r\n/g, '\n');
-  const lineBreak = normalized.indexOf('\n');
-  if (lineBreak === -1) {
-    return { title: normalized.replace(/^#+\s*/, '').trim(), body: '' };
-  }
-  return {
-    title: normalized
-      .slice(0, lineBreak)
-      .replace(/^#+\s*/, '')
-      .trim(),
-    body: normalized.slice(lineBreak + 1).replace(/^\n+/, ''),
-  };
-}
 
 function toEntryDate(date = new Date()): string {
   return date.toISOString().slice(0, 10);
@@ -79,23 +77,38 @@ export function useJournal(initialItems: JournalResponse[] = []) {
 
     let ignore = false;
 
+    const applyList = (list: JournalResponse[]) => {
+      setItems(list);
+      if (list.length > 0) {
+        const first = list[0];
+        setSelectedId(first.id);
+        setSelected(first);
+        setContentState(first.content ?? '');
+        setTagsState(first.tags ?? []);
+        lastSavedRef.current = {
+          content: first.content ?? '',
+          tags: first.tags ?? [],
+        };
+      }
+    };
+
     const load = async () => {
+      // Instant render from cache (survives reloads); revalidate silently
+      // when stale so reloads never wait on the network.
+      const cached = cacheGet<JournalResponse[]>(cacheKeys.journalList);
+      if (cached) {
+        if (ignore) return;
+        applyList(cached.value);
+        setLoading(false);
+        if (cached.fresh) return;
+      }
+
       try {
         const res = await journalApi.getAll({ page: '1', limit: '50' });
         if (ignore) return;
         const list = (res.data as unknown as { items: JournalResponse[] }).items ?? [];
-        setItems(list);
-        if (list.length > 0) {
-          const first = list[0];
-          setSelectedId(first.id);
-          setSelected(first);
-          setContentState(first.content ?? '');
-          setTagsState(first.tags ?? []);
-          lastSavedRef.current = {
-            content: first.content ?? '',
-            tags: first.tags ?? [],
-          };
-        }
+        cacheSet(cacheKeys.journalList, list, CACHE_TTL.JOURNAL_LIST);
+        applyList(list);
       } catch (err) {
         if (!ignore) setError(toErrorMessage(err, 'Gagal memuat jurnal.'));
       } finally {
@@ -116,6 +129,7 @@ export function useJournal(initialItems: JournalResponse[] = []) {
     try {
       const res = await journalApi.getAll({ page: '1', limit: '50' });
       const list = (res.data as unknown as { items: JournalResponse[] }).items ?? [];
+      cacheSet(cacheKeys.journalList, list, CACHE_TTL.JOURNAL_LIST);
       setItems(list);
     } catch (err) {
       setError(toErrorMessage(err, 'Gagal memuat jurnal.'));
@@ -142,11 +156,36 @@ export function useJournal(initialItems: JournalResponse[] = []) {
         setDetailLoading(true);
       }
       if (cached) setDetailLoading(true);
+      // Fresh detail cache: skip the network entirely on revisits.
+      // (Synchronous here, right after setSelectedId(id), so `id` is
+      // current by construction — no ref guard needed.)
+      const detailCached = cacheGet<JournalResponse>(
+        cacheKeys.journalDetail(id),
+      );
+      if (detailCached?.fresh) {
+        setSelected(detailCached.value);
+        setContentState(detailCached.value.content ?? '');
+        setTagsState(detailCached.value.tags ?? []);
+        lastSavedRef.current = {
+          content: detailCached.value.content ?? '',
+          tags: detailCached.value.tags ?? [],
+        };
+        setItems((prev) =>
+          prev.map((item) => (item.id === id ? detailCached.value : item)),
+        );
+        setDetailLoading(false);
+        return;
+      }
       try {
         const res = await journalApi.getById(id);
         const entry = res.data as unknown as JournalResponse;
         // Only apply if the user hasn't switched away during fetch.
         if (selectedIdRef.current === id) {
+          cacheSet(
+            cacheKeys.journalDetail(id),
+            entry,
+            CACHE_TTL.JOURNAL_DETAIL,
+          );
           setSelected(entry);
           setContentState(entry.content ?? '');
           setTagsState(entry.tags ?? []);
@@ -181,6 +220,11 @@ export function useJournal(initialItems: JournalResponse[] = []) {
           lastSavedRef.current = { content: nextContent, tags: [...nextTags] };
           setSaveState('saved');
         }
+        // Content changed: list/latest snapshots are stale; refresh this
+        // entry's detail cache with the server response.
+        cacheInvalidate(cacheKeys.journalList);
+        cacheInvalidate(cacheKeys.journalLatest);
+        cacheSet(cacheKeys.journalDetail(id), updated, CACHE_TTL.JOURNAL_DETAIL);
         return true;
       } catch {
         setSaveState('error');
@@ -291,6 +335,8 @@ export function useJournal(initialItems: JournalResponse[] = []) {
         content: entry.content ?? '',
         tags: entry.tags ?? [],
       };
+      // New first item: list/latest snapshots are stale.
+      invalidateJournals();
       setSaveState('idle');
       return entry;
     } catch (err) {
@@ -309,6 +355,7 @@ export function useJournal(initialItems: JournalResponse[] = []) {
         await journalApi.delete(id);
         const next = items.filter((item) => item.id !== id);
         setItems(next);
+        invalidateJournals(id);
         if (selectedId === id) {
           const fallback = next[0] ?? null;
           setSelectedId(fallback?.id ?? null);
@@ -341,6 +388,8 @@ export function useJournal(initialItems: JournalResponse[] = []) {
       const updated = res.data as unknown as JournalResponse;
       setItems((prev) => prev.map((item) => (item.id === target.id ? updated : item)));
       setSelected(updated);
+      // Share flag changed: list/latest/detail snapshots are stale.
+      invalidateJournals(target.id);
       return true;
     } catch (err) {
       setError(toErrorMessage(err, 'Gagal mengubah status jurnal.'));
@@ -357,14 +406,15 @@ export function useJournal(initialItems: JournalResponse[] = []) {
       if (filter === 'bersama' && !entry.isShared) return false;
       if (filter === 'privat' && entry.isShared) return false;
       if (!query) return true;
-      const { title, body } = splitContent(entry.content ?? '');
+      const title = splitTitleDisplay(entry.content ?? '');
+      const body = splitBody(entry.content ?? '');
       const haystack = `${title} ${body} ${(entry.tags ?? []).join(' ')}`.toLowerCase();
       return haystack.includes(query);
     });
   }, [items, search, filter]);
 
-  const { title: selectedTitle } = useMemo(
-    () => splitContent(selected?.content ?? ''),
+  const selectedTitle = useMemo(
+    () => splitTitleDisplay(selected?.content ?? ''),
     [selected],
   );
 
