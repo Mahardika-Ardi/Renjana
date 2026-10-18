@@ -12,10 +12,13 @@ import StillnessCard from '@/components/home/stillness-card';
 import InviteAcceptDialog from '@/components/couple/invite-accept-dialog';
 import JournalToast from '@/components/journal/journal-toast';
 import { useGetUserProfile } from '@/hooks/auth/get-user-profile';
+import { useStreak } from '@/hooks/note/use-streak';
 
 export default function HomeContent() {
   // Single shared GET /auth/me feeding the greeting and both profiles.
   const { user, loading: userLoading, refresh } = useGetUserProfile();
+  // Streak only exists for coupled users — skip the request when single.
+  const streak = useStreak({ enabled: !!user?.couple });
   const router = useRouter();
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get('invite')?.trim() || null;
@@ -49,7 +52,7 @@ export default function HomeContent() {
     <div className="mx-auto w-full max-w-250 px-6 py-8 md:px-10 md:py-10">
       <HomeGreeting user={user} userLoading={userLoading} />
 
-      <ConnectionStatus user={user} userLoading={userLoading} />
+      <ConnectionStatus user={user} userLoading={userLoading} streak={streak} />
 
       <RhythmsHeader />
 
