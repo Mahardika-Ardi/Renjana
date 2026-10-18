@@ -159,6 +159,19 @@ export interface InviteResponse {
   expiresAt: Date;
 }
 
+export interface InviteSender {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+}
+
+export interface ValidateInviteResponse {
+  valid: boolean;
+  sender: InviteSender;
+  expiresAt: string;
+}
+
 // ---- Todo ------------------------------------------------------
 export type TodoCategory =
   | 'HOME'
