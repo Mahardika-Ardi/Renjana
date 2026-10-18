@@ -7,4 +7,6 @@ export {
   mailConfig,
   redisConfig,
   throttleConfig,
+  cloudinaryConfig,
 } from './app.config';
+

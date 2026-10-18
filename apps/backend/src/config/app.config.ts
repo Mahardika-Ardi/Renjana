@@ -50,3 +50,10 @@ export const throttleConfig = registerAs('throttle', () => ({
   ttl: parseInt(process.env.THROTTLE_TTL || '60000', 10),
   limit: parseInt(process.env.THROTTLE_LIMIT || '100', 10),
 }));
+
+export const cloudinaryConfig = registerAs('cloudinary', () => ({
+  cloudName: process.env.CLOUDINARY_CLOUD_NAME || 'dyfx8cxx9',
+  apiKey: process.env.CLOUDINARY_API_KEY || '928821851254591',
+  apiSecret: process.env.CLOUDINARY_API_SECRET || 'apeiZLrcSMgf8cytpPSEybnhbzg',
+}));
+

@@ -31,7 +31,10 @@ import {
   mailConfig,
   redisConfig,
   throttleConfig,
+  cloudinaryConfig,
 } from './config';
+import { CloudinaryModule } from './infrastructure/cloudinary';
+import { UsersModule } from './modules/users';
 
 @Module({
   imports: [
@@ -47,6 +50,7 @@ import {
         mailConfig,
         redisConfig,
         throttleConfig,
+        cloudinaryConfig,
       ],
       envFilePath: ['.env.local', '.env'],
     }),
@@ -65,6 +69,7 @@ import {
     // --- Database & Infrastructure (Global) ---
     DatabaseModule,
     SupabaseModule,
+    CloudinaryModule,
     MailModule,
     SseModule,
     RedisModule,
@@ -72,6 +77,7 @@ import {
 
     // --- Feature Modules ---
     AuthModule,
+    UsersModule,
     JournalModule,
     EmotionDumpModule,
     StreakModule,
