@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'motion/react';
-import { ArrowRight, Check, Users } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { EASE_SMOOTH } from '@/lib/constants/journal';
 import { useLanding } from './landing-i18n';
 import LandingParticles from './landing-particles';
@@ -11,7 +11,6 @@ import LandingParticles from './landing-particles';
 export default function LandingHero() {
   const { t } = useLanding();
   const sectionRef = useRef<HTMLElement | null>(null);
-  // Gentle parallax: the journal card drifts slower than the scroll.
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ['start start', 'end start'],
@@ -19,7 +18,10 @@ export default function LandingHero() {
   const cardY = useTransform(scrollYProgress, [0, 1], [0, 90]);
 
   return (
-    <section ref={sectionRef} className="relative overflow-hidden px-3 pt-24 sm:px-6 sm:pt-28">
+    <section
+      ref={sectionRef}
+      className="relative overflow-hidden px-3 pt-24 sm:px-6 sm:pt-28"
+    >
       <LandingParticles />
       <div
         aria-hidden
@@ -31,16 +33,6 @@ export default function LandingHero() {
       />
       <div className="relative mx-auto grid max-w-6xl items-center gap-12 pb-16 pt-10 sm:pt-14 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: EASE_SMOOTH }}
-            className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#c96f4a]/25 bg-[#faebe6]/70 px-4 py-1.5 text-[11px] font-semibold tracking-[0.2em] text-[#b5502a]"
-          >
-            <Users className="h-3.5 w-3.5" aria-hidden />
-            {t.hero.eyebrow}
-          </motion.p>
-
           <motion.h1
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
@@ -85,67 +77,50 @@ export default function LandingHero() {
               {t.hero.ctaSecondary}
             </a>
           </motion.div>
-
-          <motion.ul
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.34 }}
-            className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-[#8c7e75]"
-          >
-            {t.hero.trust.map((item) => (
-              <li key={item} className="flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 text-[#c96f4a]" aria-hidden />
-                {item}
-              </li>
-            ))}
-          </motion.ul>
         </div>
 
         <motion.div
           style={{ y: cardY }}
           className="relative mx-auto w-full max-w-sm"
         >
-        <motion.div
-          initial={{ opacity: 0, y: 32, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.7, ease: EASE_SMOOTH, delay: 0.2 }}
-          className="relative w-full"
-        >
           <motion.div
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-            className="rounded-3xl border border-[#ede3da] bg-white p-7 shadow-[0_24px_60px_-24px_rgba(60,40,30,0.28)]"
+            initial={{ opacity: 0, y: 32, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.7, ease: EASE_SMOOTH, delay: 0.2 }}
+            className="relative w-full"
           >
-            <p className="font-serif text-2xl font-medium tracking-tight text-[#2c2523]">
-              {t.hero.cardTitle}
-            </p>
-            <p className="mt-3 font-serif text-[15px] italic leading-relaxed text-[#665c54]">
-              “{t.hero.cardText}”
-            </p>
-            <div className="mt-5 flex items-center justify-between border-t border-[#f1e6de] pt-4">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#faebe6] px-3 py-1 text-[11px] font-semibold text-[#c96f4a]">
-                <Users className="h-3 w-3" aria-hidden />
-                {t.hero.cardBadge}
-              </span>
-              <span
-                aria-hidden
-                className="flex items-center gap-1 text-[11px] text-[#b3a599]"
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              </span>
-            </div>
-          </motion.div>
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+              className="rounded-3xl border border-[#ede3da] bg-white p-7 shadow-[0_24px_60px_-24px_rgba(60,40,30,0.28)]"
+            >
+              <p className="font-serif text-2xl font-medium tracking-tight text-[#2c2523]">
+                {t.hero.cardTitle}
+              </p>
+              <p className="mt-3 font-serif text-[15px] italic leading-relaxed text-[#665c54]">
+                “{t.hero.cardText}”
+              </p>
+              <div className="mt-5 flex justify-end border-t border-[#f1e6de] pt-4">
+                <span
+                  aria-hidden
+                  className="flex items-center gap-1 text-[11px] text-[#b3a599]"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                </span>
+              </div>
+            </motion.div>
 
-          <div
-            aria-hidden
-            className="absolute -bottom-5 -left-5 -z-10 h-28 w-28 rounded-3xl bg-[#faebe6]"
-          />
-          <div
-            aria-hidden
-            className="absolute -right-4 -top-4 -z-10 h-20 w-20 rounded-full bg-[#f4ebe1]"
-          />
-        </motion.div>
+            <div
+              aria-hidden
+              className="absolute -bottom-5 -left-5 -z-10 h-28 w-28 rounded-3xl bg-[#faebe6]"
+            />
+            <div
+              aria-hidden
+              className="absolute -right-4 -top-4 -z-10 h-20 w-20 rounded-full bg-[#f4ebe1]"
+            />
+          </motion.div>
         </motion.div>
       </div>
     </section>

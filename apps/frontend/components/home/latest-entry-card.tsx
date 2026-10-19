@@ -5,6 +5,8 @@ import { journalApi } from '@/lib/api/journal';
 import { CACHE_TTL, cacheKeys } from '@/lib/api/cache';
 import { useCachedResource } from '@/hooks/use-cached-resource';
 import { useMounted } from '@/lib/use-mounted';
+import { useLang } from '@/lib/i18n/lang-context';
+import { useHome } from '@/components/home/home-i18n';
 import { JournalResponse } from '@renjana/types';
 import { previewOf, splitTitleDisplay } from '@/lib/journal-content';
 import { formatShortDate } from '@renjana/utils';
@@ -28,6 +30,8 @@ function BookIcon() {
 
 export default function LatestEntryCard() {
   const mounted = useMounted();
+  const { lang } = useLang();
+  const t = useHome();
   const {
     data: list,
     loading,
@@ -52,7 +56,7 @@ export default function LatestEntryCard() {
     return (
       <article
         aria-busy="true"
-        aria-label="Memuat jurnal terbaru"
+        aria-label={t.entry.loading}
         className="min-h-72.5 rounded-[30px] bg-[#f0efed] p-7 md:p-8"
       >
         <div className="flex items-center justify-between">
@@ -85,18 +89,16 @@ export default function LatestEntryCard() {
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white">
               <BookIcon />
             </div>
-            <h3 className="text-xl font-semibold">Latest Entry</h3>
+            <h3 className="text-xl font-semibold">{t.entry.title}</h3>
           </div>
         </div>
         <p className="mt-7 flex-1 text-[15px] leading-6 text-[#242420]">
-          {failed
-            ? 'Tidak dapat memuat jurnal saat ini.'
-            : 'Belum ada jurnal. Tulis momen pertamamu hari ini.'}
+          {failed ? t.entry.failed : t.entry.empty}
         </p>
         <div className="mt-7 flex items-end justify-end border-t border-[#d7d4ce] pt-5">
           <Link href="/note/journal">
             <span className="text-xs font-semibold tracking-wide text-[#825a2e]">
-              {failed ? 'Coba Lagi →' : 'Mulai Menulis →'}
+              {failed ? t.entry.retry : t.entry.startWriting}
             </span>
           </Link>
         </div>
@@ -104,7 +106,7 @@ export default function LatestEntryCard() {
     );
   }
 
-  const title = splitTitleDisplay(entry.content) || 'Tanpa Judul';
+  const title = splitTitleDisplay(entry.content) || t.entry.untitled;
 
   return (
     <article className="min-h-72.5 rounded-[30px] bg-[#f0efed] p-7 md:p-8">
@@ -113,10 +115,11 @@ export default function LatestEntryCard() {
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white">
             <BookIcon />
           </div>
-          <h3 className="text-xl font-semibold">Latest Entry</h3>
+          <h3 className="text-xl font-semibold">{t.entry.title}</h3>
         </div>
         <span className="text-xs font-medium uppercase text-[#575650]">
-          Last updated · {formatShortDate(entry.entryDate)}
+          {t.entry.lastUpdated}{' '}
+          {formatShortDate(entry.entryDate, lang === 'id' ? 'id-ID' : 'en-US')}
         </span>
       </div>
 
@@ -148,7 +151,7 @@ export default function LatestEntryCard() {
 
         <Link href="/note/journal">
           <span className="text-xs font-semibold tracking-wide text-[#825a2e]">
-            Open Journal →
+            {t.entry.openJournal}
           </span>
         </Link>
       </div>

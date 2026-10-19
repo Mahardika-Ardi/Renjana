@@ -1,14 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { streakApi } from '@/lib/api/streak';
 import {
   CACHE_TTL,
+  POLL,
   cacheGet,
   cacheKeys,
   cacheSet,
   invalidateStreak,
 } from '@/lib/api/cache';
+import { useRevalidate } from '@/hooks/use-revalidate';
 import type { StreakResponse, TodayNudgeState } from '@renjana/types';
 
 function toErrorMessage(err: unknown, fallback: string): string {
@@ -68,6 +70,30 @@ export function useStreak(options?: { enabled?: boolean }) {
       return false;
     }
   }, [fetchSnapshot]);
+
+  // Cross-device staleness: the partner's nudge/reply (or their invite
+  // acceptance flipping `enabled` on) lands in *their* session, so an open
+  // tab must revalidate itself. Silent — no loading flicker on the counter
+  // or nudge face, and a failed tick keeps the last good snapshot.
+  const polling = useRef(false);
+  const revalidate = useCallback(async () => {
+    if (polling.current) return false;
+    polling.current = true;
+    try {
+      const snapshot = await fetchSnapshot();
+      setData(snapshot);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      polling.current = false;
+    }
+  }, [fetchSnapshot]);
+
+  useRevalidate(() => void revalidate(), {
+    enabled,
+    intervalMs: POLL.STREAK,
+  });
 
   const act = useCallback(
     async (action: 'nudge' | 'reply') => {

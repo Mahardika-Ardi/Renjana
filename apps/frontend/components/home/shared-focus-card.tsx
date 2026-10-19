@@ -3,21 +3,24 @@
 import Link from 'next/link';
 import { useTodos } from '@/hooks/note/use-todo';
 import { categoryLabelOf } from '@/lib/constants/todo';
+import { useLang } from '@/lib/i18n/lang-context';
+import { useHome } from '@/components/home/home-i18n';
+import type { Lang } from '@/lib/i18n/pick';
 import type { TodoResponse } from '@renjana/types';
 
-function subtitleOf(item: TodoResponse): string {
+function subtitleOf(item: TodoResponse, lang: Lang): string {
   if (item.dueDate) {
     const date = new Date(
       item.dueDate.length <= 10 ? `${item.dueDate}T00:00:00` : item.dueDate,
     );
     if (!Number.isNaN(date.getTime())) {
-      return date.toLocaleDateString('id-ID', {
+      return date.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', {
         day: 'numeric',
         month: 'short',
       });
     }
   }
-  return `${categoryLabelOf(item.category)} · ${item.creator.name}`;
+  return `${categoryLabelOf(item.category, lang)} · ${item.creator.name}`;
 }
 
 function TaskRow({
@@ -29,6 +32,8 @@ function TaskRow({
   busy: boolean;
   onToggle: (id: string) => void;
 }) {
+  const { lang } = useLang();
+  const t = useHome();
   const completed = item.status === 'COMPLETED';
 
   return (
@@ -37,7 +42,7 @@ function TaskRow({
         type="button"
         onClick={() => onToggle(item.id)}
         disabled={busy}
-        aria-label={completed ? 'Batal selesai' : 'Tandai selesai'}
+        aria-label={completed ? t.focus.undoDone : t.focus.markDone}
         aria-pressed={completed}
         className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition active:scale-90 disabled:cursor-wait ${
           completed
@@ -72,7 +77,7 @@ function TaskRow({
           {item.title}
         </p>
         <p className="mt-0.5 text-[9px] text-[#646844]">
-          {subtitleOf(item)}
+          {subtitleOf(item, lang)}
         </p>
       </div>
     </div>
@@ -81,6 +86,7 @@ function TaskRow({
 
 export default function SharedFocusCard() {
   const { items, loading, togglingId, toggle } = useTodos();
+  const t = useHome();
 
   const visible = items
     .filter((item) => item.status === 'PENDING')
@@ -92,7 +98,7 @@ export default function SharedFocusCard() {
   return (
     <article className="min-h-72.5 rounded-[30px] bg-[#b4b68d] p-7 text-[#3e4326]">
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-semibold">Shared Focus</h3>
+        <h3 className="text-xl font-semibold">{t.focus.title}</h3>
 
         <div className="flex items-center">
           <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-[#b4b68d] bg-white">
@@ -116,12 +122,12 @@ export default function SharedFocusCard() {
           Array.from({ length: 2 }).map((_, index) => (
             <div
               key={index}
-              className="h-[60px] animate-pulse rounded-full bg-[#aaad82]/60 motion-reduce:animate-none"
+              className="h-15 animate-pulse rounded-full bg-[#aaad82]/60 motion-reduce:animate-none"
             />
           ))
         ) : visible.length === 0 ? (
           <p className="py-4 text-center text-xs leading-relaxed text-[#646844]">
-            Tidak ada tugas aktif. Nikmati harimu berdua.
+            {t.focus.empty}
           </p>
         ) : (
           visible.map((item) => (
@@ -141,7 +147,7 @@ export default function SharedFocusCard() {
         href="/note/todos"
         className="mt-5 flex h-9 w-full items-center justify-center rounded-full bg-[#3f4524] text-xs font-medium text-[#c8c9a9] transition hover:bg-[#34391d]"
       >
-        View All Tasks
+        {t.focus.viewAll}
       </Link>
     </article>
   );

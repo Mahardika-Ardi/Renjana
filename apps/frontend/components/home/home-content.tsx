@@ -4,17 +4,21 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ConnectionStatus from '@/components/home/connection-status';
 import HomeGreeting from '@/components/home/home-greeting';
-import HydrationCard from '@/components/home/hydration-card';
+import MoodCard from '@/components/home/mood-card';
 import LatestEntryCard from '@/components/home/latest-entry-card';
 import RhythmsHeader from '@/components/home/rhythms-header';
 import SharedFocusCard from '@/components/home/shared-focus-card';
 import StillnessCard from '@/components/home/stillness-card';
 import InviteAcceptDialog from '@/components/couple/invite-accept-dialog';
 import JournalToast from '@/components/journal/journal-toast';
+import ProfileModal from '@/components/home/profile-modal';
+import LangSwitcher from '@/components/ui/lang-switcher';
+import { useHome } from '@/components/home/home-i18n';
 import { useGetUserProfile } from '@/hooks/auth/get-user-profile';
 import { useStreak } from '@/hooks/note/use-streak';
 
 export default function HomeContent() {
+  const t = useHome();
   // Single shared GET /auth/me feeding the greeting and both profiles.
   const { user, loading: userLoading, refresh } = useGetUserProfile();
   // Streak only exists for coupled users — skip the request when single.
@@ -25,6 +29,9 @@ export default function HomeContent() {
 
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Which profile slot is open ('me' | 'partner' | null).
+  const [profileModal, setProfileModal] = useState<'me' | 'partner' | null>(null);
 
   const triggerToast = (message: string) => {
     setToast(message);
@@ -45,19 +52,25 @@ export default function HomeContent() {
   const handleInviteAccepted = async () => {
     await refresh();
     stripInviteParam();
-    triggerToast('Berhasil terhubung dengan pasangan');
+    triggerToast(t.toast.connected);
   };
 
   return (
     <div className="mx-auto w-full max-w-250 px-6 py-8 md:px-10 md:py-10">
+      <LangSwitcher />
       <HomeGreeting user={user} userLoading={userLoading} />
 
-      <ConnectionStatus user={user} userLoading={userLoading} streak={streak} />
+      <ConnectionStatus
+        user={user}
+        userLoading={userLoading}
+        streak={streak}
+        onProfileClick={setProfileModal}
+      />
 
       <RhythmsHeader />
 
       <section className="grid grid-cols-1 gap-5 md:grid-cols-[235px_1fr]">
-        <HydrationCard />
+        <MoodCard />
         <StillnessCard />
       </section>
 
@@ -74,6 +87,16 @@ export default function HomeContent() {
             void handleInviteAccepted();
           }}
           onDismiss={stripInviteParam}
+        />
+      )}
+
+      {profileModal && (
+        <ProfileModal
+          key={profileModal}
+          user={user}
+          who={profileModal}
+          onClose={() => setProfileModal(null)}
+          onAvatarChange={refresh}
         />
       )}
 

@@ -1,5 +1,4 @@
 import { MotionConfig } from 'motion/react';
-import { LandingProvider } from '@/components/landing/landing-i18n';
 import LandingNavbar from '@/components/landing/landing-navbar';
 import LandingHero from '@/components/landing/landing-hero';
 import LandingHowItWorks from '@/components/landing/landing-how-it-works';
@@ -11,19 +10,17 @@ import LandingClosing from '@/components/landing/landing-closing';
 export default function LandingPage() {
   return (
     <MotionConfig reducedMotion="user">
-      <LandingProvider>
-        <div className="grain min-h-screen bg-[#f7f3ee] text-[#2c2523] antialiased">
-          <LandingNavbar />
-          <main>
-            <LandingHero />
-            <LandingHowItWorks />
-            <LandingFeatures />
-            <LandingComingSoon />
-            <LandingPrivacy />
-          </main>
-          <LandingClosing />
-        </div>
-      </LandingProvider>
+      <div className="grain min-h-screen bg-[#f7f3ee] text-[#2c2523] antialiased">
+        <LandingNavbar />
+        <main>
+          <LandingHero />
+          <LandingHowItWorks />
+          <LandingFeatures />
+          <LandingComingSoon />
+          <LandingPrivacy />
+        </main>
+        <LandingClosing />
+      </div>
     </MotionConfig>
   );
 }

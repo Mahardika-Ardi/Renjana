@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Check, Plus } from 'lucide-react';
 import { useInvite } from '@/hooks/auth/use-invite';
+import { useHome } from '@/components/home/home-i18n';
 import JournalToast from '@/components/journal/journal-toast';
 
 async function copyText(text: string): Promise<boolean> {
@@ -33,6 +34,7 @@ async function copyText(text: string): Promise<boolean> {
  */
 export default function InviteButton() {
   const { generate, generating } = useInvite();
+  const t = useHome();
   const [copied, setCopied] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -62,8 +64,8 @@ export default function InviteButton() {
         }}
         disabled={generating}
         whileTap={{ scale: 0.92 }}
-        title="Undang pasangan"
-        aria-label="Undang pasangan — salin tautan undangan"
+        title={t.invite.inviteTitle}
+        aria-label={t.invite.inviteAria}
         className="flex h-16.5 w-16.5 items-center justify-center rounded-full border-[3px] border-dashed border-[#b1a082] bg-[#faf6f0] text-[#c96f4a] shadow-sm transition hover:bg-[#faebe6] disabled:cursor-wait md:h-18 md:w-18"
       >
         {copied ? (
@@ -74,10 +76,10 @@ export default function InviteButton() {
       </motion.button>
 
       <span className="mt-3 text-center text-sm text-[#4f4b43]">
-        {copied ? 'Link has been copied' : failed ? 'Gagal — coba lagi' : 'Undang'}
+        {copied ? t.invite.copied : failed ? t.invite.copyFailed : t.invite.invite}
       </span>
 
-      <JournalToast message={copied ? 'Link has been copied' : null} />
+      <JournalToast message={copied ? t.invite.copied : null} />
     </div>
   );
 }

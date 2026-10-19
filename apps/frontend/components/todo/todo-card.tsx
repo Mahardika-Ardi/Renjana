@@ -34,7 +34,7 @@ export default function TodoCard({ item, busy, onToggle }: TodoCardProps) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ duration: 0.25 }}
-      className={`relative flex min-h-[220px] flex-col justify-between rounded-2xl border p-5 transition-colors duration-200 ${
+      className={`relative flex min-h-55 flex-col justify-between rounded-2xl border p-5 transition-colors duration-200 ${
         completed
           ? 'border-[#ebdcd2] bg-[#f6f2ec]'
           : 'border-[#eee4da] bg-white shadow-[0_4px_16px_rgba(200,160,130,0.06)] hover:shadow-[0_10px_24px_-4px_rgba(125,86,45,0.12)]'

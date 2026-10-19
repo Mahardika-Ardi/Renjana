@@ -10,7 +10,7 @@ const Editor = dynamic(() => import('./initialized-mdx-editor'), {
   loading: () => (
     <div
       aria-hidden
-      className="min-h-[420px] animate-pulse rounded-2xl bg-[#f5efe6]"
+      className="min-h-105 animate-pulse rounded-2xl bg-[#f5efe6]"
     />
   ),
 }) as ForwardRefExoticComponent<

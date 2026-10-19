@@ -38,3 +38,19 @@ export function PlayIcon() {
     </svg>
   );
 }
+
+export function HeartPulseIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#8b602f"
+      strokeWidth="1.8"
+    >
+      <path d="M19.5 12.572L12 20l-7.5-7.428A5 5 0 1 1 12 6.006a5 5 0 1 1 7.5 6.566" />
+      <path d="M3.5 12h3l2-3 2 6 2-3h3" />
+    </svg>
+  );
+}

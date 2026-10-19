@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { DropletIcon } from './home-icons';
+import { useHome } from '@/components/home/home-i18n';
 
 const MAX_GLASSES = 8;
 
 export default function HydrationCard() {
   const [glasses, setGlasses] = useState(4);
+  const t = useHome();
 
   const hydrationPercentage = Math.min((glasses / MAX_GLASSES) * 100, 100);
 
@@ -14,10 +16,10 @@ export default function HydrationCard() {
     <div className="relative flex min-h-68.75 flex-col rounded-[30px] bg-[#f1f1f0] p-6">
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-xl font-semibold">Hydration</h3>
+          <h3 className="text-xl font-semibold">{t.hydration.title}</h3>
 
           <p className="mt-1 text-[11px] font-medium tracking-wide text-[#474742]">
-            {glasses} / {MAX_GLASSES} GLASSES
+            {glasses} / {MAX_GLASSES} {t.hydration.unit}
           </p>
         </div>
 

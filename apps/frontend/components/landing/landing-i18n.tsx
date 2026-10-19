@@ -1,16 +1,9 @@
 'use client';
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useLang, type Lang } from '@/lib/i18n/lang-context';
+import { pick } from '@/lib/i18n/pick';
 
-export type LandingLang = 'id' | 'en';
-
-const LANG_STORAGE_KEY = 'renjana-landing-lang';
+export type LandingLang = Lang;
 
 const copy = {
   nav: {
@@ -21,7 +14,6 @@ const copy = {
     signup: ['Daftar', 'Sign Up'],
   },
   hero: {
-    eyebrow: ['JURNAL UNTUK PASANGAN', 'A COUPLE’S JOURNAL'],
     titleA: ['Ruang tumbuh untuk', 'Room to grow for'],
     titleAccent: ['hubungan berdua.', 'your relationship.'],
     sub: [
@@ -243,71 +235,16 @@ export interface LandingCopy {
   };
 }
 
-function pick(node: unknown, lang: LandingLang): unknown {
-  if (Array.isArray(node) && node.length === 2 && node.every((v) => typeof v === 'string')) {
-    return node[lang === 'id' ? 0 : 1];
-  }
-  if (Array.isArray(node)) return node.map((item) => pick(item, lang));
-  if (node && typeof node === 'object') {
-    return Object.fromEntries(
-      Object.entries(node).map(([key, value]) => [key, pick(value, lang)]),
-    );
-  }
-  return node;
-}
-
 interface LandingContextValue {
   lang: LandingLang;
   setLang: (lang: LandingLang) => void;
   t: LandingCopy;
 }
 
-const LandingContext = createContext<LandingContextValue>({
-  lang: 'id',
-  setLang: () => {},
-  t: pick(copy, 'id') as LandingCopy,
-});
-
-export function LandingProvider({ children }: { children: ReactNode }) {
-  // Default 'id' on first render so server HTML and first client paint match.
-  const [lang, setLangState] = useState<LandingLang>('id');
-
-  useEffect(() => {
-    let ignore = false;
-    // Deferred past the commit so the stored language never leaks into the
-    // first client paint (hydration mismatch). Runs once, imperceptible.
-    void Promise.resolve().then(() => {
-      if (ignore) return;
-      try {
-        const saved = window.localStorage.getItem(LANG_STORAGE_KEY);
-        if (saved === 'id' || saved === 'en') setLangState(saved);
-      } catch {
-        // storage unavailable — stay on default
-      }
-    });
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  const setLang = (next: LandingLang) => {
-    setLangState(next);
-    try {
-      window.localStorage.setItem(LANG_STORAGE_KEY, next);
-    } catch {
-      // ignore
-    }
-  };
-
-  return (
-    <LandingContext.Provider
-      value={{ lang, setLang, t: pick(copy, lang) as LandingCopy }}
-    >
-      {children}
-    </LandingContext.Provider>
-  );
-}
-
+/* Language state lives in the app-wide LangProvider (root layout) so the
+ * landing and every page share one choice; only the copy tree and the
+ * resolved `t` are landing-specific. */
 export function useLanding(): LandingContextValue {
-  return useContext(LandingContext);
+  const { lang, setLang } = useLang();
+  return { lang, setLang, t: pick(copy, lang) as LandingCopy };
 }

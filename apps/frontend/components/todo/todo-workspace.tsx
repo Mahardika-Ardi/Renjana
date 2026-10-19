@@ -101,7 +101,7 @@ export default function TodoWorkspace() {
             {Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={index}
-                className="min-h-[220px] animate-pulse rounded-2xl bg-[#f1e7dd]/70 motion-reduce:animate-none"
+                className="min-h-55 animate-pulse rounded-2xl bg-[#f1e7dd]/70 motion-reduce:animate-none"
               />
             ))}
           </div>

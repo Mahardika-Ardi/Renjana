@@ -1,9 +1,14 @@
+'use client';
+
 import { MeditationIcon, PlayIcon } from './home-icons';
+import { useHome } from '@/components/home/home-i18n';
 
 const WEEK_DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const ACTIVE_DAY_INDEX = 1;
 
 export default function StillnessCard() {
+  const t = useHome();
+
   return (
     <div className="relative min-h-68.75 overflow-hidden rounded-[30px] bg-[#686854]">
       {/* Background image */}
@@ -19,7 +24,7 @@ export default function StillnessCard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-[10px] font-semibold tracking-wide text-white backdrop-blur-sm">
             <MeditationIcon />
-            EVENING RITUAL
+            {t.stillness.badge}
           </div>
 
           <button
@@ -32,13 +37,13 @@ export default function StillnessCard() {
 
         <div className="mt-10">
           <h3 className="text-3xl font-medium tracking-[-0.03em] text-white">
-            Guided Stillness
+            {t.stillness.title}
           </h3>
 
           <p className="mt-2 max-w-117.5 text-sm leading-6 text-white/85">
-            15 minutes remaining today to ground your thoughts
+            {t.stillness.descLine1}
             <br className="hidden sm:block" />
-            and prepare for rest.
+            {t.stillness.descLine2}
           </p>
         </div>
 
@@ -59,7 +64,7 @@ export default function StillnessCard() {
           </div>
 
           <span className="text-[10px] font-semibold tracking-[0.12em] text-white/70">
-            2 DAY STREAK
+            {t.stillness.streak}
           </span>
         </div>
       </div>
