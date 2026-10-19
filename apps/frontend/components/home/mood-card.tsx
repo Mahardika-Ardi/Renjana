@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { HeartPulseIcon } from './home-icons';
 import { useHome } from '@/components/home/home-i18n';
-import { useLang } from '@/lib/i18n/lang-context';
-import { pick } from '@/lib/i18n/pick';
 import { MOOD_ITEMS, MoodLevel, MOOD_LEVEL_TO_ENUM, MoodEnum } from '@/lib/constants/mood';
 import { useMoodToday } from '@/hooks/use-mood-today';
 import { useMounted } from '@/lib/use-mounted';
@@ -14,7 +12,6 @@ const AUTO_SEND_MS = 10_000;
 export default function MoodCard() {
   const mounted = useMounted();
   const t = useHome();
-  const { lang } = useLang();
   const { data, locked, loading, submitting, submit, error, clearError } = useMoodToday();
 
   const [selected, setSelected] = useState<MoodLevel | null>(null);
@@ -127,9 +124,7 @@ export default function MoodCard() {
                 ].join(' ')}
               >
                 <span className="text-2xl leading-none">{item.emoji}</span>
-                <span className="text-sm text-[#3f3f3a]">
-                  {pick(item.label, lang)}
-                </span>
+
               </button>
             );
           })}
