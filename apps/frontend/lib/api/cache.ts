@@ -139,6 +139,7 @@ export const cacheKeys = {
   todoList: 'todos:list',
   streak: 'streak:current',
   moodToday: 'mood:today',
+  moodPartnerToday: 'mood:partner:today',
 } as const;
 
 /** Drop list + latest + one (or all) detail entries after a journal mutation. */

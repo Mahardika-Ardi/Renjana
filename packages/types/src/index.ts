@@ -268,3 +268,69 @@ export interface NudgeActionResult {
   currentStreak?: number;
   longestStreak?: number;
 }
+
+// ---- Consultation (Relationship AI Counselor) -----------------------
+
+export type ConsultationSender = 'USER' | 'ASSISTANT';
+
+export interface ConsultationMessage {
+  id: string;
+  sessionId: string;
+  sender: ConsultationSender;
+  content: string;
+  createdAt: string;
+}
+
+/** Row shape of GET /consultations (list items include only the newest message). */
+export interface ConsultationSessionSummary {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  totalMessages: number;
+  lastMessage: ConsultationMessage | null;
+}
+
+export interface ConsultationSessionDetail {
+  id: string;
+  title: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: ConsultationMessage[];
+}
+
+/** Response pair of POST /consultations/:id/messages. */
+export interface ConsultationExchange {
+  userMessage: ConsultationMessage;
+  assistantMessage: ConsultationMessage;
+}
+
+// ---- Emotion Dump (Daily Layer) -------------------------------------
+
+/** PRIVATE → (weekly AI cron) → REFINED → SHARED | PRIVATE (user). SHARED is terminal. */
+export type EmotionDumpStatus = 'PRIVATE' | 'REFINED' | 'SHARED';
+
+export interface EmotionDump {
+  id: string;
+  userId: string;
+  rawContent: string;
+  refinedContent: string | null;
+  aiProcessedAt: string | null;
+  status: EmotionDumpStatus;
+  sharedAt: string | null;
+  weekNumber: number;
+  weekYear: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Row shape of GET /emotion-dumps/partner (SHARED dumps of the partner). */
+export interface PartnerEmotionDump {
+  id: string;
+  refinedContent: string | null;
+  sharedAt: string | null;
+  weekNumber: number;
+  weekYear: number;
+  user: { id: string; name: string; avatarUrl: string | null };
+}

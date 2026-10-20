@@ -5,3 +5,5 @@ export const JOURNAL_BASE_URL = '/journal';
 export const TODO_BASE_URL = '/todos';
 export const STREAK_BASE_URL = '/streak';
 export const MOOD_BASE_URL = '/mood';
+export const CONSULTATION_BASE_URL = '/consultations';
+export const EMOTION_DUMP_BASE_URL = '/emotion-dumps';

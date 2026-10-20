@@ -39,24 +39,52 @@ const copy = {
     submitting: ['Mengirim mood…', 'Submitting mood…'],
     cancel: ['Batal', 'Cancel'],
     locked: ['Terkunci sampai besok', 'Locked until tomorrow'],
+    partnerMood: ['Mood pasangan hari ini', 'Partner’s mood today'],
     error: ['Gagal mengirim mood', 'Failed to submit mood'],
   },
   hydration: {
     title: ['Hidrasi', 'Hydration'],
     unit: ['GELAS', 'GLASSES'],
   },
-  stillness: {
-    badge: ['RITUAL MALAM', 'EVENING RITUAL'],
-    title: ['Ketenangan Terpandu', 'Guided Stillness'],
-    descLine1: [
-      '15 menit tersisa hari ini untuk menenangkan pikiran',
-      '15 minutes remaining today to ground your thoughts',
+  dump: {
+    badge: ['CURAHAN EMOSI', 'EMOTION DUMP'],
+    tabMine: ['Milikku', 'Mine'],
+    tabPartner: ['Pasangan', 'Partner'],
+    calendarAria: ['Buka kalender', 'Open calendar'],
+    addAria: ['Tambah curhatan', 'Add emotion dump'],
+    closeAria: ['Tutup komposer', 'Close composer'],
+    placeholder: ['Luapkan apa saja di sini…', 'Vent anything here…'],
+    submit: ['Curhat', 'Vent'],
+    submitting: ['Mengirim…', 'Sending…'],
+    cronNote: [
+      'AI memperhalus otomatis setiap Minggu pukul 12.00 WIB.',
+      'AI refines automatically every Sunday at 12:00 WIB.',
     ],
-    descLine2: [
-      'dan mempersiapkan diri untuk beristirahat.',
-      'and prepare for rest.',
+    charOf: ['/1000', '/1000'],
+    loading: ['Memuat curhatan…', 'Loading dumps…'],
+    empty: ['Belum ada curhatan. Luapkan perasaanmu.', 'No dumps yet. Let it all out.'],
+    listFailed: ['Gagal memuat curhatan.', 'Failed to load dumps.'],
+    retry: ['Coba Lagi', 'Try Again'],
+    createFailed: [
+      'Gagal menyimpan curhatan. Coba lagi.',
+      'Failed to save your dump. Try again.',
     ],
-    streak: ['STREAK 2 HARI', '2 DAY STREAK'],
+    shareFailed: ['Gagal membagikan. Coba lagi.', 'Failed to share. Try again.'],
+    statusPrivate: ['PRIVAT', 'PRIVATE'],
+    statusRefined: ['DIFOLES', 'REFINED'],
+    statusShared: ['DIBAGIKAN', 'SHARED'],
+    share: ['Bagikan', 'Share'],
+    shareAria: ['Bagikan ke pasangan', 'Share with partner'],
+    showOriginal: ['Lihat asli', 'View original'],
+    showRefined: ['Lihat hasil AI', 'View refined'],
+    partnerEmpty: [
+      'Pasangan belum membagikan apa pun.',
+      'Your partner hasn’t shared anything yet.',
+    ],
+    partnerNotConnected: [
+      'Hubungkan dulu dengan pasanganmu.',
+      'Connect with your partner first.',
+    ],
   },
   entry: {
     title: ['Entri Terbaru', 'Latest Entry'],
@@ -157,6 +185,9 @@ const copy = {
       'Berhasil terhubung dengan pasangan',
       'Successfully connected with your partner',
     ],
+  },
+  fab: {
+    ai: ['Konselor AI', 'AI Counselor'],
   },
 } as const;
 

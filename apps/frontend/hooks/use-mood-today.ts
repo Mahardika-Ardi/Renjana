@@ -6,7 +6,7 @@ import { moodApi, MoodLog, MoodListResponse } from '@/lib/api/mood';
 import { cacheGet, cacheKeys, cacheSet, cacheInvalidate, CACHE_TTL } from '@/lib/api/cache';
 import type { ApiResponse } from '@renjana/types';
 
-function todayDateString(): string {
+export function todayDateString(): string {
   const d = new Date();
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');

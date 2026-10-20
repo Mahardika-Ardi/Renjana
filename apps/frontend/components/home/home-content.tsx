@@ -8,11 +8,12 @@ import MoodCard from '@/components/home/mood-card';
 import LatestEntryCard from '@/components/home/latest-entry-card';
 import RhythmsHeader from '@/components/home/rhythms-header';
 import SharedFocusCard from '@/components/home/shared-focus-card';
-import StillnessCard from '@/components/home/stillness-card';
+import EmotionDumpCard from '@/components/home/emotion-dump-card';
 import InviteAcceptDialog from '@/components/couple/invite-accept-dialog';
 import JournalToast from '@/components/journal/journal-toast';
 import ProfileModal from '@/components/home/profile-modal';
 import LangSwitcher from '@/components/ui/lang-switcher';
+import AiFab from '@/components/ui/ai-fab';
 import { useHome } from '@/components/home/home-i18n';
 import { useGetUserProfile } from '@/hooks/auth/get-user-profile';
 import { useStreak } from '@/hooks/note/use-streak';
@@ -71,7 +72,7 @@ export default function HomeContent() {
 
       <section className="grid grid-cols-1 gap-5 md:grid-cols-[235px_1fr]">
         <MoodCard />
-        <StillnessCard />
+        <EmotionDumpCard />
       </section>
 
       <section className="mt-16 grid grid-cols-1 gap-5 md:grid-cols-[1.55fr_1fr]">
@@ -101,6 +102,8 @@ export default function HomeContent() {
       )}
 
       <JournalToast message={toast} />
+
+      <AiFab label={t.fab.ai} />
     </div>
   );
 }

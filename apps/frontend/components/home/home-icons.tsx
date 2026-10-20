@@ -13,24 +13,6 @@ export function DropletIcon() {
   );
 }
 
-export function MeditationIcon() {
-  return (
-    <svg
-      width="13"
-      height="13"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    >
-      <circle cx="12" cy="5" r="2" />
-      <path d="M6 11c1.5-2 3.5-3 6-3s4.5 1 6 3" />
-      <path d="M8 10v4m8-4v4M5 19c2-2 4.3-3 7-3s5 1 7 3" />
-      <path d="M9 14h6" />
-    </svg>
-  );
-}
-
 export function PlayIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
