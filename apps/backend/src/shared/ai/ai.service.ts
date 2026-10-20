@@ -25,6 +25,7 @@ export class AiService {
   private readonly openaiModel: string;
   private readonly geminiApiKey: string | null = null;
   private readonly geminiModel: string;
+  private readonly geminiTimeoutMs: number;
 
   constructor(private config: ConfigService) {
     const openaiKey = this.config.get<string>('openai.apiKey');
@@ -36,12 +37,14 @@ export class AiService {
 
     const geminiKey = this.config.get<string>('gemini.apiKey');
     this.geminiModel =
-      this.config.get<string>('gemini.model') || 'gemini-1.5-flash';
+      this.config.get<string>('gemini.model') || 'gemini-3.1-flash-lite';
+    this.geminiTimeoutMs =
+      this.config.get<number>('gemini.timeoutMs') || 45000;
 
     if (geminiKey && !geminiKey.includes('your-gemini')) {
       this.geminiApiKey = geminiKey;
       this.logger.log(
-        `AiService initialized with Gemini API model: ${this.geminiModel}`,
+        `AiService initialized with Gemini API model: ${this.geminiModel} (timeout: ${this.geminiTimeoutMs}ms)`,
       );
     } else if (this.openai) {
       this.logger.log(
@@ -122,7 +125,7 @@ export class AiService {
           responseMimeType: 'application/json',
         },
       }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(this.geminiTimeoutMs),
     });
 
     if (!response.ok) {
@@ -211,7 +214,7 @@ export class AiService {
   }
 
   /**
-   * Pemanggil Google Gemini untuk konsultasi hubungan
+   * Pemanggil Google Gemini untuk konsultasi hubungan dengan timeout 45s dan auto-retry 1x
    */
   private async callGeminiCounselor(
     systemPrompt: string,
@@ -221,8 +224,6 @@ export class AiService {
 
     // Format percakapan multi-turn untuk Gemini API
     const contents: any[] = [];
-
-    // Sertakan system instruction sebagai bagian konteks awal
     const effectiveHistory = history.slice(-10); // Ambil maksimal 10 pesan terakhir untuk efisiensi
     for (const msg of effectiveHistory) {
       contents.push({
@@ -233,29 +234,49 @@ export class AiService {
 
     if (contents.length === 0) return null;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: {
-          parts: [{ text: systemPrompt }],
-        },
-        contents,
-        generationConfig: {
-          temperature: 0.7,
-        },
-      }),
-      signal: AbortSignal.timeout(6000),
-    });
+    const payload = {
+      system_instruction: {
+        parts: [{ text: systemPrompt }],
+      },
+      contents,
+      generationConfig: {
+        temperature: 0.7,
+      },
+    };
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Gemini HTTP ${response.status}: ${errorText}`);
+    let lastError: any = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(this.geminiTimeoutMs),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Gemini HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = (await response.json()) as any;
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          return text.trim();
+        }
+      } catch (err: any) {
+        lastError = err;
+        this.logger.warn(
+          `Gemini counselor attempt ${attempt}/2 failed (${err.message}).` +
+            (attempt < 2 ? ' Retrying in 1s...' : ''),
+        );
+        if (attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
     }
 
-    const data = (await response.json()) as any;
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    return text ? text.trim() : null;
+    throw lastError || new Error('Gemini counselor call failed after 2 attempts');
   }
 
   /**
@@ -287,24 +308,16 @@ export class AiService {
   }
 
   /**
-   * Fallback konselor hubungan lokal saat mode offline/dev/timeout
+   * Respon fallback darurat saat server AI offline/gangguan
    */
   private fallbackCounselorAdvice(
     history: ChatHistoryMessage[],
     context: CoupleContext,
   ): string {
     const partner = context.partnerName || 'pasanganmu';
-    const lastUserMessage =
-      [...history].reverse().find((m) => m.sender === 'USER')?.content || '';
-
     return (
-      `Halo ${context.userName}, wajar banget kalau kamu merasa bingung atau khawatir saat melihat ${partner} bersikap berbeda dari biasanya. ` +
-      `Terkadang, perubahan sikap seperti ini bukan karena masalah di antara kalian, melainkan karena ${partner} mungkin sedang mengalami kelelahan mental, tekanan pekerjaan, atau butuh ruang sejenak untuk memulihkan energinya.\n\n` +
-      `Beberapa saran yang bisa kamu coba:\n` +
-      `1. Berikan ruang dengan hangat: Jangan langsung menuntut penjelasan. Coba kirimkan pesan sederhana seperti: "Hai ${partner}, aku ada di sini ya kalau kamu butuh teman cerita atau mau istirahat dulu."\n` +
-      `2. Tunjukkan kehadiran tanpa tekanan: Coba bawakan minuman favoritnya atau tanyakan apakah ada hal kecil yang bisa kamu bantu.\n` +
-      `3. Jaga ketenangan dirimu: Ingat bahwa suasana hatinya saat ini bersifat sementara. Tetaplah menjadi ruang yang aman untuknya.\n\n` +
-      `Semoga suasana hatinya segera membaik ya, ${context.userName}. Kamu sudah melakukan yang terbaik dengan berusaha memahaminya.`
+      `Halo ${context.userName}, maaf saat ini konselor AI Renjana sedang mengalami kendala jaringan ke server AI. ` +
+      `Aku tetap di sini mendengarkan ceritamu tentang ${partner}. Mohon berikan waktu sejenak dan coba kirimkan kembali pertanyaan atau curhatmu ya.`
     );
   }
 }

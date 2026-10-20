@@ -36,7 +36,8 @@ describe('AiService', () => {
         if (key === 'openai.apiKey') return openAiKey;
         if (key === 'openai.model') return 'gpt-4o-mini';
         if (key === 'gemini.apiKey') return geminiKey;
-        if (key === 'gemini.model') return 'gemini-1.5-flash';
+        if (key === 'gemini.model') return 'gemini-3.1-flash-lite';
+        if (key === 'gemini.timeoutMs') return 45000;
         return null;
       }),
     };
@@ -205,8 +206,7 @@ describe('AiService', () => {
 
       expect(advice).toContain('Arka');
       expect(advice).toContain('Senja');
-      expect(advice).toContain('Beberapa saran yang bisa kamu coba');
-      expect(advice).toContain('Semoga suasana hatinya segera membaik');
+      expect(advice).toContain('kendala jaringan');
     });
 
     it('should call callGeminiCounselor when gemini key is provided', async () => {

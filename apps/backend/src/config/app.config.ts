@@ -28,7 +28,8 @@ export const openaiConfig = registerAs('openai', () => ({
 
 export const geminiConfig = registerAs('gemini', () => ({
   apiKey: process.env.GEMINI_API_KEY || '',
-  model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+  model: process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite',
+  timeoutMs: parseInt(process.env.GEMINI_TIMEOUT_MS || '45000', 10),
 }));
 
 export const mailConfig = registerAs('mail', () => ({

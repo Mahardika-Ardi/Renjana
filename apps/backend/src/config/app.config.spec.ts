@@ -110,19 +110,23 @@ describe('app.config', () => {
     it('should use env values when set', () => {
       process.env.GEMINI_API_KEY = 'gemini-key';
       process.env.GEMINI_MODEL = 'gemini-2.0-flash';
+      process.env.GEMINI_TIMEOUT_MS = '60000';
 
       const config = geminiConfig() as any;
       expect(config.apiKey).toBe('gemini-key');
       expect(config.model).toBe('gemini-2.0-flash');
+      expect(config.timeoutMs).toBe(60000);
     });
 
-    it('should default model to gemini-1.5-flash', () => {
+    it('should default model to gemini-3.1-flash-lite and timeoutMs to 45000', () => {
       delete process.env.GEMINI_API_KEY;
       delete process.env.GEMINI_MODEL;
+      delete process.env.GEMINI_TIMEOUT_MS;
 
       const config = geminiConfig() as any;
       expect(config.apiKey).toBe('');
-      expect(config.model).toBe('gemini-1.5-flash');
+      expect(config.model).toBe('gemini-3.1-flash-lite');
+      expect(config.timeoutMs).toBe(45000);
     });
   });
 
