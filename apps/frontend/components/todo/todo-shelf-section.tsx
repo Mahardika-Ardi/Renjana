@@ -49,7 +49,7 @@ export default function TodoShelfSection({
         <button
           type="button"
           onClick={onAdd}
-          className="group flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#ddcebe] p-6 text-center transition-all hover:border-[#c8704c] hover:bg-white/60"
+          className="group flex min-h-55 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#ddcebe] p-6 text-center transition-all hover:border-[#c8704c] hover:bg-white/60"
         >
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#f4ebe1] text-[#82756a] transition-colors group-hover:bg-[#faebe6] group-hover:text-[#c8704c]">
             <Plus className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" aria-hidden />
@@ -65,7 +65,7 @@ export default function TodoShelfSection({
 
       <div
         aria-hidden
-        className="relative mt-2 h-2 rounded-full bg-gradient-to-b from-[#e7ddcf] to-[#d8cdbe] shadow-[0_3px_6px_-1px_rgba(97,95,75,0.1),inset_0_1px_1px_rgba(255,255,255,0.9)]"
+        className="relative mt-2 h-2 rounded-full bg-linear-to-b from-[#e7ddcf] to-[#d8cdbe] shadow-[0_3px_6px_-1px_rgba(97,95,75,0.1),inset_0_1px_1px_rgba(255,255,255,0.9)]"
       />
     </section>
   );

@@ -3,6 +3,7 @@
 import { motion } from 'motion/react';
 import { Check, Hand, Loader2 } from 'lucide-react';
 import { FOCUS_RING } from '@/lib/constants/journal';
+import { useHome } from '@/components/home/home-i18n';
 import type { TodayNudgeState } from '@renjana/types';
 
 interface StreakNudgeButtonProps {
@@ -20,12 +21,14 @@ export default function StreakNudgeButton({
   onSend,
   onReply,
 }: StreakNudgeButtonProps) {
+  const t = useHome();
+
   if (status === 'COMPLETED') {
     return (
       <div className="relative z-10 mt-5 flex flex-col items-center gap-2">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/70 bg-emerald-50/80 px-4 py-2 text-xs font-semibold text-emerald-700">
           <Check className="h-3.5 w-3.5" aria-hidden />
-          Streak +1 hari ini
+          {t.nudge.doneToday}
         </span>
       </div>
     );
@@ -38,7 +41,7 @@ export default function StreakNudgeButton({
           {acting ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
           ) : null}
-          Menunggu balasan…
+          {t.nudge.waiting}
         </span>
       </div>
     );
@@ -62,7 +65,7 @@ export default function StreakNudgeButton({
         ) : (
           <Hand className="h-3.5 w-3.5" aria-hidden />
         )}
-        {acting ? 'Mengirim…' : isReply ? 'Balas Senggolan' : 'Senggol Pasangan'}
+        {acting ? t.nudge.sending : isReply ? t.nudge.reply : t.nudge.send}
       </motion.button>
       {error && (
         <p role="alert" className="text-[11px] font-medium text-red-600">

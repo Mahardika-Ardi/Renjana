@@ -93,8 +93,19 @@ async function request<T>(
 }
 
 export const api = {
-  get<T>(endpoint: string, headers?: HeadersInit) {
-    return request<T>('GET', endpoint, { headers });
+  get<T>(endpoint: string, options?: RequestOptions & { params?: Record<string, unknown> }) {
+    const headers = options?.headers;
+    let ep = endpoint;
+    if (options?.params && Object.keys(options.params).length > 0) {
+      const qs = new URLSearchParams();
+      Object.entries(options.params).forEach(([k, v]) => {
+        if (v === undefined || v === null) return;
+        qs.append(k, String(v));
+      });
+      const s = qs.toString();
+      if (s) ep += (ep.includes('?') ? '&' : '?') + s;
+    }
+    return request<T>('GET', ep, { headers });
   },
 
   post<T>(endpoint: string, body?: unknown, headers?: HeadersInit) {

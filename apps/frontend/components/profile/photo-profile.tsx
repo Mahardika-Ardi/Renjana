@@ -1,6 +1,8 @@
 import { useGetUserProfile } from '@/hooks/auth/get-user-profile';
 import { AuthUser } from '@renjana/types';
 import { useMounted } from '@/lib/use-mounted';
+import { useHome } from '@/components/home/home-i18n';
+import { avatarSrc } from '@/lib/avatar-revision';
 import Image from 'next/image';
 
 interface ProfileProps {
@@ -13,6 +15,7 @@ interface ProfileProps {
 
 export default function Profile({ who = 'me', user: userProp, loading: loadingProp }: ProfileProps) {
   const mounted = useMounted();
+  const t = useHome();
   const skipFetch = userProp !== undefined;
   const { loading: loadingHook, user: userHook } = useGetUserProfile({
     enabled: !skipFetch,
@@ -32,14 +35,16 @@ export default function Profile({ who = 'me', user: userProp, loading: loadingPr
   // Pre-mount (and server) output must be identical: cached profile data
   // must not leak into the first client paint (hydration mismatch).
   const shownAvatar = mounted ? avatarUrl : null;
-  const shownName = !mounted || loading ? '…' : (name ?? (isPartner ? 'Belum terhubung' : ''));
+  const shownName = !mounted || loading
+    ? '…'
+    : (name ?? (isPartner ? t.profile.notConnected : ''));
 
   return (
     <div className="relative z-20 flex flex-col items-center">
       <div className="h-16.5 w-16.5 overflow-hidden rounded-full border-[3px] border-[#b1a082] bg-[#ddd] shadow-sm md:h-18 md:w-18">
         <Image
-          src={shownAvatar == null ? '/icons/user.svg' : shownAvatar}
-          alt={isPartner ? 'Partner Image' : 'User Image'}
+          src={avatarSrc(shownAvatar)}
+          alt={isPartner ? t.profile.imagePartner : t.profile.imageMe}
           className={`h-full w-full object-cover ${mounted && loading && 'animate-pulse'}`}
           height={100}
           width={100}

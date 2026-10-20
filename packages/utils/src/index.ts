@@ -52,6 +52,12 @@ const shortEnDateFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
 });
 
+/** Formatter cache for `formatShortDate`'s optional locale. */
+const shortDateFormatters: Record<string, Intl.DateTimeFormat> = {
+  'en-US': shortEnDateFormatter,
+  'id-ID': shortDateFormatter,
+};
+
 const timeFormatter = new Intl.DateTimeFormat('id-ID', {
   timeZone: "Asia/Jakarta",
   hour: '2-digit',
@@ -65,9 +71,9 @@ export const formatDate = (date: Date | string, locale = 'en-US'): string =>
     year: 'numeric',
   });
 
-export const getCurrentDateFormatted = (): string => {
+export const getCurrentDateFormatted = (locale = 'en-US'): string => {
   const date = new Date();
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString(locale, {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
@@ -112,10 +118,20 @@ export function formatEditedAt(iso: string): string {
     : '—';
 }
 
-/** "Oct 18, 2025" — short English date, no clock time. */
-export function formatShortDate(iso: string): string {
+/** "Oct 18, 2025" (en-US) · "18 Okt 2025" (id-ID) — short date, no clock time. */
+export function formatShortDate(iso: string, locale = 'en-US'): string {
   const date = parseDate(iso);
-  return date ? shortEnDateFormatter.format(date) : '—';
+  if (!date) return '—';
+  const formatter = (shortDateFormatters[locale] ??= new Intl.DateTimeFormat(
+    locale,
+    {
+      timeZone: 'Asia/Jakarta',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    },
+  ));
+  return formatter.format(date);
 }
 
 /** "Hari ini, 10:24" · "Kemarin, 21:15" · "18 Okt 2024" */

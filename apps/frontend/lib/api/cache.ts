@@ -117,6 +117,17 @@ export const CACHE_TTL = {
   JOURNAL_DETAIL: 5 * 60 * 1000,
   TODO_LIST: 3 * 60 * 1000,
   STREAK: 2 * 60 * 1000,
+  MOOD_TODAY: 5 * 60 * 1000,
+} as const;
+
+/**
+ * Cadence for silent background revalidation (see useRevalidate). TTL keeps
+ * reloads instant; these keep *open* tabs honest about state another device
+ * changed — invite acceptance and streak moves never invalidate our cache.
+ */
+export const POLL = {
+  ME: 60 * 1000,
+  STREAK: 60 * 1000,
 } as const;
 
 export const cacheKeys = {
@@ -127,6 +138,8 @@ export const cacheKeys = {
   journalDetailPrefix: 'journals:detail',
   todoList: 'todos:list',
   streak: 'streak:current',
+  moodToday: 'mood:today',
+  moodPartnerToday: 'mood:partner:today',
 } as const;
 
 /** Drop list + latest + one (or all) detail entries after a journal mutation. */

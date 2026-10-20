@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { HeartHandshake, Loader2, TriangleAlert, X } from 'lucide-react';
 import { useInvite } from '@/hooks/auth/use-invite';
+import { useHome } from '@/components/home/home-i18n';
 import { FOCUS_RING } from '@/lib/constants/journal';
 import type { ValidateInviteResponse } from '@renjana/types';
 
@@ -24,6 +25,7 @@ export default function InviteAcceptDialog({
   onDismiss,
 }: InviteAcceptDialogProps) {
   const { validate, accept, accepting, error, dismissError } = useInvite();
+  const t = useHome();
   const [state, setState] = useState<DialogState>({ kind: 'checking' });
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export default function InviteAcceptDialog({
       if (!invite) {
         setState({
           kind: 'failed',
-          message: 'Tautan undangan tidak valid atau sudah kadaluarsa.',
+          message: t.invite.invalidOrExpired,
         });
         return;
       }
@@ -53,7 +55,7 @@ export default function InviteAcceptDialog({
     else
       setState({
         kind: 'failed',
-        message: error ?? 'Gagal menerima undangan.',
+        message: error ?? t.invite.acceptFailed,
       });
   };
 
@@ -62,7 +64,7 @@ export default function InviteAcceptDialog({
       <motion.div
         role="dialog"
         aria-modal="true"
-        aria-label="Undangan pasangan"
+        aria-label={t.invite.inviteTitle}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -82,7 +84,7 @@ export default function InviteAcceptDialog({
                 <Loader2 className="h-6 w-6 animate-spin" aria-hidden />
               </span>
               <h3 className="mt-4 font-serif text-xl font-semibold tracking-tight text-[#2c2523]">
-                Memeriksa undangan…
+                {t.invite.checking}
               </h3>
             </>
           ) : state.kind === 'failed' ? (
@@ -91,17 +93,17 @@ export default function InviteAcceptDialog({
                 <TriangleAlert className="h-6 w-6" aria-hidden />
               </span>
               <h3 className="mt-4 font-serif text-xl font-semibold tracking-tight text-[#2c2523]">
-                Undangan tidak berlaku
+                {t.invite.invalidTitle}
               </h3>
               <p className="mt-2 text-[13px] leading-relaxed text-[#665c54]">
-                {state.message}
+                {state.message} {t.invite.invalidHint}
               </p>
               <button
                 type="button"
                 onClick={onDismiss}
                 className={`mt-6 w-full rounded-xl border border-[#eedfd5] bg-white px-4 py-2.5 text-xs font-semibold text-[#665c54] transition hover:bg-[#f5efe6] ${FOCUS_RING}`}
               >
-                Tutup
+                {t.invite.close}
               </button>
             </>
           ) : (
@@ -109,7 +111,7 @@ export default function InviteAcceptDialog({
               <button
                 type="button"
                 onClick={onDismiss}
-                aria-label="Tutup undangan"
+                aria-label={t.invite.closeAria}
                 className={`absolute right-4 top-4 rounded-lg p-1.5 text-[#8c7e75] transition hover:bg-[#f5efe6] ${FOCUS_RING}`}
               >
                 <X className="h-4 w-4" aria-hidden />
@@ -118,11 +120,10 @@ export default function InviteAcceptDialog({
                 <HeartHandshake className="h-6 w-6" aria-hidden />
               </span>
               <h3 className="mt-4 font-serif text-xl font-semibold tracking-tight text-[#2c2523] sm:text-2xl">
-                {state.invite.sender.name} mengundangmu
+                {state.invite.sender.name} {t.invite.invitedYou}
               </h3>
               <p className="mt-2 text-[13px] leading-relaxed text-[#665c54]">
-                Terima undangan untuk terhubung sebagai pasangan dan mulai
-                menulis jurnal bersama.
+                {t.invite.acceptDesc}
               </p>
               <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
                 <button
@@ -131,7 +132,7 @@ export default function InviteAcceptDialog({
                   disabled={accepting}
                   className={`w-full rounded-xl border border-[#eedfd5] bg-white px-4 py-2.5 text-xs font-semibold text-[#665c54] transition hover:bg-[#f5efe6] disabled:opacity-60 sm:w-1/2 ${FOCUS_RING}`}
                 >
-                  Tolak
+                  {t.invite.decline}
                 </button>
                 <button
                   type="button"
@@ -144,7 +145,7 @@ export default function InviteAcceptDialog({
                   {accepting && (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
                   )}
-                  Terima
+                  {t.invite.accept}
                 </button>
               </div>
             </>

@@ -2,21 +2,49 @@ import Profile from '@/components/profile/photo-profile';
 import InviteButton from '@/components/couple/invite-button';
 import StreakNudgeButton from '@/components/home/streak-nudge-button';
 import { AuthUser } from '@renjana/types';
+import { useMounted } from '@/lib/use-mounted';
+import { useHome } from '@/components/home/home-i18n';
 import type { UseStreakReturn } from '@/hooks/note/use-streak';
 
 interface ConnectionStatusProps {
   user: AuthUser | null;
   userLoading: boolean;
   streak: UseStreakReturn;
+  onProfileClick?: (type: 'me' | 'partner') => void;
 }
 
-export default function ConnectionStatus({ user, userLoading, streak }: ConnectionStatusProps) {
-  const coupled = !!user?.couple;
+export default function ConnectionStatus({
+  user,
+  userLoading,
+  streak,
+  onProfileClick,
+}: ConnectionStatusProps) {
+  const mounted = useMounted();
+  const t = useHome();
+  // Pre-mount renders the placeholder on BOTH server and first client paint
+  // — the warm sessionStorage cache must not pick a branch during hydration
+  // (same contract as HomeGreeting / Profile). Partner slot, streak count,
+  // and nudge button all hang off `coupled`, so all three are gated here.
+  const ready = mounted && !userLoading && !!user;
+  const coupled = ready && !!user?.couple;
   return (
     <section className="relative mb-16 overflow-hidden rounded-[38px] bg-[#f1eee8] px-6 py-16 shadow-[0_15px_35px_rgba(60,50,40,0.05)] md:px-10 md:py-20">
       <div className="relative mx-auto flex max-w-212.5 items-center justify-between">
-        {/* Arka */}
-        <Profile who="me" user={user} loading={userLoading} />
+        {/* Arka — klik untuk lihat profil */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onProfileClick?.('me')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onProfileClick?.('me');
+            }
+          }}
+          className="relative cursor-pointer rounded-full transition-transform hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b1a082]"
+        >
+          <Profile who="me" user={user} loading={userLoading} />
+        </div>
 
         {/* Heartbeat */}
         <div className="absolute left-[18%] right-[18%] top-8.75 h-37.5">
@@ -67,14 +95,29 @@ export default function ConnectionStatus({ user, userLoading, streak }: Connecti
           </div>
         </div>
 
-        {/* Senja — partner slot, or invite button when single */}
-        {userLoading || !user ? (
+        {/* Senja — partner slot, or invite button when single.
+            `!ready || !user` keeps the skeleton on the server + first client
+            paint; `!user` is redundant logically but lets TS narrow. */}
+        {!ready || !user ? (
           <div className="relative z-20 flex flex-col items-center" aria-hidden>
             <div className="h-16.5 w-16.5 animate-pulse rounded-full border-[3px] border-[#b1a082] bg-[#e8e2d8] motion-reduce:animate-none md:h-18 md:w-18" />
             <span className="mt-3 h-4 w-16 animate-pulse rounded-full bg-[#e8e2d8] motion-reduce:animate-none" />
           </div>
         ) : user.couple ? (
-          <Profile who="partner" user={user} loading={userLoading} />
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => onProfileClick?.('partner')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onProfileClick?.('partner');
+              }
+            }}
+            className="relative z-20 cursor-pointer rounded-full transition-transform hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b1a082]"
+          >
+            <Profile who="partner" user={user} loading={userLoading} />
+          </div>
         ) : (
           <InviteButton />
         )}
@@ -85,16 +128,16 @@ export default function ConnectionStatus({ user, userLoading, streak }: Connecti
         <h2 className="text-2xl font-semibold tracking-[-0.03em] md:text-[25px]">
           {coupled ? (
             <>
-              {streak.loading ? '…' : (streak.currentStreak ?? 0)} Hari
-              Terkoneksi
+              {streak.loading ? '…' : (streak.currentStreak ?? 0)}{' '}
+              {t.connection.daysConnected}
             </>
           ) : (
-            'Belum Terkoneksi'
+            t.connection.notConnected
           )}
         </h2>
 
         <p className="mt-2 text-xs font-semibold tracking-[0.16em] text-[#8a5f2d]">
-          SELAMANYA
+          {t.connection.forever}
         </p>
 
         {coupled && (

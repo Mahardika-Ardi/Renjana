@@ -30,7 +30,7 @@ export default function AgendaBanner({ active, completed, total }: AgendaBannerP
         </div>
         <div className="h-8 w-px bg-[#eee4da]" aria-hidden />
         <div className="flex flex-col items-center px-2">
-          <span className="text-xl font-bold text-[#5d6143]">{completed}</span>
+          <span className="text-xl font-bold text-[#919673]">{completed}</span>
           <span className="mt-0.5 text-xs font-medium text-[#82756a]">Selesai</span>
         </div>
         <div className="h-8 w-px bg-[#eee4da]" aria-hidden />
