@@ -9,6 +9,8 @@ import { useMoodToday } from '@/hooks/use-mood-today';
 import { usePartnerMood } from '@/hooks/use-partner-mood';
 import { useMounted } from '@/lib/use-mounted';
 import { avatarSrc } from '@/lib/avatar-revision';
+import { motion } from 'motion/react';
+import { LIFT, tileRise } from '@/lib/constants/home';
 
 const AUTO_SEND_MS = 10_000;
 
@@ -16,17 +18,16 @@ const AUTO_SEND_MS = 10_000;
  * step between neighbors is 40px, so the pop-to-center translation for
  * index i (of 5) is exactly (2 - i) * 40px.
  *
- * Hitbox vs visual split: the wrapper <button> is a stationary hit area
- * (h-24 spans the row slot plus the stage strip above it) carrying all
- * listeners; only the inner <span> transforms. A moving hitbox would
- * leave the cursor behind on pop → mouseleave/mouseenter loop → the
- * hover "shake" — this layout makes enter/leave fire exactly once, and
- * lets the cursor chase the popped emoji without losing the wrapper. */
+ * Resting vs popped contrast: the wrapper <button> stays 32px (tap target
+ * + step math unchanged), but the visual circle inside shrank to h-7/w-7 * with a text-base glyph — a deliberately small flat row along the bottom. * The picked one scales 2.8× (≈45px glyph) as it rises POP_Y into the * card's middle, so the selection is the loud element.
+ *
+ * Hitbox vs visual split: the wrapper <button> is a stationary hit area * (h-24 spans the row slot plus the stage strip above it) carrying all * listeners; only the inner <span> transforms. A moving hitbox would * leave the cursor behind on pop → mouseleave/mouseenter loop → the
+ * hover "shake" — this layout makes enter/leave fire exactly once, and * lets the cursor chase the popped emoji without losing the wrapper. */
 const BTN = 32;
 const GAP = 8;
 const STEP = BTN + GAP;
 const POP_Y = -56;
-const POP_SCALE = 2.05;
+const POP_SCALE = 2.8;
 
 export default function MoodCard() {
   const mounted = useMounted();
@@ -129,7 +130,10 @@ export default function MoodCard() {
   const showPartner = mounted && !partnerLoading && partnerMood != null && partnerItem != null;
 
   return (
-    <div className="relative flex min-h-68.75 flex-col rounded-[30px] bg-[#f1f1f0] p-5">
+    <motion.div
+      {...tileRise(0.2)}
+      className={`relative flex flex-col rounded-[26px] border border-[#efeae2] bg-white p-6 ${LIFT}`}
+    >
       <div className="flex items-start justify-between">
         <div>
           <h3 className="text-xl font-semibold">{t.mood.title}</h3>
@@ -189,7 +193,7 @@ export default function MoodCard() {
                       : undefined
                   }
                   className={[
-                    'flex h-8 w-8 items-center justify-center rounded-full text-2xl leading-none',
+                    'flex h-7 w-7 items-center justify-center rounded-full text-base leading-none',
                     'transition-transform duration-200 ease-out',
                     showHalo ? 'bg-[#e9e6dc] ring-1 ring-[#d8c9a3]' : '',
                   ].join(' ')}
@@ -255,24 +259,28 @@ export default function MoodCard() {
           )}
         </div>
 
-        {/* Partner's mood today — text-free: avatar + emoji, hidden when absent */}
-        {showPartner && partnerItem && partnerMood && (
-          <div
-            className="flex h-6 items-center justify-center gap-2"
-            role="img"
-            aria-label={t.mood.partnerMood}
-          >
-            <Image
-              src={avatarSrc(partnerMood.user?.avatarUrl)}
-              alt=""
-              width={20}
-              height={20}
-              className="h-5 w-5 rounded-full object-cover"
-            />
-            <span className="text-xl leading-none">{partnerItem.emoji}</span>
-          </div>
-        )}
+        {/* Partner's mood today — always visible: avatar + emoji once the * mood exists, a blank outlined circle otherwise (that circle doubles * as the pre-mount/loading state, so server + first client paint match). */}
+        <div
+          className="flex h-6 items-center justify-center gap-2"
+          role="img"
+          aria-label={t.mood.partnerMood}
+        >
+          {showPartner && partnerItem && partnerMood ? (
+            <>
+              <Image
+                src={avatarSrc(partnerMood.user?.avatarUrl)}
+                alt=""
+                width={20}
+                height={20}
+                className="h-5 w-5 rounded-full object-cover"
+              />
+              <span className="text-xl leading-none">{partnerItem.emoji}</span>
+            </>
+          ) : (
+            <span className="h-5 w-5 rounded-full border border-dashed border-[#c9c5bb]" />
+          )}
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

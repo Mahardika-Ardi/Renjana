@@ -5,6 +5,7 @@ import {
   JournalQueryParams,
   JournalResponse,
   ObjectJournalResponse,
+  ObjectPartnerJournalResponse,
   UpdateJournalDto,
 } from '@renjana/types';
 import { api } from './client';
@@ -38,11 +39,13 @@ export const journalApi = {
     if (query?.limit) params.append('limit', String(query.limit));
 
     const queryString = params.toString();
+    // NOTE: this MUST target /partner — building it from JOURNAL_BASE_URL
+    // alone silently returned the caller's own list instead.
     const url = queryString
-      ? `${JOURNAL_BASE_URL}?${queryString}`
-      : JOURNAL_BASE_URL;
+      ? `${JOURNAL_BASE_URL}/partner?${queryString}`
+      : `${JOURNAL_BASE_URL}/partner`;
 
-    return api.get<ApiResponse<ObjectJournalResponse>>(url);
+    return api.get<ApiResponse<ObjectPartnerJournalResponse>>(url);
   },
 
   getById(id: string) {

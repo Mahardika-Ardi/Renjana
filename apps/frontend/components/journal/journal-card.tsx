@@ -9,6 +9,8 @@ interface JournalCardProps {
   entry: JournalResponse;
   active: boolean;
   onSelect: (id: string) => void;
+  /** Partner-owned row → author chip instead of the share-status chip. */
+  author?: { name: string; avatarUrl: string | null } | null;
 }
 
 function tagToneClass(index: number): string {
@@ -21,6 +23,7 @@ export default function JournalCard({
   entry,
   active,
   onSelect,
+  author,
 }: JournalCardProps) {
   const title = splitTitleDisplay(entry.content);
 
@@ -47,21 +50,40 @@ export default function JournalCard({
       )}
 
       <span className="mb-1 flex items-center justify-between text-[11px] text-[#8c7e75]">
-        <span
-          className={`flex items-center gap-1 rounded-full px-1.5 py-0.5 font-medium backdrop-blur ${
-            entry.isShared
-              ? 'bg-[#faebe6]/80 text-[#c96f4a]'
-              : 'bg-white/60 text-[#665c54]'
-          }`}
-        >
-          {entry.isShared ? (
-            <Users className="h-3 w-3" aria-hidden />
-          ) : (
-            <Lock className="h-3 w-3" aria-hidden />
-          )}
-          {entry.isShared ? 'Jurnal Bersama' : 'Privat'}
-        </span>
-        <span>{formatStamp(entry.updatedAt)}</span>
+        {author ? (
+          <span className="flex min-w-0 items-center gap-1 rounded-full bg-[#faebe6]/80 px-1.5 py-0.5 font-medium text-[#c96f4a] backdrop-blur">
+            {author.avatarUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element -- remote
+               * avatar URL, same pattern as every other avatar surface */
+              <img
+                src={author.avatarUrl}
+                alt=""
+                className="h-3.5 w-3.5 shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <span className="grid h-3.5 w-3.5 shrink-0 place-items-center rounded-full bg-[#c96f4a] text-[7px] font-bold text-white">
+                {author.name.slice(0, 1).toUpperCase()}
+              </span>
+            )}
+            <span className="truncate">{author.name}</span>
+          </span>
+        ) : (
+          <span
+            className={`flex items-center gap-1 rounded-full px-1.5 py-0.5 font-medium backdrop-blur ${
+              entry.isShared
+                ? 'bg-[#faebe6]/80 text-[#c96f4a]'
+                : 'bg-white/60 text-[#665c54]'
+            }`}
+          >
+            {entry.isShared ? (
+              <Users className="h-3 w-3" aria-hidden />
+            ) : (
+              <Lock className="h-3 w-3" aria-hidden />
+            )}
+            {entry.isShared ? 'Jurnal Bersama' : 'Privat'}
+          </span>
+        )}
+        <span className="ml-1.5 shrink-0">{formatStamp(entry.updatedAt)}</span>
       </span>
 
       <span
