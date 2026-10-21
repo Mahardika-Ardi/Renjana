@@ -6,6 +6,7 @@ import { consultationApi } from '@/lib/api/consultation';
 import { useLang } from '@/lib/i18n/lang-context';
 import { useMounted } from '@/lib/use-mounted';
 import { useConsultation } from './consultation-i18n';
+import { ChatMarkdown } from './chat-markdown';
 
 const ACTIVE_KEY = 'renjana-consult-active';
 const MAX_LEN = 2000;
@@ -496,13 +497,13 @@ export default function ConsultationWorkspace() {
                   return (
                     <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                       <div
-                        className={`max-w-[85%] whitespace-pre-wrap break-words px-4 py-2.5 text-sm leading-relaxed md:max-w-[70%] ${
+                        className={`max-w-[85%] break-words px-4 py-2.5 text-sm leading-relaxed md:max-w-[70%] ${
                           mine
-                            ? 'rounded-[20px] rounded-br-md bg-[#8a6335] text-white'
+                            ? 'whitespace-pre-wrap rounded-[20px] rounded-br-md bg-[#8a6335] text-white'
                             : 'rounded-[20px] rounded-bl-md border border-[#e7e4dc] bg-white text-[#1d1d1b]'
                         }`}
                       >
-                        {m.content}
+                        {mine ? m.content : <ChatMarkdown content={m.content} />}
                       </div>
                     </div>
                   );

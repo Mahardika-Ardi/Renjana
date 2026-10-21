@@ -11,6 +11,8 @@ interface JournalTopbarProps {
   wordCount: number;
   sentenceCount: number;
   isShared: boolean;
+  /** Partner entry — save/share/delete hidden; print/export stay. */
+  readOnly?: boolean;
   saveState: SaveState;
   canSave: boolean;
   onSave: () => void;
@@ -27,6 +29,7 @@ export default function JournalTopbar({
   wordCount,
   sentenceCount,
   isShared,
+  readOnly = false,
   saveState,
   canSave,
   onSave,
@@ -87,56 +90,62 @@ export default function JournalTopbar({
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
-        <motion.button
-          type="button"
-          onClick={onSave}
-          disabled={!canSave}
-          title={canSave ? 'Simpan perubahan' : 'Tidak ada perubahan'}
-          whileTap={canSave ? { scale: 0.95 } : undefined}
-          className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed ${
-            saveState === 'saving'
-              ? 'border border-[#eedfd5] bg-[#faf6f0]/80 text-[#8c7e75] backdrop-blur disabled:opacity-90'
-              : canSave
-                ? 'bg-[#c96f4a] text-white shadow-[0_6px_18px_-6px_rgba(201,111,74,0.7)] hover:bg-[#b55e39]'
-                : 'border border-[#eedfd5]/70 bg-[#faf6f0]/60 text-[#b3a599] backdrop-blur disabled:opacity-70'
-          }`}
-        >
-          {saveState === 'saving' ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
-          ) : (
-            <Save className="h-3.5 w-3.5" aria-hidden />
-          )}
-          {saveState === 'saving' ? 'Menyimpan' : 'Simpan'}
-          {canSave && (
-            <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden />
-          )}
-        </motion.button>
+        {!readOnly && (
+          <>
+            <motion.button
+              type="button"
+              onClick={onSave}
+              disabled={!canSave}
+              title={canSave ? 'Simpan perubahan' : 'Tidak ada perubahan'}
+              whileTap={canSave ? { scale: 0.95 } : undefined}
+              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed ${
+                saveState === 'saving'
+                  ? 'border border-[#eedfd5] bg-[#faf6f0]/80 text-[#8c7e75] backdrop-blur disabled:opacity-90'
+                  : canSave
+                    ? 'bg-[#c96f4a] text-white shadow-[0_6px_18px_-6px_rgba(201,111,74,0.7)] hover:bg-[#b55e39]'
+                    : 'border border-[#eedfd5]/70 bg-[#faf6f0]/60 text-[#b3a599] backdrop-blur disabled:opacity-70'
+              }`}
+            >
+              {saveState === 'saving' ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
+              ) : (
+                <Save className="h-3.5 w-3.5" aria-hidden />
+              )}
+              {saveState === 'saving' ? 'Menyimpan' : 'Simpan'}
+              {canSave && (
+                <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden />
+              )}
+            </motion.button>
 
-        <SavePill state={saveState} onRetry={onRetrySave} />
+            <SavePill state={saveState} onRetry={onRetrySave} />
+          </>
+        )}
 
-        <motion.button
-          type="button"
-          onClick={onShareClick}
-          whileTap={{ scale: 0.95 }}
-          className={`group hidden items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold backdrop-blur transition sm:flex ${
-            isShared
-              ? 'border-[#c96f4a]/40 bg-[#faebe6]/80 text-[#c96f4a] hover:bg-[#c96f4a] hover:text-white'
-              : 'border-[#eedfd5]/70 bg-[#faf6f0]/60 text-[#2c2523] hover:border-[#c96f4a] hover:bg-[#faebe6]/60'
-          }`}
-        >
-          {isShared ? (
-            <Users className="h-3.5 w-3.5" aria-hidden />
-          ) : (
-            <Lock className="h-3.5 w-3.5" aria-hidden />
-          )}
-          {isShared ? 'Bersama' : 'Privat'}
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${
-              isShared ? 'bg-emerald-500' : 'bg-amber-500/80'
+        {!readOnly && (
+          <motion.button
+            type="button"
+            onClick={onShareClick}
+            whileTap={{ scale: 0.95 }}
+            className={`group hidden items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold backdrop-blur transition sm:flex ${
+              isShared
+                ? 'border-[#c96f4a]/40 bg-[#faebe6]/80 text-[#c96f4a] hover:bg-[#c96f4a] hover:text-white'
+                : 'border-[#eedfd5]/70 bg-[#faf6f0]/60 text-[#2c2523] hover:border-[#c96f4a] hover:bg-[#faebe6]/60'
             }`}
-            aria-hidden
-          />
-        </motion.button>
+          >
+            {isShared ? (
+              <Users className="h-3.5 w-3.5" aria-hidden />
+            ) : (
+              <Lock className="h-3.5 w-3.5" aria-hidden />
+            )}
+            {isShared ? 'Bersama' : 'Privat'}
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                isShared ? 'bg-emerald-500' : 'bg-amber-500/80'
+              }`}
+              aria-hidden
+            />
+          </motion.button>
+        )}
 
         <div className="relative" ref={menuRef}>
           <motion.button
@@ -161,23 +170,27 @@ export default function JournalTopbar({
                 transition={{ duration: 0.18, ease: EASE_SMOOTH }}
                 className="absolute right-0 mt-2 w-56 origin-top-right rounded-2xl border border-white/50 bg-[#fdfbf9]/95 py-2 shadow-[0_16px_40px_-6px_rgba(110,80,65,0.18),0_4px_16px_rgba(0,0,0,0.05)] backdrop-blur-xl"
               >
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onShareClick();
-                  }}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs text-[#2c2523] transition hover:bg-[#f5efe6] sm:hidden"
-                >
-                  {isShared ? (
-                    <Users className="h-4 w-4 text-[#c96f4a]" aria-hidden />
-                  ) : (
-                    <Lock className="h-4 w-4 text-[#c96f4a]" aria-hidden />
-                  )}
-                  {isShared ? 'Bersama' : 'Privat'}
-                </button>
-                <div className="my-1.5 border-t border-[#eedfd5]/70 sm:hidden" />
+                {!readOnly && (
+                  <>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onShareClick();
+                      }}
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs text-[#2c2523] transition hover:bg-[#f5efe6] sm:hidden"
+                    >
+                      {isShared ? (
+                        <Users className="h-4 w-4 text-[#c96f4a]" aria-hidden />
+                      ) : (
+                        <Lock className="h-4 w-4 text-[#c96f4a]" aria-hidden />
+                      )}
+                      {isShared ? 'Bersama' : 'Privat'}
+                    </button>
+                    <div className="my-1.5 border-t border-[#eedfd5]/70 sm:hidden" />
+                  </>
+                )}
                 <button
                   type="button"
                   role="menuitem"
@@ -202,19 +215,23 @@ export default function JournalTopbar({
                   <FileDown className="h-4 w-4 text-[#c96f4a]" aria-hidden />
                   Unduh Markdown (.md)
                 </button>
-                <div className="my-1.5 border-t border-[#eedfd5]/70" />
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onDeleteClick();
-                  }}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs text-red-600 transition hover:bg-red-50"
-                >
-                  <Trash2 className="h-4 w-4 text-red-500" aria-hidden />
-                  Hapus jurnal
-                </button>
+                {!readOnly && (
+                  <>
+                    <div className="my-1.5 border-t border-[#eedfd5]/70" />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onDeleteClick();
+                      }}
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs text-red-600 transition hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" aria-hidden />
+                      Hapus jurnal
+                    </button>
+                  </>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import ConnectionStatus from '@/components/home/connection-status';
+import { MotionConfig } from 'motion/react';
+import { CoupleHero } from '@/components/home/connection-status';
 import HomeGreeting from '@/components/home/home-greeting';
 import MoodCard from '@/components/home/mood-card';
 import LatestEntryCard from '@/components/home/latest-entry-card';
@@ -17,6 +18,7 @@ import AiFab from '@/components/ui/ai-fab';
 import { useHome } from '@/components/home/home-i18n';
 import { useGetUserProfile } from '@/hooks/auth/get-user-profile';
 import { useStreak } from '@/hooks/note/use-streak';
+import { PAPER } from '@/lib/constants/home';
 
 export default function HomeContent() {
   const t = useHome();
@@ -57,53 +59,68 @@ export default function HomeContent() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-250 px-6 py-8 md:px-10 md:py-10">
-      <LangSwitcher />
-      <HomeGreeting user={user} userLoading={userLoading} />
+    <div className={PAPER}>
+      <div className="mx-auto w-full max-w-250 px-6 py-8 md:px-10 md:py-10">
+        <LangSwitcher />
 
-      <ConnectionStatus
-        user={user}
-        userLoading={userLoading}
-        streak={streak}
-        onProfileClick={setProfileModal}
-      />
+        {/* One bento grid — rows are [greeting | couple hero],
+            [mood | dump] (nested row: fixed 288px mood column so it reads
+            square against the dump's height), [journal | focus]. Each tile
+            is a grid item, so it stretches to its row's height;
+            MotionConfig keeps the stagger entrances opacity-only for
+            reduced-motion users. */}
+        <MotionConfig reducedMotion="user">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <HomeGreeting
+              user={user}
+              userLoading={userLoading}
+              streak={streak}
+            />
+            <CoupleHero
+              user={user}
+              userLoading={userLoading}
+              streak={streak}
+              onProfileClick={setProfileModal}
+            />
+            <RhythmsHeader />
 
-      <RhythmsHeader />
+            <div className="grid grid-cols-1 gap-4 sm:col-span-2 lg:col-span-4 lg:grid-cols-[288px_minmax(0,1fr)]">
+              <MoodCard />
+              <EmotionDumpCard />
+            </div>
 
-      <section className="grid grid-cols-1 gap-5 md:grid-cols-[235px_1fr]">
-        <MoodCard />
-        <EmotionDumpCard />
-      </section>
+            <LatestEntryCard />
+            <SharedFocusCard
+              partnerName={user?.couple?.partnerName ?? null}
+            />
+          </div>
+        </MotionConfig>
 
-      <section className="mt-16 grid grid-cols-1 gap-5 md:grid-cols-[1.55fr_1fr]">
-        <LatestEntryCard />
-        <SharedFocusCard />
-      </section>
+        {inviteToken && (
+          <InviteAcceptDialog
+            key={inviteToken}
+            token={inviteToken}
+            onAccepted={() => {
+              void handleInviteAccepted();
+            }}
+            onDismiss={stripInviteParam}
+          />
+        )}
 
-      {inviteToken && (
-        <InviteAcceptDialog
-          key={inviteToken}
-          token={inviteToken}
-          onAccepted={() => {
-            void handleInviteAccepted();
-          }}
-          onDismiss={stripInviteParam}
-        />
-      )}
+        {profileModal && (
+          <ProfileModal
+            key={profileModal}
+            user={user}
+            who={profileModal}
+            onClose={() => setProfileModal(null)}
+            onAvatarChange={refresh}
+          />
+        )}
 
-      {profileModal && (
-        <ProfileModal
-          key={profileModal}
-          user={user}
-          who={profileModal}
-          onClose={() => setProfileModal(null)}
-          onAvatarChange={refresh}
-        />
-      )}
+        <JournalToast message={toast} />
 
-      <JournalToast message={toast} />
-
-      <AiFab label={t.fab.ai} />
+        <AiFab label={t.fab.ai} />
+      </div>
     </div>
   );
 }

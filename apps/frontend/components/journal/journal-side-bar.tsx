@@ -22,6 +22,13 @@ interface SidebarProps {
   creating: boolean;
   search: string;
   filter: ShelfFilter;
+  /** Partner-owned rows → author chip (null for your own entries). */
+  getAuthor?: (entry: JournalResponse) => {
+    name: string;
+    avatarUrl: string | null;
+  } | null;
+  /** Overrides the default "no match" copy (e.g. shared-timeline states). */
+  emptyText?: string;
   onSearchChange: (value: string) => void;
   onFilterChange: (value: ShelfFilter) => void;
   onSelect: (id: string) => void;
@@ -37,6 +44,8 @@ export default function JournalSidebar({
   creating,
   search,
   filter,
+  getAuthor,
+  emptyText,
   onSearchChange,
   onFilterChange,
   onSelect,
@@ -150,6 +159,7 @@ export default function JournalSidebar({
                     entry={entry}
                     active={entry.id === selectedId}
                     onSelect={onSelect}
+                    author={getAuthor?.(entry)}
                   />
                 </motion.div>
               ))}
@@ -158,7 +168,7 @@ export default function JournalSidebar({
 
         {!loading && journals.length === 0 && (
           <p className="px-2 py-8 text-center text-xs leading-relaxed text-[#8c7e75]">
-            Tidak ada jurnal yang cocok dengan pencarian ini.
+            {emptyText ?? 'Tidak ada jurnal yang cocok dengan pencarian ini.'}
           </p>
         )}
       </div>

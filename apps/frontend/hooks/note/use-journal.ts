@@ -15,11 +15,40 @@ import {
   ShelfFilter,
   type SaveState,
 } from '@/lib/constants/journal';
-import { JournalResponse } from '@renjana/types';
+import {
+  JournalResponse,
+  ObjectPartnerJournalResponse,
+  PartnerJournalEntry,
+} from '@renjana/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 function toEntryDate(date = new Date()): string {
   return date.toISOString().slice(0, 10);
+}
+
+/** Cached partner feed snapshot (`notConnected` mirrors the backend message). */
+interface PartnerFeed {
+  items: PartnerJournalEntry[];
+  notConnected: boolean;
+}
+
+/**
+ * Partner entry → the shared JournalResponse shape so cards/editor/export
+ * keep working unchanged. The feed already carries full content (detail
+ * GET would 403), so no per-id fetch ever happens; the partner payload has
+ * no updatedAt — createdAt is the honest stand-in.
+ */
+function toJournalView(entry: PartnerJournalEntry): JournalResponse {
+  return {
+    id: entry.id,
+    userId: entry.user.id,
+    content: entry.content,
+    tags: entry.tags ?? [],
+    entryDate: entry.entryDate,
+    isShared: true,
+    createdAt: entry.createdAt,
+    updatedAt: entry.createdAt,
+  };
 }
 
 function toErrorMessage(err: unknown, fallback: string): string {
@@ -44,6 +73,22 @@ export function useJournal(initialItems: JournalResponse[] = []) {
 
   const [search, setSearch] = useState<string>('');
   const [filter, setFilter] = useState<ShelfFilter>('semua');
+
+  // Partner shared feed ("Jurnal Bersama" couple timeline). null = not
+  // fetched yet — only requested on first Bersama visit.
+  const [partnerItems, setPartnerItems] = useState<PartnerJournalEntry[] | null>(
+    null,
+  );
+  const [partnerNotConnected, setPartnerNotConnected] = useState(false);
+  const [partnerLoading, setPartnerLoading] = useState(false);
+
+  // Read-only mode: a selected partner entry is never edited, saved,
+  // shared, or deleted from this device.
+  const [readOnly, setReadOnly] = useState(false);
+  const [selectedAuthor, setSelectedAuthor] = useState<{
+    name: string;
+    avatarUrl: string | null;
+  } | null>(null);
 
   const [content, setContentState] = useState<string>(initialItems[0]?.content ?? '');
   const [tags, setTagsState] = useState<string[]>(initialItems[0]?.tags ?? []);
@@ -123,6 +168,62 @@ export function useJournal(initialItems: JournalResponse[] = []) {
     };
   }, [hasInitial]);
 
+  // Partner shared feed — lazily fetched on first visit to a merged view
+  // (Semua / Jurnal Bersama; Privat never shows partner entries).
+  // Cache-first (instant revisits), background revalidate when stale: our
+  // own mutations never touch this feed, and the partner's share/unshare
+  // from their device lands via the TTL — same cross-device staleness
+  // contract as the other journal snapshots.
+  useEffect(() => {
+    if (filter === 'privat') return;
+
+    let ignore = false;
+
+    const apply = (feed: PartnerFeed) => {
+      setPartnerItems(feed.items);
+      setPartnerNotConnected(feed.notConnected);
+    };
+
+    const load = async () => {
+      const cached = cacheGet<PartnerFeed>(cacheKeys.journalPartner);
+      if (cached) {
+        if (ignore) return;
+        apply(cached.value);
+        setPartnerLoading(false);
+        if (cached.fresh) return;
+      } else if (!ignore) {
+        setPartnerLoading(true);
+      }
+
+      try {
+        const res = await journalApi.getAllPartner({ page: '1', limit: '50' });
+        if (ignore) return;
+        const body = res.data as unknown as ObjectPartnerJournalResponse;
+        const feed: PartnerFeed = {
+          items: body.items ?? [],
+          notConnected: Boolean(body.message),
+        };
+        cacheSet(cacheKeys.journalPartner, feed, CACHE_TTL.JOURNAL_PARTNER);
+        apply(feed);
+      } catch (err) {
+        if (!ignore) {
+          // Nothing usable: empty state instead of an endless skeleton —
+          // nothing was cached, so the next Bersama visit retries.
+          setPartnerItems((prev) => prev ?? []);
+          setError(toErrorMessage(err, 'Gagal memuat jurnal pasangan.'));
+        }
+      } finally {
+        if (!ignore) setPartnerLoading(false);
+      }
+    };
+
+    void load();
+
+    return () => {
+      ignore = true;
+    };
+  }, [filter]);
+
   const refetch = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -142,6 +243,27 @@ export function useJournal(initialItems: JournalResponse[] = []) {
     async (id: string) => {
       if (id === selectedId) return;
       setSelectedId(id);
+      // Partner entry: read-only straight from the list payload —
+      // GET /journal/:id would 403 on someone else's entry.
+      const partner = (partnerItems ?? []).find((entry) => entry.id === id);
+      if (partner) {
+        const view = toJournalView(partner);
+        setSelected(view);
+        setContentState(view.content);
+        setTagsState(view.tags);
+        lastSavedRef.current = { content: view.content, tags: [...view.tags] };
+        setSaveState('idle');
+        setReadOnly(true);
+        setSelectedAuthor({
+          name: partner.user.name,
+          avatarUrl: partner.user.avatarUrl,
+        });
+        setDetailLoading(false);
+        return;
+      }
+
+      setReadOnly(false);
+      setSelectedAuthor(null);
       const cached = items.find((item) => item.id === id);
       if (cached) {
         setSelected(cached);
@@ -203,11 +325,12 @@ export function useJournal(initialItems: JournalResponse[] = []) {
         if (selectedIdRef.current === id) setDetailLoading(false);
       }
     },
-    [items, selectedId],
+    [items, selectedId, partnerItems],
   );
 
   const persist = useCallback(
     async (id: string, nextContent: string, nextTags: string[]) => {
+      if (readOnly) return false;
       if (persistingRef.current) return false;
       persistingRef.current = true;
       setSaveState('saving');
@@ -233,7 +356,7 @@ export function useJournal(initialItems: JournalResponse[] = []) {
         persistingRef.current = false;
       }
     },
-    [],
+    [readOnly],
   );
 
   const snapshotMatches = useCallback(
@@ -251,6 +374,7 @@ export function useJournal(initialItems: JournalResponse[] = []) {
 
   /* Explicit save: one PATCH per call, never overlapping, no-op when clean. */
   const save = useCallback(async () => {
+    if (readOnly) return false;
     if (!selectedId) return false;
     if (persistingRef.current) return false;
     if (snapshotMatches(content, tags)) {
@@ -258,7 +382,7 @@ export function useJournal(initialItems: JournalResponse[] = []) {
       return true;
     }
     return persist(selectedId, content, tags);
-  }, [persist, snapshotMatches, selectedId, content, tags]);
+  }, [persist, snapshotMatches, readOnly, selectedId, content, tags]);
 
   useEffect(() => {
     saveRef.current = save;
@@ -335,6 +459,11 @@ export function useJournal(initialItems: JournalResponse[] = []) {
         content: entry.content ?? '',
         tags: entry.tags ?? [],
       };
+      // A fresh entry starts private — leave the shared timeline so the
+      // user actually sees what they just created, and drop read-only.
+      setReadOnly(false);
+      setSelectedAuthor(null);
+      setFilter((prev) => (prev === 'bersama' ? 'semua' : prev));
       // New first item: list/latest snapshots are stale.
       invalidateJournals();
       setSaveState('idle');
@@ -350,6 +479,7 @@ export function useJournal(initialItems: JournalResponse[] = []) {
   /* ---------------- Delete ---------------- */
   const remove = useCallback(
     async (id: string) => {
+      if (readOnly) return false;
       setDeleting(true);
       try {
         await journalApi.delete(id);
@@ -375,13 +505,13 @@ export function useJournal(initialItems: JournalResponse[] = []) {
         setDeleting(false);
       }
     },
-    [items, selectedId],
+    [items, selectedId, readOnly],
   );
 
   /* ---------------- Share toggle (own journals only) ---------------- */
   const toggleShare = useCallback(async () => {
     const target = selected;
-    if (!target) return false;
+    if (!target || readOnly) return false;
     setSharing(true);
     try {
       const res = await journalApi.update({ isShared: !target.isShared }, target.id);
@@ -397,21 +527,45 @@ export function useJournal(initialItems: JournalResponse[] = []) {
     } finally {
       setSharing(false);
     }
-  }, [selected]);
+  }, [selected, readOnly]);
 
   /* ---------------- Derived: search + filter ---------------- */
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return items.filter((entry) => {
-      if (filter === 'bersama' && !entry.isShared) return false;
-      if (filter === 'privat' && entry.isShared) return false;
+
+    // Semua = everything I own (private + shared) merged with the
+    // partner's shared entries; Jurnal Bersama = the shared timeline
+    // only; Privat = my non-shared entries only. Both merged views are
+    // sorted newest entryDate first.
+    const base =
+      filter === 'privat'
+        ? items.filter((entry) => !entry.isShared)
+        : [
+            ...items.filter(
+              (entry) => filter !== 'bersama' || entry.isShared,
+            ),
+            ...(partnerItems ?? []).map(toJournalView),
+          ].sort(
+            (a, b) =>
+              b.entryDate.localeCompare(a.entryDate) ||
+              b.createdAt.localeCompare(a.createdAt),
+          );
+
+    return base.filter((entry) => {
       if (!query) return true;
       const title = splitTitleDisplay(entry.content ?? '');
       const body = splitBody(entry.content ?? '');
       const haystack = `${title} ${body} ${(entry.tags ?? []).join(' ')}`.toLowerCase();
       return haystack.includes(query);
     });
-  }, [items, search, filter]);
+  }, [items, search, filter, partnerItems]);
+
+  /** Author chip identity for partner-owned rows; null for your own. */
+  const authorOf = useCallback(
+    (entry: JournalResponse) =>
+      partnerItems?.find((p) => p.id === entry.id)?.user ?? null,
+    [partnerItems],
+  );
 
   const selectedTitle = useMemo(
     () => splitTitleDisplay(selected?.content ?? ''),
@@ -445,6 +599,11 @@ export function useJournal(initialItems: JournalResponse[] = []) {
     sharing,
     saveState,
     error,
+    readOnly,
+    selectedAuthor,
+    partnerLoading,
+    partnerNotConnected,
+    authorOf,
     wordCount,
     sentenceCount,
     setSearch,

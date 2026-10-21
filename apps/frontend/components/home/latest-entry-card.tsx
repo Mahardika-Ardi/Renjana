@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { motion } from 'motion/react';
 import { journalApi } from '@/lib/api/journal';
 import { CACHE_TTL, cacheKeys } from '@/lib/api/cache';
 import { useCachedResource } from '@/hooks/use-cached-resource';
@@ -10,6 +11,7 @@ import { useHome } from '@/components/home/home-i18n';
 import { JournalResponse } from '@renjana/types';
 import { previewOf, splitTitleDisplay } from '@/lib/journal-content';
 import { formatShortDate } from '@renjana/utils';
+import { TILE, tileRise } from '@/lib/constants/home';
 
 function BookIcon() {
   return (
@@ -27,6 +29,12 @@ function BookIcon() {
     </svg>
   );
 }
+
+/* Bento shell: white paper + hairline border (was a gray #f0efed slab) so
+ * it sits in the same card system as the rest of the grid. All three
+ * state branches share `motion.article` + the same rise so switching
+ * skeleton → content never remounts (and never replays) the entrance.
+ * The three roots are the grid children of the home bento. */
 
 export default function LatestEntryCard() {
   const mounted = useMounted();
@@ -54,14 +62,15 @@ export default function LatestEntryCard() {
   // data must not leak into the first client paint (hydration mismatch).
   if (!mounted || loading) {
     return (
-      <article
+      <motion.article
+        {...tileRise(0.32)}
         aria-busy="true"
         aria-label={t.entry.loading}
-        className="min-h-72.5 rounded-[30px] bg-[#f0efed] p-7 md:p-8"
+        className={`${TILE} min-h-72.5 sm:col-span-2`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f5f1ea]">
               <BookIcon />
             </div>
             <div className="h-5 w-28 animate-pulse rounded-full bg-[#e2ded8] motion-reduce:animate-none" />
@@ -73,20 +82,23 @@ export default function LatestEntryCard() {
           <div className="h-4 w-11/12 animate-pulse rounded-full bg-[#e2ded8] motion-reduce:animate-none" />
           <div className="h-4 w-3/4 animate-pulse rounded-full bg-[#e2ded8] motion-reduce:animate-none" />
         </div>
-        <div className="mt-7 flex items-end justify-between border-t border-[#d7d4ce] pt-5">
+        <div className="mt-7 flex items-end justify-between border-t border-[#eeeae3] pt-5">
           <div className="h-6 w-32 animate-pulse rounded-full bg-[#e2ded8] motion-reduce:animate-none" />
           <div className="h-4 w-24 animate-pulse rounded-full bg-[#e2ded8] motion-reduce:animate-none" />
         </div>
-      </article>
+      </motion.article>
     );
   }
 
   if (!entry || failed) {
     return (
-      <article className="flex min-h-72.5 flex-col rounded-[30px] bg-[#f0efed] p-7 md:p-8">
+      <motion.article
+        {...tileRise(0.32)}
+        className={`${TILE} min-h-72.5 sm:col-span-2`}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f5f1ea]">
               <BookIcon />
             </div>
             <h3 className="text-xl font-semibold">{t.entry.title}</h3>
@@ -95,24 +107,27 @@ export default function LatestEntryCard() {
         <p className="mt-7 flex-1 text-[15px] leading-6 text-[#242420]">
           {failed ? t.entry.failed : t.entry.empty}
         </p>
-        <div className="mt-7 flex items-end justify-end border-t border-[#d7d4ce] pt-5">
+        <div className="mt-7 flex items-end justify-end border-t border-[#eeeae3] pt-5">
           <Link href="/note/journal">
             <span className="text-xs font-semibold tracking-wide text-[#825a2e]">
               {failed ? t.entry.retry : t.entry.startWriting}
             </span>
           </Link>
         </div>
-      </article>
+      </motion.article>
     );
   }
 
   const title = splitTitleDisplay(entry.content) || t.entry.untitled;
 
   return (
-    <article className="min-h-72.5 rounded-[30px] bg-[#f0efed] p-7 md:p-8">
+    <motion.article
+      {...tileRise(0.32)}
+      className={`${TILE} min-h-72.5 sm:col-span-2`}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f5f1ea]">
             <BookIcon />
           </div>
           <h3 className="text-xl font-semibold">{t.entry.title}</h3>
@@ -131,19 +146,19 @@ export default function LatestEntryCard() {
         </p>
       </div>
 
-      <div className="mt-7 flex items-end justify-between border-t border-[#d7d4ce] pt-5">
+      <div className="mt-7 flex items-end justify-between border-t border-[#eeeae3] pt-5">
         <div className="flex gap-2">
           {entry.tags.length > 0 ? (
             entry.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-white px-3 py-1 text-[10px] text-[#55544e]"
+                className="rounded-full bg-[#f5f1ea] px-3 py-1 text-[10px] text-[#55544e]"
               >
                 #{tag}
               </span>
             ))
           ) : (
-            <span className="rounded-full bg-white px-3 py-1 text-[10px] text-[#55544e]">
+            <span className="rounded-full bg-[#f5f1ea] px-3 py-1 text-[10px] text-[#55544e]">
               #journal
             </span>
           )}
@@ -155,6 +170,6 @@ export default function LatestEntryCard() {
           </span>
         </Link>
       </div>
-    </article>
+    </motion.article>
   );
 }

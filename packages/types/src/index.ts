@@ -139,13 +139,43 @@ export interface JournalResponse {
 }
 
 export interface ObjectJournalResponse {
-  items: [JournalResponse];
+  items: JournalResponse[];
   meta: {
     page: number;
     limit: number;
     total: number;
     totalPages: number;
   };
+}
+
+// ---- Partner shared journal feed (GET /journal/partner) ---------------
+
+export interface PartnerJournalUser {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+}
+
+/** One partner-owned entry the couple can both read (isShared: true). */
+export interface PartnerJournalEntry {
+  id: string;
+  content: string;
+  tags: string[];
+  entryDate: string;
+  createdAt: string;
+  user: PartnerJournalUser;
+}
+
+export interface ObjectPartnerJournalResponse {
+  items: PartnerJournalEntry[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  /** Present only when the caller has no active couple. */
+  message?: string;
 }
 
 export interface DeletedResponse {

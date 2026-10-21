@@ -49,6 +49,16 @@ export default function JournalWorkspace({ initialItems = [] }: JournalWorkspace
   const isShared = journal.selected?.isShared ?? false;
   const title = journal.selected ? journal.selectedTitle || UNTITLED : UNTITLED;
 
+  // Shelf empty-state copy: shared-timeline states read differently from
+  // a plain search miss. undefined → sidebar default.
+  const shelfEmptyText = journal.search.trim()
+    ? undefined
+    : journal.filter === 'bersama'
+      ? journal.partnerNotConnected
+        ? 'Kamu belum terhubung dengan pasangan.'
+        : 'Belum ada jurnal bersama di linimasa ini.'
+      : undefined;
+
   const handleCreate = async () => {
     const entry = await journal.create();
     if (entry) triggerToast('Jurnal baru siap ditulis');
@@ -139,6 +149,7 @@ export default function JournalWorkspace({ initialItems = [] }: JournalWorkspace
         wordCount={journal.wordCount}
         sentenceCount={journal.sentenceCount}
         isShared={isShared}
+        readOnly={journal.readOnly}
         saveState={journal.saveState}
         canSave={journal.isDirty}
         onSave={handleSave}
@@ -184,10 +195,15 @@ export default function JournalWorkspace({ initialItems = [] }: JournalWorkspace
           open={sidebarOpen}
           journals={journal.filtered}
           selectedId={journal.selectedId}
-          loading={journal.loading}
+          loading={
+            journal.loading ||
+            (journal.filter !== 'privat' && journal.partnerLoading)
+          }
           creating={journal.creating}
           search={journal.search}
           filter={journal.filter}
+          getAuthor={journal.authorOf}
+          emptyText={shelfEmptyText}
           onSearchChange={journal.setSearch}
           onFilterChange={journal.setFilter}
           onSelect={handleSelect}
@@ -204,6 +220,8 @@ export default function JournalWorkspace({ initialItems = [] }: JournalWorkspace
             content={journal.content}
             tags={journal.tags}
             detailLoading={journal.detailLoading}
+            readOnly={journal.readOnly}
+            author={journal.readOnly ? journal.selectedAuthor : null}
             onContentChange={journal.setContent}
             onTagsChange={journal.setTags}
           />

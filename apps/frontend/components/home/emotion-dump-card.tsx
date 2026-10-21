@@ -12,6 +12,8 @@ import { useLang } from '@/lib/i18n/lang-context';
 import { useMounted } from '@/lib/use-mounted';
 import { useHome } from '@/components/home/home-i18n';
 import { PlayIcon } from './home-icons';
+import { motion } from 'motion/react';
+import { LIFT, tileRise } from '@/lib/constants/home';
 import { formatShortDate } from '@renjana/utils';
 import { dayToken, mondayIndex, serverDayKey, todayParts } from '@/lib/day-key';
 
@@ -102,7 +104,7 @@ export default function EmotionDumpCard() {
     let ignore = false;
     (async () => {
       try {
-        const res = await emotionDumpApi.partner(1, 20);
+        const res = await emotionDumpApi.partner(1, 1);
         if (!ignore) {
           setPartnerItems(res.data?.items ?? []);
           // Only the uncoupled path carries a message (coupled returns {items, meta}).
@@ -198,7 +200,10 @@ export default function EmotionDumpCard() {
   const locale = lang === 'id' ? 'id-ID' : 'en-US';
 
   return (
-    <div className="relative min-h-68.75 overflow-hidden rounded-[30px] bg-[#686854]">
+    <motion.div
+      {...tileRise(0.26)}
+      className={`relative min-h-68.75 overflow-hidden rounded-[26px] bg-[#686854] ${LIFT}`}
+    >
       {/* Background image (original Stillness treatment) */}
       <div
         className="absolute inset-0 bg-cover bg-center"
@@ -336,7 +341,9 @@ export default function EmotionDumpCard() {
                     {t.dump.empty}
                   </p>
                 ) : (
-                  dumps.slice(0, 8).map((d) => {
+                  // Latest dump only — the tile must stay bounded (no long
+                  // scroll); the full history lives behind ▷ on /calendar.
+                  dumps.slice(0, 1).map((d) => {
                     const showingRefined = d.status !== 'PRIVATE';
                     const expanded = expandedId === d.id;
                     const main = showingRefined
@@ -411,7 +418,8 @@ export default function EmotionDumpCard() {
             </p>
           ) : (
             <div className="max-h-36 space-y-2 overflow-y-auto pr-0.5">
-              {partnerItems.slice(0, 8).map((p) => (
+              {/* Latest shared dump only — same bounded-tile rule as mine. */}
+              {partnerItems.slice(0, 1).map((p) => (
                 <div key={p.id} className="rounded-2xl bg-white/10 p-3 backdrop-blur-sm">
                   <div className="flex items-center gap-2">
                     <Avatar name={p.user.name} src={p.user.avatarUrl} />
@@ -475,6 +483,6 @@ export default function EmotionDumpCard() {
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

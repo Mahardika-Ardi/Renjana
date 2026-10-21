@@ -4,7 +4,7 @@ import { FOCUS_RING } from '@/lib/constants/journal';
 import { X, Tag } from 'lucide-react';
 import { useState } from 'react';
 
-function tagToneClass(index: number): string {
+export function tagToneClass(index: number): string {
   return index % 2 === 0
     ? 'bg-[#faebe6] text-[#c96f4a]'
     : 'bg-[#f4ebe1] text-[#7d6756]';
