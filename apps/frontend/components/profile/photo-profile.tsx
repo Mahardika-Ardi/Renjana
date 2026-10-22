@@ -40,7 +40,7 @@ export default function Profile({ who = 'me', user: userProp, loading: loadingPr
     : (name ?? (isPartner ? t.profile.notConnected : ''));
 
   return (
-    <div className="relative z-20 flex flex-col items-center">
+    <div className="flex flex-col items-center">
       <div className="h-16.5 w-16.5 overflow-hidden rounded-full border-[3px] border-[#b1a082] bg-[#ddd] shadow-sm md:h-18 md:w-18">
         <Image
           src={avatarSrc(shownAvatar)}
@@ -51,7 +51,7 @@ export default function Profile({ who = 'me', user: userProp, loading: loadingPr
         />
       </div>
 
-      <span className="mt-3 text-sm text-[#4f4b43]">
+      <span className="mt-3 w-full truncate text-center text-sm text-[#4f4b43]">
         {shownName}
       </span>
     </div>
